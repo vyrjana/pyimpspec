@@ -33,7 +33,7 @@ An extended CDC syntax, which makes it possible to define e.g. initial values, i
 Several file formats are supported by _pyimpspec_ and the data within is used to generate a `DataSet` object.
 The file formats include:
 - Files containing the data as character-separate values (CSV).
-- Spreadsheets (`.xls`, `.xlsx`, `.odf`).
+- Spreadsheets (`.xls`, `.xlsx`, `.ods`).
 - Ivium data files (`.idf`, `.ids`).
 - Gamry data files (`.dta`).
 
@@ -81,7 +81,7 @@ The only backend that is currently supported is _matplotlib_.
 
 ## Contributors
 
-See [CONTRIBUTORS](./CONTRIBUTORS) for a list of people who have contributed to the *pyimpspec* project.
+See [CONTRIBUTORS](./CONTRIBUTORS) for a list of people who have contributed to the _pyimpspec_ project.
 
 
 ## License
