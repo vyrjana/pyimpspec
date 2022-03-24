@@ -26,7 +26,6 @@ def is_spreadsheet(path: str = "", extension: str = "") -> bool:
         ".xls",
         ".xlsx",
         ".ods",
-        ".fods",
     ]
 
 
@@ -81,12 +80,17 @@ def parse_data(
                 ".xls": parse_spreadsheet,
                 ".xlsx": parse_spreadsheet,
                 ".ods": parse_spreadsheet,
-                ".fods": parse_spreadsheet,
                 ".dta": parse_dta,
             }.get(fmt)
             if func is None:
                 raise UnsupportedFileFormat(f"Unsupported file format: {fmt}")
-            data = func(path, **kwargs)
+            if fmt == ".csv":
+                try:
+                    data = func(path, **kwargs)
+                except AssertionError:
+                    data = func(path, sep=None, decimal=",", **kwargs)
+            else:
+                data = func(path, **kwargs)
             if type(data) is list:
                 datasets.extend(data)
             else:
@@ -94,6 +98,7 @@ def parse_data(
     else:
         parsers: List[Callable] = [
             parse_csv,
+            lambda _, **kwargs: parse_csv(_, sep=None, decimal=",", **kwargs),
             parse_ids,
             parse_spreadsheet,
             parse_dta,

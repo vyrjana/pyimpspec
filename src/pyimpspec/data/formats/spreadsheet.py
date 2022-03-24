@@ -9,20 +9,14 @@ from pandas import read_excel, DataFrame
 from typing import Dict, List
 
 
-def parse_spreadsheet(path: str, sheets: List[str] = []) -> List[DataSet]:
+def parse_spreadsheet(path: str, **kwargs) -> List[DataSet]:
     assert type(path) is str and exists(path)
-    assert type(sheets) is list and all(map(lambda _: type(_) is str, sheets))
-    dataframes: Dict[str, DataFrame] = {}
     datasets: List[DataSet] = []
-    if sheets:
-        assert all(map(lambda _: type(_) is str, sheets))
-        dataframes = read_excel(path, sheet_name=sheets)
-        assert len(dataframes) == len(sheets)
-    else:
-        dataframes = read_excel(path, sheet_name=None)
+    if "sheet_name" not in kwargs:
+        kwargs["sheet_name"] = None
     label: str
     df: DataFrame
-    for label, df in dataframes.items():
+    for label, df in read_excel(path, **kwargs).items():
         datasets.append(dataframe_to_dataset(df, path, label))
     assert type(datasets) is list
     assert all(map(lambda _: type(_) is DataSet, datasets))

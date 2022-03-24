@@ -9,16 +9,10 @@ from pyimpspec.data.dataset import DataSet, dataframe_to_dataset
 from pandas import read_csv, DataFrame
 
 
-def parse_csv(
-    path: str, separator: Optional[str] = None, decimal_comma: bool = False
-) -> DataSet:
+def parse_csv(path: str, **kwargs) -> DataSet:
     """
     Parse a file containing data as character-separated values.
     """
     assert type(path) is str and exists(path)
-    assert type(separator) is str or separator is None
-    assert type(decimal_comma) is bool
-    df: DataFrame = read_csv(
-        path, sep=separator, engine="python", decimal="," if decimal_comma else "."
-    )
+    df: DataFrame = read_csv(path, engine="python", **kwargs)
     return dataframe_to_dataset(df, path=path)

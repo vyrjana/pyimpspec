@@ -4,11 +4,11 @@
 # the LICENSES folder.
 
 import cmath
-from math import degrees
+from math import degrees, pi
 from collections import OrderedDict
 from os.path import basename, splitext
 from typing import Callable, Dict, List, Optional, Tuple, Union
-from numpy import allclose, array, log10 as log, mean, ndarray, angle
+from numpy import allclose, angle, array, log10 as log, mean, ndarray, radians
 from pandas import DataFrame
 from uuid import uuid4
 
@@ -155,6 +155,10 @@ class DataSet:
         str
         """
         return self._path
+
+    def set_path(self, path: str):
+        assert type(path) is str
+        self._path = path
 
     def get_label(self) -> str:
         """
@@ -474,10 +478,10 @@ def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
     column_names: OrderedDict[str, List[str]] = OrderedDict(
         {
             "frequency": ["frequency", "freq", "f"],
-            "imaginary": ["z''", "z_im", "zim", "imaginary", "imag", "im"],
+            "imaginary": ["z\"", "z''", "z_im", "zim", "imaginary", "imag", "im"],
             "real": ["z'", "z_re", "zre", "real", "re"],
             "magnitude": ["|z|", "z", "magnitude", "modulus", "mag", "mod"],
-            "phase": ["phase"],
+            "phase": ["phase", "phz", "phi"],
         }
     )
     i: int
@@ -505,7 +509,7 @@ def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
     real: List[float] = []
     imaginary: List[float] = []
     magnitude: List[float] = []
-    phase: List[float] = []
+    phase: Union[List[float], ndarray] = []
     for row in df.values:
         frequency.append(row[column_indices["frequency"]])
         if "real" in column_indices and "imaginary" in column_indices:
@@ -517,9 +521,6 @@ def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
             if negative_columns["imaginary"]:
                 im *= -1
             imaginary.append(im)
-            z = complex(re, im)
-            magnitude.append(abs(z))
-            phase.append(degrees(cmath.phase(z)))
         elif "magnitude" in column_indices and "phase" in column_indices:
             mag: float = row[column_indices["magnitude"]]
             magnitude.append(mag)
@@ -527,9 +528,17 @@ def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
             if negative_columns["phase"]:
                 phi *= -1
             phase.append(phi)
-            z = cmath.rect(mag, phi)
-            real.append(z.real)
-            imaginary.append(z.imag)
+        else:
+            raise Exception("Unsupported file format/structure: {path}")
+    if len(phase) > 0:
+        assert len(phase) == len(magnitude)
+        phase = array(phase)
+        if max(abs(phase)) > pi:
+            phase = radians(phase)
+        for mag, phi in zip(magnitude, phase):
+            Z: complex = cmath.rect(mag, phi)
+            real.append(Z.real)
+            imaginary.append(Z.imag)
     return DataSet(
         array(frequency),
         array(list(map(lambda _: complex(*_), zip(real, imaginary)))),
