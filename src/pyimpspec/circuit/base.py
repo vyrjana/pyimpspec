@@ -29,7 +29,11 @@ class Element:
 
     @classmethod
     def get_extended_description(Class) -> str:
-        assert hasattr(Class, "__doc__") and Class.__doc__.strip() != ""
+        assert (
+            hasattr(Class, "__doc__")
+            and type(Class.__doc__) is str
+            and Class.__doc__.strip() != ""
+        )
         return "\n".join(map(str.strip, Class.__doc__.split("\n"))).strip()
 
     @staticmethod
@@ -391,6 +395,9 @@ class Element:
     def _subs_str_expr(
         self, string: str, parameters: OrderedDict[str, float], symbols_only: bool
     ) -> str:
+        assert type(string) is str
+        assert type(parameters) is OrderedDict
+        assert type(symbols_only) is bool
         if self._identifier < 0:
             return string
         k: str
@@ -407,6 +414,7 @@ class Element:
         return string
 
     def to_sympy(self, substitute: bool = False) -> Expr:
+        assert type(substitute) is bool
         return sympify(self._str_expr(substitute=substitute))
 
     def to_latex(self) -> str:
@@ -547,6 +555,7 @@ class Connection:
             The outer key is the unique identifier assigned to an element.
             The inner key is the symbol corresponding to an element parameter.
         """
+        assert type(parameters) is dict
         element: Union[Element, "Connection"]
         for element in self._elements:
             if isinstance(element, Connection):
@@ -570,6 +579,7 @@ class Connection:
         -------
         Optional[Element]
         """
+        assert type(ident) is int
         element: Optional[Union[Element, "Connection"]]
         for element in self._elements:
             if isinstance(element, Connection):
@@ -588,6 +598,7 @@ class Connection:
         raise Exception("Method has not been implemented!")
 
     def to_sympy(self, substitute: bool = False) -> Expr:
+        assert type(substitute) is bool
         return sympify(self._str_expr(substitute=substitute))
 
     def to_latex(self) -> str:

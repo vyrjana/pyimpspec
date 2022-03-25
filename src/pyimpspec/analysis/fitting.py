@@ -57,6 +57,7 @@ class FittedParameter:
 
     @staticmethod
     def _parse_v1(dictionary: dict) -> dict:
+        assert type(dictionary) is dict
         return {
             "value": dictionary["value"],
             "stderr": dictionary["stderr"],
@@ -65,6 +66,7 @@ class FittedParameter:
 
     @classmethod
     def from_dict(Class, dictionary: dict) -> "FittedParameter":
+        assert type(dictionary) is dict
         assert "version" in dictionary
         version: int = dictionary["version"]
         assert version <= VERSION, f"{version=} > {VERSION=}"
@@ -146,6 +148,18 @@ class FittingResult:
     def __repr__(self) -> str:
         return f"FittingResult ({self.circuit.to_string()}, {hex(id(self))})"
 
+    def get_frequency(self, num_per_decade: int = -1) -> ndarray:
+        assert type(num_per_decade) is int
+        if num_per_decade > 0:
+            return _interpolate(self.frequency, num_per_decade)
+        return self.frequency
+
+    def get_impedance(self, num_per_decade: int = -1) -> ndarray:
+        assert type(num_per_decade) is int
+        if num_per_decade > 0:
+            return self.circuit.impedances(self.get_frequency(num_per_decade))
+        return self.impedance
+
     def get_nyquist_data(self, num_per_decade: int = -1) -> Tuple[ndarray, ndarray]:
         """
         Get the data necessary to plot this FittingResult as a Nyquist plot: the real and the
@@ -159,9 +173,9 @@ class FittingResult:
         -------
         Tuple[numpy.ndarray, numpy.ndarray]
         """
+        assert type(num_per_decade) is int
         if num_per_decade > 0:
-            freq: ndarray = _interpolate(self.frequency, num_per_decade)
-            Z: ndarray = self.circuit.impedances(freq)
+            Z: ndarray = self.get_impedance(num_per_decade)
             return (
                 Z.real,
                 -Z.imag,
@@ -187,8 +201,9 @@ class FittingResult:
         -------
         Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
         """
+        assert type(num_per_decade) is int
         if num_per_decade > 0:
-            freq: ndarray = _interpolate(self.frequency, num_per_decade)
+            freq: ndarray = self.get_frequency(num_per_decade)
             Z: ndarray = self.circuit.impedances(freq)
             return (
                 log(freq),
@@ -251,6 +266,7 @@ class FittingResult:
 
 
 def _to_lmfit(circuit: Circuit) -> Parameters:
+    assert type(circuit) is Circuit
     result: Parameters = Parameters()
     parameters: Dict[int, OrderedDict[str, float]] = circuit.get_parameters()
     ident: int
@@ -272,6 +288,7 @@ def _to_lmfit(circuit: Circuit) -> Parameters:
 
 
 def _from_lmfit(parameters: Parameters) -> Dict[int, Dict[str, float]]:
+    assert type(parameters) is Parameters
     result: Dict[int, Dict[str, float]] = {}
     key: str
     value: float
@@ -289,10 +306,14 @@ def _from_lmfit(parameters: Parameters) -> Dict[int, Dict[str, float]]:
 def _residual(
     params: Parameters,
     circuit: Circuit,
-    freq: List[float],
+    freq: ndarray,
     Z_exp: ndarray,
     weight_func: Callable,
 ) -> ndarray:
+    assert type(params) is Parameters
+    assert type(circuit) is Circuit
+    assert type(freq) is ndarray
+    assert type(Z_exp) is ndarray
     circuit.set_parameters(_from_lmfit(params))
     Z_fit: ndarray = circuit.impedances(freq)
     errors: ndarray = array(
@@ -302,14 +323,20 @@ def _residual(
 
 
 def _unity_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
+    assert type(Z_exp) is ndarray
+    assert type(Z_fit) is ndarray
     return ones_array(shape=(2, len(Z_exp)))
 
 
 def _modulus_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
+    assert type(Z_exp) is ndarray
+    assert type(Z_fit) is ndarray
     return ones_array(shape=(2, len(Z_exp))) / abs(Z_fit)
 
 
 def _proportional_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
+    assert type(Z_exp) is ndarray
+    assert type(Z_fit) is ndarray
     weight: ndarray = ones_array(shape=(2, len(Z_exp)))
     weight[0] = weight[0] / Z_fit.real**2
     weight[1] = weight[1] / Z_fit.imag**2
@@ -317,6 +344,8 @@ def _proportional_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
 
 
 def _boukamp_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
+    assert type(Z_exp) is ndarray
+    assert type(Z_fit) is ndarray
     # See eq. 13 in Boukamp (1995)
     return (Z_exp.real**2 + Z_exp.imag**2) ** -1
 
@@ -359,6 +388,8 @@ _methods: List[str] = [
 def _extract_parameters(
     circuit: Circuit, fit: MinimizerResult
 ) -> Dict[str, Dict[str, FittedParameter]]:
+    assert type(circuit) is Circuit
+    assert type(fit) is MinimizerResult
     parameters: Dict[str, Dict[str, FittedParameter]] = {}
     ident: int
     for ident in reversed(circuit.get_parameters()):
@@ -384,6 +415,8 @@ def _extract_parameters(
 
 
 def _calculate_pseudo_chisqr(Z_exp: ndarray, Z_fit: ndarray) -> float:
+    assert type(Z_exp) is ndarray
+    assert type(Z_fit) is ndarray
     # See eq. 14 in Boukamp (1995)
     weight: ndarray = _boukamp_weight(Z_exp, Z_fit)
     return float(
@@ -402,6 +435,13 @@ def _fit_process(args) -> Tuple[str, Optional[MinimizerResult], float, str, str,
     max_nfev: int
     auto: bool
     circuit, freq, Z_exp, method, weight, max_nfev, auto = args
+    assert type(circuit) is Circuit
+    assert type(freq) is ndarray
+    assert type(Z_exp) is ndarray
+    assert type(method) is str
+    assert type(weight) is str
+    assert type(max_nfev) is int
+    assert type(auto) is bool
     weight_func: Callable = _weight_functions[weight]
     with warnings.catch_warnings():
         if auto:

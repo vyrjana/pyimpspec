@@ -5,7 +5,7 @@
 
 from dataclasses import dataclass
 from multiprocessing import Pool, Value, cpu_count
-from typing import Callable, List, Tuple, Optional, Union
+from typing import Callable, List, Tuple, Optional
 import traceback
 from lmfit import minimize, Parameters
 from lmfit.minimizer import MinimizerResult
@@ -13,11 +13,9 @@ from numpy import (
     abs,
     angle,
     array,
-    ceil,
-    floor,
+    float64,
     inf,
     log10 as log,
-    logspace,
     min,
     max,
     ndarray,
@@ -75,6 +73,18 @@ class KramersKronigResult:
     def __repr__(self) -> str:
         return f"KramersKronigResult (num_RC={self.num_RC}, {hex(id(self))})"
 
+    def get_frequency(self, num_per_decade: int = -1) -> ndarray:
+        assert type(num_per_decade) is int
+        if num_per_decade > 0:
+            return _interpolate(self.frequency, num_per_decade)
+        return self.frequency
+
+    def get_impedance(self, num_per_decade: int = -1) -> ndarray:
+        assert type(num_per_decade) is int
+        if num_per_decade > 0:
+            return self.circuit.impedances(self.get_frequency(num_per_decade))
+        return self.impedance
+
     def get_nyquist_data(self, num_per_decade: int = -1) -> Tuple[ndarray, ndarray]:
         """
         Get the data necessary to plot this KramersKronigResult as a Nyquist plot: the real and the
@@ -88,9 +98,9 @@ class KramersKronigResult:
         -------
         Tuple[numpy.ndarray, numpy.ndarray]
         """
+        assert type(num_per_decade) is int
         if num_per_decade > 0:
-            freq: ndarray = _interpolate(self.frequency, num_per_decade)
-            Z: ndarray = self.circuit.impedances(freq)
+            Z: ndarray = self.get_impedance(num_per_decade)
             return (
                 Z.real,
                 -Z.imag,
@@ -116,8 +126,9 @@ class KramersKronigResult:
         -------
         Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
         """
+        assert type(num_per_decade) is int
         if num_per_decade > 0:
-            freq: ndarray = _interpolate(self.frequency, num_per_decade)
+            freq: ndarray = self.get_frequency(num_per_decade)
             Z: ndarray = self.circuit.impedances(freq)
             return (
                 log(freq),
@@ -148,15 +159,21 @@ class KramersKronigResult:
         )
 
 
-def _calculate_tau(i: int, num_RC: int, tau_min: float, tau_max: float) -> float:
+def _calculate_tau(i: int, num_RC: int, tau_min: float64, tau_max: float64) -> float:
     # Calculate time constants according to eq. 12 in Schönleber et al. (2014)
+    assert type(i) is int
+    assert type(num_RC) is int
+    assert type(tau_min) is float64
+    assert type(tau_max) is float64
     return pow(10, (log(tau_min) + (i - 1) / (num_RC - 1) * log(tau_max / tau_min)))
 
 
 def _generate_time_constants(w: ndarray, num_RC: int) -> ndarray:
+    assert type(w) is ndarray
+    assert type(num_RC) is int
     taus: ndarray = zeros(shape=(num_RC,))
-    tau_min: float = 1 / max(w)
-    tau_max: float = 1 / min(w)
+    tau_min: float64 = 1 / max(w)
+    tau_max: float64 = 1 / min(w)
     taus[0] = tau_min
     taus[-1] = tau_max
     i: int
@@ -167,11 +184,15 @@ def _generate_time_constants(w: ndarray, num_RC: int) -> ndarray:
 
 
 def _generate_weight(Z_exp: ndarray) -> ndarray:
+    assert type(Z_exp) is ndarray
     # See eq. 13 in Boukamp (1995)
     return (Z_exp.real**2 + Z_exp.imag**2) ** -1
 
 
 def _calculate_pseudo_chisqr(Z_exp: ndarray, Z_fit: ndarray, weight: ndarray) -> float:
+    assert type(Z_exp) is ndarray
+    assert type(Z_fit) is ndarray
+    assert type(weight) is ndarray
     # See eq. 14 in Boukamp (1995)
     return float(
         array_sum(
@@ -181,6 +202,7 @@ def _calculate_pseudo_chisqr(Z_exp: ndarray, Z_fit: ndarray, weight: ndarray) ->
 
 
 def _calculate_mu(params: Parameters) -> float:
+    assert type(params) is Parameters
     # Calculates the mu-value based on the fitted parameters according to eq. 21 in
     # Schönleber et al. (2014)
     R_neg: List[float] = []
@@ -211,6 +233,9 @@ def _calculate_mu(params: Parameters) -> float:
 def _elements_to_parameters(
     elements: ndarray, taus: ndarray, add_capacitance: bool
 ) -> Parameters:
+    assert type(elements) is ndarray
+    assert type(taus) is ndarray
+    assert type(add_capacitance) is bool
     parameters: Parameters = Parameters()
     R0: float
     R0, elements = elements[0], elements[1:]
@@ -234,6 +259,11 @@ def _elements_to_parameters(
 def _complex_residual(
     params: Parameters, circuit: Circuit, freq: ndarray, Z_exp: ndarray, weight: ndarray
 ) -> ndarray:
+    assert type(params) is Parameters
+    assert type(circuit) is Circuit
+    assert type(freq) is ndarray
+    assert type(Z_exp) is ndarray
+    assert type(weight) is ndarray
     circuit.set_parameters(_from_lmfit(params))
     Z_fit: ndarray = circuit.impedances(freq)
     return array(
@@ -263,6 +293,14 @@ def _cnls_test(arguments: tuple) -> Tuple[int, float, Circuit, float]:
         method,
         max_nfev,
     ) = arguments
+    assert type(freq) is ndarray
+    assert type(Z_exp) is ndarray
+    assert type(weight) is ndarray
+    assert type(num_RC) is int
+    assert type(add_capacitance) is bool
+    assert type(add_inductance) is bool
+    assert type(method) is str
+    assert type(max_nfev) is int
     w: ndarray = 2 * pi * freq
     taus: ndarray = _generate_time_constants(w, num_RC)
     circuit: Circuit = _generate_circuit(taus, add_capacitance, add_inductance, True)
@@ -333,6 +371,15 @@ def _cnls_mu_process(args: tuple) -> Tuple[int, float, Optional[Circuit], float]
         method,
         max_nfev,
     ) = args
+    assert type(freq) is ndarray
+    assert type(Z_exp) is ndarray
+    assert type(weight) is ndarray
+    assert type(mu_criterion) is float
+    assert type(num_RC) is int
+    assert type(add_capacitance) is bool
+    assert type(add_inductance) is bool
+    assert type(method) is str
+    assert type(max_nfev) is int
 
     def exit_early(params: Parameters, i: int, _, *args, **kwargs):
         if 0 <= pool_optimal_num_RC.value < num_RC:  # type: ignore
@@ -381,6 +428,11 @@ def _cnls_mu_process(args: tuple) -> Tuple[int, float, Optional[Circuit], float]
 def _generate_variable_matrices(
     w: ndarray, num_RC: int, taus: ndarray, add_capacitance: bool, abs_Z_exp: ndarray
 ) -> Tuple[ndarray, ndarray]:
+    assert type(w) is ndarray
+    assert type(num_RC) is int
+    assert type(taus) is ndarray
+    assert type(add_capacitance) is bool
+    assert type(abs_Z_exp) is ndarray
     # Generate matrices with the following columns (top to bottom is left to right)
     # - R0, series resistance
     # - Ri, resistance in parallel with taus[i - 1] where 0 < i <= num_RC
@@ -411,6 +463,10 @@ def _generate_variable_matrices(
 def _generate_circuit(
     taus: ndarray, add_capacitance: bool, add_inductance: bool, cnls: bool
 ) -> Circuit:
+    assert type(taus) is ndarray
+    assert type(add_capacitance) is bool
+    assert type(add_inductance) is bool
+    assert type(cnls) is bool
     cdc: List[str] = ["R{R=1}"]
     t: float
     for t in taus:
@@ -441,6 +497,15 @@ def _real_test(
     add_capacitance: bool,
     circuit: Circuit,
 ):
+    assert type(a_re) is ndarray
+    assert type(a_im) is ndarray
+    assert type(Z_exp) is ndarray
+    assert type(abs_Z_exp) is ndarray
+    assert type(w) is ndarray
+    assert type(freq) is ndarray
+    assert type(taus) is ndarray
+    assert type(add_capacitance) is bool
+    assert type(circuit) is Circuit
     # Fit using the real part
     elements: ndarray = pinv(a_re).dot(Z_exp.real / abs_Z_exp)
     # Fit using the imaginary part to fix the series inductance (and capacitance)
@@ -474,6 +539,14 @@ def _imaginary_test(
     weight: ndarray,
     circuit: Circuit,
 ):
+    assert type(a_im) is ndarray
+    assert type(Z_exp) is ndarray
+    assert type(abs_Z_exp) is ndarray
+    assert type(freq) is ndarray
+    assert type(taus) is ndarray
+    assert type(add_capacitance) is bool
+    assert type(weight) is ndarray
+    assert type(circuit) is Circuit
     # Fit using the imaginary part
     elements: ndarray = pinv(a_im).dot(Z_exp.imag / abs_Z_exp)
     # Estimate the series resistance
@@ -496,6 +569,13 @@ def _complex_test(
     add_capacitance: bool,
     circuit: Circuit,
 ):
+    assert type(a_re) is ndarray
+    assert type(a_im) is ndarray
+    assert type(Z_exp) is ndarray
+    assert type(abs_Z_exp) is ndarray
+    assert type(taus) is ndarray
+    assert type(add_capacitance) is bool
+    assert type(circuit) is Circuit
     # Fit using the complex impedance
     x: ndarray = inv(a_re.T.dot(a_re) + a_im.T.dot(a_im))
     y: ndarray = a_re.T.dot(Z_exp.real / abs_Z_exp) + a_im.T.dot(Z_exp.imag / abs_Z_exp)
@@ -513,6 +593,12 @@ def _test_wrapper(arguments: tuple) -> Tuple[int, float, Circuit, float]:
     num_RC: int
     add_capacitance: bool
     test, freq, Z_exp, weight, num_RC, add_capacitance = arguments
+    assert type(test) is str
+    assert type(freq) is ndarray
+    assert type(Z_exp) is ndarray
+    assert type(weight) is ndarray
+    assert type(num_RC) is int
+    assert type(add_capacitance) is bool
     abs_Z_exp: ndarray = abs(Z_exp)
     w: ndarray = 2 * pi * freq
     taus: ndarray = _generate_time_constants(w, num_RC)

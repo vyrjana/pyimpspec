@@ -4,7 +4,7 @@
 # the LICENSES folder.
 
 import cmath
-from math import degrees, pi
+from math import pi
 from collections import OrderedDict
 from os.path import basename, splitext
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -72,6 +72,7 @@ class DataSet:
 
     @staticmethod
     def _parse_v1(dictionary: dict) -> dict:
+        assert type(dictionary) is dict
         assert "frequency" in dictionary
         assert "real" in dictionary
         assert "imaginary" in dictionary
@@ -106,6 +107,7 @@ class DataSet:
         -------
         DataSet
         """
+        assert type(dictionary) is dict
         parsers: Dict[int, Callable] = {
             1: Class._parse_v1,
         }
@@ -119,9 +121,11 @@ class DataSet:
     @classmethod
     def copy(Class, data: "DataSet", label: Optional[str] = None) -> "DataSet":
         assert type(data) is Class
+        assert type(label) is str or label is None
         dictionary: dict = data.to_dict()
         if label is not None:
             dictionary["label"] = label
+        del dictionary["uuid"]
         return Class.from_dict(dictionary)
 
     @classmethod
@@ -193,7 +197,11 @@ class DataSet:
             True means that the data point is masked/excluded/ignored and False means that the
             data point is included.
         """
-        assert type(mask) is dict
+        assert (
+            type(mask) is dict
+            and all(map(lambda _: type(_) is int, mask.keys()))
+            and all(map(lambda _: type(_) is bool, mask.values()))
+        )
         mask = mask.copy()
         i: int
         flag: bool
@@ -379,10 +387,10 @@ class DataSet:
         -------
         Tuple[numpy.ndarray, numpy.ndarray]
         """
-        z: ndarray = self.get_impedance(masked=masked)
+        Z: ndarray = self.get_impedance(masked=masked)
         return (
-            z.real,
-            -z.imag,
+            Z.real,
+            -Z.imag,
         )
 
     def get_bode_data(
@@ -405,11 +413,11 @@ class DataSet:
         Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
         """
         f: ndarray = self.get_frequency(masked=masked)
-        z: ndarray = self.get_impedance(masked=masked)
+        Z: ndarray = self.get_impedance(masked=masked)
         return (
             log(f),
-            log(abs(z)),
-            -angle(z, deg=True),
+            log(abs(Z)),
+            -angle(Z, deg=True),
         )
 
     def to_dict(self) -> dict:
@@ -445,6 +453,8 @@ class DataSet:
         assert type(imaginary_label) is str or imaginary_label is None
         assert type(magnitude_label) is str or magnitude_label is None
         assert type(phase_label) is str or phase_label is None
+        assert type(negative_imaginary) is bool
+        assert type(negative_phase) is bool
         dictionary: Dict[str, ndarray] = {
             frequency_label: self._frequency,
         }
@@ -473,12 +483,15 @@ def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
     label: str = ""
         The label assigned to the new DataSet.
     """
+    assert type(df) is DataFrame
+    assert type(path) is str
+    assert type(label) is str
     column_indices: Dict[str, int] = {}
     negative_columns: Dict[str, bool] = {}
     column_names: OrderedDict[str, List[str]] = OrderedDict(
         {
             "frequency": ["frequency", "freq", "f"],
-            "imaginary": ["z\"", "z''", "z_im", "zim", "imaginary", "imag", "im"],
+            "imaginary": ['z"', "z''", "z_im", "zim", "imaginary", "imag", "im"],
             "real": ["z'", "z_re", "zre", "real", "re"],
             "magnitude": ["|z|", "z", "magnitude", "modulus", "mag", "mod"],
             "phase": ["phase", "phz", "phi"],
@@ -527,7 +540,7 @@ def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
             phi: float = row[column_indices["phase"]]
             if negative_columns["phase"]:
                 phi *= -1
-            phase.append(phi)
+            phase.append(phi)  # type: ignore
         else:
             raise Exception("Unsupported file format/structure: {path}")
     if len(phase) > 0:

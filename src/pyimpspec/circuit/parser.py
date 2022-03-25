@@ -51,9 +51,7 @@ class InsufficientTokens(ParsingError):
 
 class UnexpectedToken(ParsingError):
     def __init__(self, token: Token, Class: Optional[Type[Token]] = None):
-        super().__init__(
-            f"Unexpected token '{token.value}'!"
-        )
+        super().__init__(f"Unexpected token '{token.value}'!")
         self.token: Token = token
         self.expected: Optional[Type[Token]] = Class
 
