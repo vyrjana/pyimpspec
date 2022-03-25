@@ -6,7 +6,7 @@
 from os.path import exists
 from pyimpspec.data.dataset import DataSet, dataframe_to_dataset
 from pandas import read_excel, DataFrame
-from typing import Dict, List
+from typing import List
 
 
 def parse_spreadsheet(path: str, **kwargs) -> List[DataSet]:

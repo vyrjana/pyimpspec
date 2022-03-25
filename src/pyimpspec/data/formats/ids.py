@@ -4,24 +4,16 @@
 # the LICENSES folder.
 
 from os.path import basename, exists, splitext
-from typing import Dict, IO, List, Optional, Tuple
+from typing import Dict, IO, List, Tuple
 from pyimpspec.data.dataset import DataSet, dataframe_to_dataset
 from pandas import DataFrame
-
-
-def find_value(key: str, lines: List[str]) -> Optional[str]:
-    key += "="
-    while lines:
-        line: str = lines.pop(0)
-        if not line.startswith(key):
-            continue
-        return line[len(key) :]
-    return None
 
 
 def _extract_primary_data(
     num_freq: int, lines: List[str]
 ) -> Tuple[List[float], List[float], List[float]]:
+    assert type(num_freq) is int
+    assert type(lines) is list and all(map(lambda _: type(_) is str, lines))
     assert len(lines) > num_freq
     re: List[float] = []
     im: List[float] = []
@@ -39,35 +31,6 @@ def _extract_primary_data(
         re,
         im,
         f,
-    )
-
-
-def _parse_measurement(lines: List[str]) -> Tuple[str, dict]:
-    if find_value("starttime", lines) == "":
-        return ("", {})
-    if find_value("Method", lines) != "Impedance":
-        return ("", {})
-    # "Constant E" for potentiostatic EIS is the only one that has been tested
-    find_value("Technique", lines)
-    label: str = find_value("Title", lines) or ""
-    assert len(lines) > 0
-    while lines:
-        line: str = lines.pop(0)
-        if line.startswith("primary_data"):
-            lines.pop(0)
-            break
-    num_freq: int = int(lines.pop(0))
-    re: List[float]
-    im: List[float]
-    f: List[float]
-    re, im, f = _extract_primary_data(num_freq, lines)
-    return (
-        label,
-        {
-            "freq": f,
-            "real": re,
-            "imag": im,
-        },
     )
 
 
@@ -89,11 +52,11 @@ def parse_ids(path: str) -> List[DataSet]:
             break
         label: str = line[6:].strip()
         while lines:
-            line: str = lines.pop(0)
+            line = lines.pop(0)
             if "primary_data" in line:
                 break
         assert len(lines) > 0
-        lines.pop(0)  # Number of columns
+        assert int(lines.pop(0)) == 3  # Number of columns
         num_freq: int = int(lines.pop(0))
         re: List[float]
         im: List[float]

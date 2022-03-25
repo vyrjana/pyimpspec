@@ -4,7 +4,6 @@
 # the LICENSES folder.
 
 from os.path import exists
-from typing import Optional
 from pyimpspec.data.dataset import DataSet, dataframe_to_dataset
 from pandas import read_csv, DataFrame
 
