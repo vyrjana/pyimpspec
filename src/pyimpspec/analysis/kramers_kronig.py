@@ -6,7 +6,7 @@
 from dataclasses import dataclass
 from multiprocessing import Pool, Value, cpu_count
 from typing import Callable, List, Tuple, Optional
-import traceback
+from traceback import format_exc
 from lmfit import minimize, Parameters
 from lmfit.minimizer import MinimizerResult
 from numpy import (
@@ -319,7 +319,7 @@ def _cnls_test(arguments: tuple) -> Tuple[int, float, Circuit, float]:
             max_nfev=None if max_nfev < 1 else max_nfev,
         )
     except Exception:
-        raise FittingError(traceback.format_exc())
+        raise FittingError(format_exc())
     circuit.set_parameters(_from_lmfit(fit.params))
     mu: float = _calculate_mu(fit.params)
     Z_fit: ndarray = circuit.impedances(freq)
@@ -407,7 +407,7 @@ def _cnls_mu_process(args: tuple) -> Tuple[int, float, Optional[Circuit], float]
             iter_cb=exit_early,
         )
     except Exception:
-        raise FittingError(traceback.format_exc())
+        raise FittingError(format_exc())
     if 0 <= pool_optimal_num_RC.value < num_RC:  # type: ignore
         return (num_RC, -1.0, None, -1.0)
     circuit.set_parameters(_from_lmfit(fit.params))
@@ -745,25 +745,26 @@ def perform_test(
     if test == "cnls":
         if num_RC > 0:
             # Perform the test with a specific number of (RC) circuits
+            arguments = [
+                (
+                    freq,
+                    Z_exp,
+                    weight,
+                    num_RC,
+                    add_capacitance,
+                    add_inductance,
+                    method,
+                    max_nfev,
+                )
+            ]
             try:
-                with Pool(1) as pool:
-                    fits = pool.map(
-                        _cnls_test,
-                        [
-                            (
-                                freq,
-                                Z_exp,
-                                weight,
-                                num_RC,
-                                add_capacitance,
-                                add_inductance,
-                                method,
-                                max_nfev,
-                            )
-                        ],
-                    )
+                if num_procs > 1:
+                    with Pool(1) as pool:
+                        fits = pool.map(_cnls_test, arguments)
+                else:
+                    fits = list(map(_cnls_test, arguments))
             except Exception:
-                raise FittingError(traceback.format_exc())
+                raise FittingError(format_exc())
             num_RC, mu, circuit, Xps = fits[0]
         else:
             num_RC = abs(num_RC) or len(freq)
@@ -784,15 +785,22 @@ def perform_test(
                 for num_RC in range(1, num_RC + 1)
             ]
             try:
-                with Pool(
-                    num_procs, initializer=_pool_init, initargs=(Value("i", -1),)
-                ) as pool:
+                if num_procs > 1:
+                    with Pool(
+                        num_procs, initializer=_pool_init, initargs=(Value("i", -1),)
+                    ) as pool:
+                        results = filter(
+                            lambda _: _[2] is not None,
+                            pool.map(_cnls_mu_process, arguments, chunksize=1),
+                        )
+                else:
+                    _pool_init(Value("i", -1))
                     results = filter(
                         lambda _: _[2] is not None,
-                        pool.map(_cnls_mu_process, arguments, chunksize=1),
+                        list(map(_cnls_mu_process, arguments)),
                     )
             except Exception:
-                raise FittingError(traceback.format_exc())
+                raise FittingError(format_exc())
             for (num_RC, mu, circuit, Xps) in sorted(results, key=lambda _: _[0]):
                 if mu < mu_criterion:
                     break
@@ -822,14 +830,13 @@ def perform_test(
             for num_RC in num_RCs
         ]
         try:
-            with Pool(num_procs) as pool:
-                results = filter(
-                    lambda _: _[2] is not None,
-                    pool.map(_test_wrapper, arguments, chunksize=1),
-                )
+            if num_procs > 1:
+                with Pool(num_procs) as pool:
+                    fits = pool.map(_test_wrapper, arguments)
+            else:
+                fits = list(map(_test_wrapper, arguments))
         except Exception:
-            raise FittingError(traceback.format_exc())
-        fits = list(results)
+            raise FittingError(format_exc())
         if len(fits) == 1:
             num_RC, mu, circuit, Xps = fits[0]
         else:
@@ -985,10 +992,13 @@ def perform_exploratory_tests(
         ]
     fits: List[Tuple[int, float, Circuit, float]]
     try:
-        with Pool(num_procs) as pool:
-            fits = pool.map(func, arguments, chunksize=1)
+        if num_procs > 1:
+            with Pool(num_procs) as pool:
+                fits = pool.map(func, arguments)
+        else:
+            fits = list(map(func, arguments))
     except Exception:
-        raise FittingError(traceback.format_exc())
+        raise FittingError(format_exc())
     mu: float
     circuit: Circuit
     Xps: float

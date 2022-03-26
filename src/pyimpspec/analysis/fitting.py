@@ -7,7 +7,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from multiprocessing import Pool, cpu_count
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
-import traceback
+from traceback import format_exc
 import warnings
 from numpy import (
     angle,
@@ -461,7 +461,7 @@ def _fit_process(args) -> Tuple[str, Optional[MinimizerResult], float, str, str,
                 inf,
                 method,
                 weight,
-                traceback.format_exc(),
+                format_exc(),
             )
     if fit.ndata < len(freq) and log(fit.chisqr) < -50:
         return (circuit.to_string(), None, inf, method, weight, "Invalid result!")
@@ -566,16 +566,17 @@ def fit_circuit_to_data(
                     True,
                 )
             )
-    if len(arguments) < num_procs:
-        num_procs = len(arguments)
     try:
-        with Pool(num_procs) as pool:
-            fits = pool.map(_fit_process, arguments, chunksize=1)
-            fits.sort(
-                key=lambda _: log(_[1].chisqr) + log(_[2]) if _[1] is not None else inf
-            )
+        if num_procs > 1:
+            with Pool(num_procs) as pool:
+                fits = pool.map(_fit_process, arguments)
+        else:
+            fits = list(map(_fit_process, arguments))
+        fits.sort(
+            key=lambda _: log(_[1].chisqr) + log(_[2]) if _[1] is not None else inf
+        )
     except Exception:
-        raise FittingError(traceback.format_exc())
+        raise FittingError(format_exc())
     if not fits:
         raise FittingError("No valid results generated!")
     fit: Optional[MinimizerResult]
