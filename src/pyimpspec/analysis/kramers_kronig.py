@@ -684,7 +684,8 @@ def perform_test(
         limit. Applies only to the "cnls" test.
     num_procs: int = -1
         The maximum number of parallel processes to use when performing a test. A value less than
-        one results in using the number of cores returned by multiprocessing.cpu_count.
+        one results in using the number of cores returned by multiprocessing.cpu_count. Applies
+        only to the "cnls" test.
 
     Returns
     -------
@@ -830,11 +831,7 @@ def perform_test(
             for num_RC in num_RCs
         ]
         try:
-            if num_procs > 1:
-                with Pool(num_procs) as pool:
-                    fits = pool.map(_test_wrapper, arguments)
-            else:
-                fits = list(map(_test_wrapper, arguments))
+            fits = list(map(_test_wrapper, arguments))
         except Exception:
             raise FittingError(format_exc())
         if len(fits) == 1:
@@ -992,7 +989,7 @@ def perform_exploratory_tests(
         ]
     fits: List[Tuple[int, float, Circuit, float]]
     try:
-        if num_procs > 1:
+        if test == "cnls" and num_procs > 1:
             with Pool(num_procs) as pool:
                 fits = pool.map(func, arguments)
         else:
