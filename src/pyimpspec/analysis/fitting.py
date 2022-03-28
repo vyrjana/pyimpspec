@@ -6,7 +6,7 @@
 from collections import OrderedDict
 from dataclasses import dataclass
 from multiprocessing import Pool, cpu_count
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 from traceback import format_exc
 import warnings
 from numpy import (
@@ -396,6 +396,7 @@ def _extract_parameters(
         element: Optional[Element] = circuit.get_element(ident)
         assert element is not None
         label: str = element.get_label()
+        assert label not in parameters, label
         parameters[label] = {}
         # Parameters that were not fixed
         name: str
@@ -478,6 +479,16 @@ def _fit_process(args) -> Tuple[str, Optional[MinimizerResult], float, str, str,
     )
 
 
+def validate_circuit(circuit: Circuit):
+    element_labels: Set[str] = set()
+    for element in circuit.get_elements():
+        label: str = element.get_label()
+        assert (
+            label not in element_labels
+        ), f"Two or more elements of the same type have the same label ({label})!"
+        element_labels.add(label)
+
+
 def fit_circuit_to_data(
     circuit: Circuit,
     data: DataSet,
@@ -544,6 +555,7 @@ def fit_circuit_to_data(
     )
     if num_procs < 1:
         num_procs = cpu_count()
+    validate_circuit(circuit)
     cdc: str = circuit.to_string(12)
     freq: ndarray = data.get_frequency()
     Z_exp: ndarray = data.get_impedance()

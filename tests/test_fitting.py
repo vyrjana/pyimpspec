@@ -15,6 +15,7 @@ from pyimpspec import (
     score_test_results,
     string_to_circuit,
 )
+from pyimpspec.analysis.fitting import validate_circuit
 from numpy import array
 from numpy.random import seed, normal
 from typing import List
@@ -156,7 +157,7 @@ class TestKramersKronig(TestCase):
         self.assertAlmostEqual(test.pseudo_chisqr, 5.397326608733074)
         self.assertEqual(test.circuit.to_string(), "[RKKL]")
         # cnls
-        test = perform_test(data, test="cnls")
+        test = perform_test(data, test="cnls", max_nfev=1000)
         self.assertEqual(test.num_RC, 14)
         self.assertAlmostEqual(test.mu, 0.8309531383631978)
         self.assertAlmostEqual(test.pseudo_chisqr, 0.0013382040618625823)
@@ -173,7 +174,7 @@ class TestKramersKronig(TestCase):
         test = perform_test(data, test="imaginary", add_capacitance=True)
         self.assertTrue("C" in test.circuit.to_string())
         # cnls
-        test = perform_test(data, test="cnls", add_capacitance=True)
+        test = perform_test(data, test="cnls", add_capacitance=True, max_nfev=1000)
         self.assertTrue("C" in test.circuit.to_string())
 
     def test_03_add_inductance(self):
@@ -187,7 +188,7 @@ class TestKramersKronig(TestCase):
         test = perform_test(data, test="imaginary", add_inductance=True)
         self.assertTrue("L" in test.circuit.to_string())
         # cnls
-        test = perform_test(data, test="cnls", add_inductance=True)
+        test = perform_test(data, test="cnls", add_inductance=True, max_nfev=1000)
         self.assertTrue("L" in test.circuit.to_string())
 
     def test_04_add_capacitance_inductance(self):
@@ -208,7 +209,7 @@ class TestKramersKronig(TestCase):
         self.assertTrue("CL" in test.circuit.to_string())
         # cnls
         test = perform_test(
-            data, test="cnls", add_capacitance=True, add_inductance=True
+            data, test="cnls", add_capacitance=True, add_inductance=True, max_nfev=1000
         )
         self.assertTrue("CL" in test.circuit.to_string())
 
@@ -227,7 +228,7 @@ class TestKramersKronig(TestCase):
         self.assertEqual(test.num_RC, num_RC)
         self.assertEqual(test.circuit.to_string().count("K"), num_RC)
         # cnls
-        test = perform_test(data, test="cnls", num_RC=num_RC)
+        test = perform_test(data, test="cnls", num_RC=num_RC, max_nfev=1000)
         self.assertEqual(test.num_RC, num_RC)
         self.assertEqual(test.circuit.to_string().count("K"), num_RC)
 
@@ -243,7 +244,7 @@ class TestKramersKronig(TestCase):
         test = perform_test(data, test="imaginary", mu_criterion=mu_criterion)
         self.assertTrue(test.mu <= mu_criterion)
         # cnls
-        test = perform_test(data, test="cnls", mu_criterion=mu_criterion)
+        test = perform_test(data, test="cnls", mu_criterion=mu_criterion, max_nfev=1000)
         self.assertTrue(test.mu <= mu_criterion)
 
     def test_07_threading(self):
@@ -260,10 +261,10 @@ class TestKramersKronig(TestCase):
         self.assertEqual(test_multithreaded.circuit.to_string(), "[RKKL]")
         # cnls
         test_single_thread: KramersKronigResult = perform_test(
-            data, test="cnls", num_procs=1
+            data, test="cnls", num_procs=1, max_nfev=1000
         )
         test_multithreaded: KramersKronigResult = perform_test(
-            data, test="cnls", num_procs=2
+            data, test="cnls", num_procs=2, max_nfev=1000
         )
         self.assertEqual(test_single_thread.num_RC, 14)
         self.assertAlmostEqual(test_single_thread.mu, 0.8309531383631978)
@@ -291,13 +292,13 @@ class TestKramersKronig(TestCase):
         # imaginary
         tests = perform_exploratory_tests(data, test="imaginary")
         # cnls
-        tests = perform_exploratory_tests(data, test="cnls")
+        tests = perform_exploratory_tests(data, test="cnls", max_nfev=1000)
 
 
 class TestFitting(TestCase):
     def test_01_default(self):
         circuit: Circuit = string_to_circuit("R(RC)(RW)")
-        fit: FittingResult = fit_circuit_to_data(circuit, data)
+        fit: FittingResult = fit_circuit_to_data(circuit, data, max_nfev=1000)
         self.assertEqual(
             fit.circuit.to_string(1),
             "[R{R=1.0E+02/0.0E+00}(R{R=2.0E+02/0.0E+00}C{C=8.0E-07/0.0E+00/1.0E+03})(R{R=5.0E+02/0.0E+00}W{Y=4.0E-04/0.0E+00})]",
@@ -315,3 +316,9 @@ class TestFitting(TestCase):
             fit_single_thread.circuit.to_string(2),
             fit_multithreaded.circuit.to_string(2),
         )
+
+    def test_03_circuit_validation(self):
+        self.assertEqual(validate_circuit(string_to_circuit("RR")), None)
+        self.assertEqual(validate_circuit(string_to_circuit("R{:a}R{:b}")), None)
+        with self.assertRaises(AssertionError):
+            validate_circuit(string_to_circuit("R{:a}R{:a}"))

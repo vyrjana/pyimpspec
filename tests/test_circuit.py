@@ -6,11 +6,15 @@
 from unittest import TestCase
 from collections import OrderedDict
 from typing import Dict, List, Tuple, Type
+from numpy import array, ndarray, allclose
+from sympy import Expr
 from pyimpspec.circuit import (
+    Circuit,
     Element,
-    get_elements,
     Parser,
     ParsingError,
+    get_elements,
+    string_to_circuit,
 )
 from pyimpspec.circuit.parser import (
     ConnectionWithoutElements,
@@ -111,6 +115,22 @@ class TestElement(TestCase):
             # def set_lower_limit(self, key: str, value: float):
             # def get_upper_limit(self, key: str) -> float:
             # def set_upper_limit(self, key: str, value: float):
+
+    def test_02_sympy(self):
+        freq: List[float] = [1e-5, 1, 1e5]
+        symbols: List[str] = list(get_elements().keys()) + [
+            "K",
+        ]
+        symbol: str
+        for symbol in symbols:
+            circuit: Circuit = string_to_circuit(symbol)
+            Z_regular: ndarray = circuit.impedances(freq)
+            expr: Expr = circuit.to_sympy(substitute=True)
+            Z_sympy: ndarray = array(
+                list(map(lambda _: complex(expr.subs("f", _)), freq))
+            )
+            self.assertTrue(allclose(Z_regular.real, Z_sympy.real))
+            self.assertTrue(allclose(Z_regular.imag, Z_sympy.imag))
 
 
 # TODO: Create tests for the base Connection class

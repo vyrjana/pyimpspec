@@ -398,8 +398,6 @@ class Element:
         assert type(string) is str
         assert type(parameters) is OrderedDict
         assert type(symbols_only) is bool
-        if self._identifier < 0:
-            return string
         k: str
         v: float
         for k, v in parameters.items():
@@ -408,6 +406,9 @@ class Element:
                 if self._label != "":
                     repl = f"{k}_{self._label}"
                 else:
+                    assert (
+                        self._identifier >= 0
+                    ), "Assign an identifier, set a label, or create the element by parsing a circuit description code!"
                     repl = f"{k}_{self._identifier}"
             pattern: str = r"(?<![a-zA-Z])" + k + r"(?![a-zA-Z])"
             string = sub(pattern, repl, string)
