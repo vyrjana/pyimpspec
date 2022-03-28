@@ -5,6 +5,7 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 
 ## Table of contents
 
+- [Installing](#installing)
 - [Features](#features)
 	- [Circuits](#circuits)
 	- [Data parsing](#data-parsing)
@@ -15,10 +16,19 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 - [License](#license)
 
 
+## Installing
+
+_pyimpspec_ can be installed with _pip_.
+
+```
+pip install pyimpspec
+```
+
+
 ## Features
 
 The sections below are merely brief descriptions of _pyimpspec_'s features.
-See [the Jupyter notebook](./examples/examples.ipynb) for examples of those features in action.
+See [the Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main/examples/examples.ipynb) for examples of those features in action.
 
 
 ### Circuits
@@ -81,7 +91,7 @@ The only backend that is currently supported is _matplotlib_.
 
 ## Contributors
 
-See [CONTRIBUTORS](./CONTRIBUTORS) for a list of people who have contributed to the _pyimpspec_ project.
+See [CONTRIBUTORS](https://github.com/vyrjana/pyimpspec/blob/main/CONTRIBUTORS) for a list of people who have contributed to the _pyimpspec_ project.
 
 
 ## License
