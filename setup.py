@@ -9,7 +9,7 @@ setup(
     url="https://github.com/vyrjana/pyimpspec",
     project_urls={
         "Bug Tracker": "https://github.com/vyrjana/pyimpspec/issues",
-    }
+    },
     license="GPLv3",
     description="A package for parsing, validating, analyzing, and simulating impedance spectra.",
     long_description=open("README.md").read(),
