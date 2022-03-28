@@ -7,6 +7,9 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     url="https://github.com/vyrjana/pyimpspec",
+    project_urls={
+        "Bug Tracker": "https://github.com/vyrjana/pyimpspec/issues",
+    }
     license="GPLv3",
     description="A package for parsing, validating, analyzing, and simulating impedance spectra.",
     long_description=open("README.md").read(),
@@ -20,9 +23,14 @@ setup(
         "pandas>=1.3.5",  # Needed for dealing with various file formats.
         "sympy>=1.9",
     ],
+    python_requires=">=3.6",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Chemistry",
+        "Topic :: Scientific/Engineering :: Physics",
+        "Intended Audience :: Science/Research",
     ],
 )
