@@ -103,6 +103,7 @@ def parse_data(
             parse_spreadsheet,
             parse_dta,
         ]
+        parsed_data: bool = False
         for parser in parsers:
             try:
                 result = parser(path, **kwargs)
@@ -110,9 +111,12 @@ def parse_data(
                     datasets.extend(result)
                 else:
                     datasets.append(result)
+                parsed_data = True
                 break
             except Exception:
                 pass
+        if not parsed_data:
+            raise UnsupportedFileFormat(f"Unknown/malformed file format: {path}")
     assert type(datasets) is list
     assert len(datasets) > 0
     assert all(map(lambda _: type(_) is DataSet, datasets))

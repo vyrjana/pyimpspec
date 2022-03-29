@@ -39,8 +39,11 @@ def parse_ids(path: str) -> List[DataSet]:
     default_label: str = splitext(basename(path))[0]
     fp: IO
     with open(path, "r", encoding="latin1") as fp:
+        content = fp.read()
+        for b in ["\x00", "\x1c", "\x1e"]:
+            content = content.replace(b, "")
         lines: List[str] = list(
-            filter(lambda _: _ != "", map(str.strip, fp.read().split("\n")))
+            filter(lambda _: _ != "", map(str.strip, content.split("\n")))
         )
     raw_datasets: Dict[str, dict] = {}
     while lines:
