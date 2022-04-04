@@ -19,7 +19,7 @@ def parse_dta(path: str) -> DataSet:
         line: str = lines.pop(0)
         if line.startswith("zcurve"):
             break
-    assert len(lines) > 0
+    assert len(lines) > 0, f"Failed to find any impedance data in '{path}'"
     assert lines.pop(0).startswith("pt")
     assert lines.pop(0).startswith("#")
     freq: List[float] = []
