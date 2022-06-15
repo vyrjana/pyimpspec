@@ -48,6 +48,36 @@ if __name__ == "__main__":
             ],
         ),
     )
+    # Data sets
+    write_file(
+        join(getcwd(), "API-data-sets.md"),
+        process_classes(
+            classes_to_document=[
+                pyimpspec.DataSet,
+            ],
+            module_name="pyimpspec",
+        ),
+    )
+    # Kramers-Kronig results
+    write_file(
+        join(getcwd(), "API-kk-results.md"),
+        process_classes(
+            classes_to_document=[
+                pyimpspec.KramersKronigResult,
+            ],
+            module_name="pyimpspec",
+        ),
+    )
+    # Fitting results
+    write_file(
+        join(getcwd(), "API-fitting-results.md"),
+        process_classes(
+            classes_to_document=[
+                pyimpspec.FittingResult,
+            ],
+            module_name="pyimpspec",
+        ),
+    )
     # Circuits
     write_file(
         join(getcwd(), "API-circuits.md"),
