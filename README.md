@@ -44,7 +44,7 @@ The package **may** also work on other platforms (e.g. MacOS) depending on wheth
 ## Features
 
 See [the Jupyter notebook](examples/examples.ipynb) for examples of how to make use of the features described below.
-Documentation about the API can be found on the [wiki](https://github.com/vyrjana/pyimpspec/wiki/API-documentation).
+Documentation about the API can be found on the [wiki](https://github.com/vyrjana/pyimpspec/wiki).
 
 
 ### Circuits
