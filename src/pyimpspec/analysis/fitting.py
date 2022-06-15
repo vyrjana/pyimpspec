@@ -1,5 +1,19 @@
-# Copyright 2022 pyimpspec developers
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
+# Copyright 2022 pyimpspec developers
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
@@ -39,16 +53,18 @@ VERSION: int = 1
 @dataclass(frozen=True)
 class FittedParameter:
     """
-    An object representing a fitted parameter.
+An object representing a fitted parameter.
 
-    Properties
-    ----------
-    value: float
-        The fitted value.
-    stderr: Optional[float] = None
-        The estimated standard error of the fitted value.
-    fixed: bool = False
-        Whether or not this parameter had a fixed value during the circuit fitting.
+Parameters
+----------
+value: float
+    The fitted value.
+
+stderr: Optional[float] = None
+    The estimated standard error of the fitted value.
+
+fixed: bool = False
+    Whether or not this parameter had a fixed value during the circuit fitting.
     """
 
     value: float
@@ -112,26 +128,39 @@ def _interpolate(
 @dataclass(frozen=True)
 class FittingResult:
     """
-    An object representing the results of fitting a circuit to a data set.
+An object representing the results of fitting a circuit to a data set.
 
-    Properties
-    ----------
-    circuit: Circuit
-        The fitted circuit.
-    parameters: Dict[str, Dict[str, FittedParameter]]
-        Fitted parameters and their estimated standard errors (if possible to estimate).
-    pseudo_chisqr: float
-        The pseudo chi-squared fit value (eq. 14 in Boukamp, 1995).
-    minimizer_result: MinimizerResult
-        The results of the fit as provided by the lmfit.minimize function.
-    frequency: ndarray
-        The frequencies used to perform the fit.
-    impedance: ndarray
-        The impedance produced by the fitted circuit at each of the fitted frequencies.
-    real_residual: ndarray
-        The residuals for the real parts (eq. 15 in Schönleber et al., 2014).
-    imaginary_residual: ndarray
-        The residuals for the imaginary parts (eq. 16 in Schönleber et al., 2014).
+Parameters
+----------
+circuit: Circuit
+    The fitted circuit.
+
+parameters: Dict[str, Dict[str, FittedParameter]]
+    Fitted parameters and their estimated standard errors (if possible to estimate).
+
+pseudo_chisqr: float
+    The pseudo chi-squared fit value (eq. 14 in Boukamp, 1995).
+
+minimizer_result: MinimizerResult
+    The results of the fit as provided by the lmfit.minimize function.
+
+frequency: ndarray
+    The frequencies used to perform the fit.
+
+impedance: ndarray
+    The impedance produced by the fitted circuit at each of the fitted frequencies.
+
+real_residual: ndarray
+    The residuals for the real parts (eq. 15 in Schönleber et al., 2014).
+
+imaginary_residual: ndarray
+    The residuals for the imaginary parts (eq. 16 in Schönleber et al., 2014).
+
+method: str
+    The iterative method used during the fitting process.
+
+weight: str
+    The weight function used during the fitting process.
     """
 
     circuit: Circuit
@@ -162,16 +191,18 @@ class FittingResult:
 
     def get_nyquist_data(self, num_per_decade: int = -1) -> Tuple[ndarray, ndarray]:
         """
-        Get the data necessary to plot this FittingResult as a Nyquist plot: the real and the
-        negative imaginary parts of the impedances.
+Get the data necessary to plot this FittingResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.
 
-        Parameters
-        ----------
-        num_per_decade: int = -1
+Parameters
+----------
+num_per_decade: int = -1
+    The number of points per decade.
+    A positive value results in data points being calculated using the fitted circuit within the original frequency range.
+    Otherwise, only the original frequencies are used.
 
-        Returns
-        -------
-        Tuple[numpy.ndarray, numpy.ndarray]
+Returns
+-------
+Tuple[ndarray, ndarray]
         """
         assert type(num_per_decade) is int
         if num_per_decade > 0:
@@ -189,17 +220,18 @@ class FittingResult:
         self, num_per_decade: int = -1
     ) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot this FittingResult as a Bode plot: the base-10 logarithms of
-        the frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and
-        the negative phase angles/shifts of the impedances in degrees.
+Get the data necessary to plot this FittingResult as a Bode plot: the base-10 logarithms of the frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
 
-        Parameters
-        ----------
-        num_per_decade: int = -1
+Parameters
+----------
+num_per_decade: int = -1
+    The number of points per decade.
+    A positive value results in data points being calculated using the fitted circuit within the original frequency range.
+    Otherwise, only the original frequencies are used.
 
-        Returns
-        -------
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+Returns
+-------
+Tuple[ndarray, ndarray, ndarray]
         """
         assert type(num_per_decade) is int
         if num_per_decade > 0:
@@ -218,14 +250,11 @@ class FittingResult:
 
     def get_residual_data(self) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot the relative residuals for this FittingResult: the base-10
-        logarithms of the frequencies, the relative residuals for the real parts of the impedances
-        in percents, and the relative residuals for the imaginary parts of the impedances in
-        percents.
+Get the data necessary to plot the relative residuals for this FittingResult: the base-10 logarithms of the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.
 
-        Returns
-        -------
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+Returns
+-------
+Tuple[ndarray, ndarray, ndarray]
         """
         return (
             log(self.frequency),
@@ -480,6 +509,7 @@ def _fit_process(args) -> Tuple[str, Optional[MinimizerResult], float, str, str,
 
 
 def validate_circuit(circuit: Circuit):
+    assert circuit.to_string() not in ["[]", "()"], "The circuit has no elements!"
     element_labels: Set[str] = set()
     for element in circuit.get_elements():
         label: str = element.get_label()
@@ -487,6 +517,13 @@ def validate_circuit(circuit: Circuit):
             label not in element_labels
         ), f"Two or more elements of the same type have the same label ({label})!"
         element_labels.add(label)
+
+
+def _calculate_residuals(Z_exp: ndarray, Z_fit: ndarray) -> Tuple[ndarray, ndarray]:
+    return (
+        (Z_exp.real - Z_fit.real) / abs(Z_exp),
+        (Z_exp.imag - Z_fit.imag) / abs(Z_exp),
+    )
 
 
 def fit_circuit_to_data(
@@ -498,43 +535,47 @@ def fit_circuit_to_data(
     num_procs: int = -1,
 ) -> FittingResult:
     """
-    Fit a circuit to a data set.
+Fit a circuit to a data set.
 
-    Parameters
-    ----------
-    circuit: Circuit
-        The circuit to fit to a data set.
-    data: DataSet
-        The data set that the circuit will be fitted to.
-    method: str = "auto"
-        The iteration method used during fitting. See lmfit's documentation for valid method
-        names. Note that not all methods supported by lmfit are possible in the current
-        implementation (e.g. some methods may require a function that calculates a Jacobian).
-        The "auto" value results in multiple methods being tested in parallel and the
-        best result being returned based on the chi-squared values.
-    weight: str = "auto"
-        The weight function to use when calculating residuals. Currently supported values:
-        "modulus", "proportional", "unity", "boukamp", and "auto". The "auto" value results in
-        multiple weights being tested in parallel and the best result being returned based on the
-        chi-squared values.
-    max_nfev: int = -1
-        The maximum number of function evaluations when fitting. A value less than one equals
-        no limit.
-    num_procs: int = -1
-        The maximum number of parallel processes to use when method and/or weight is "auto".
+Parameters
+----------
+circuit: Circuit
+    The circuit to fit to a data set.
 
-    Returns
-    -------
-    FittingResult
+data: DataSet
+    The data set that the circuit will be fitted to.
+
+method: str = "auto"
+    The iteration method used during fitting.
+    See lmfit's documentation for valid method names.
+    Note that not all methods supported by lmfit are possible in the current implementation (e.g. some methods may require a function that calculates a Jacobian).
+    The "auto" value results in multiple methods being tested in parallel and the best result being returned based on the chi-squared values.
+
+weight: str = "auto"
+    The weight function to use when calculating residuals.
+    Currently supported values: "modulus", "proportional", "unity", "boukamp", and "auto".
+    The "auto" value results in multiple weights being tested in parallel and the best result being returned based on the chi-squared values.
+
+max_nfev: int = -1
+    The maximum number of function evaluations when fitting.
+    A value less than one equals no limit.
+
+num_procs: int = -1
+    The maximum number of parallel processes to use when method and/or weight is "auto".
+
+Returns
+-------
+FittingResult
     """
     assert type(circuit) is Circuit, (
         type(circuit),
         circuit,
     )
-    assert type(data) is DataSet, (
+    assert isinstance(data, DataSet), (
         type(data),
         data,
     )
+    assert data.get_num_points() > 0
     assert type(method) is str, (
         type(method),
         method,
@@ -607,8 +648,7 @@ def fit_circuit_to_data(
         Z_fit,
         # Residuals calculated according to eqs. 15 and 16
         # in Schönleber et al. (2014)
-        (Z_exp.real - Z_fit.real) / abs(Z_exp),
-        (Z_exp.imag - Z_fit.imag) / abs(Z_exp),
+        *_calculate_residuals(Z_exp, Z_fit),
         method,
         weight,
     )

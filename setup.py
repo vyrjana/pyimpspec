@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="pyimpspec",
-    version="0.1.3",
+    version="1.0.0",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -25,13 +25,15 @@ setup(
     ],
     python_requires=">=3.6",
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Programming Language :: Python :: 3",
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Science/Research",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-        "Operating System :: OS Independent",
-        "Topic :: Scientific/Engineering",
+        "Operating System :: MacOS",
+        "Operating System :: Microsoft :: Windows",
+        "Operating System :: POSIX :: Linux",
+        "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Physics",
-        "Intended Audience :: Science/Research",
+        "Topic :: Scientific/Engineering",
     ],
 )

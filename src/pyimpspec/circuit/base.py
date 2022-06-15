@@ -1,5 +1,19 @@
-# Copyright 2022 pyimpspec developers
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
+# Copyright 2022 pyimpspec developers
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
@@ -39,61 +53,65 @@ class Element:
     @staticmethod
     def get_description() -> str:
         """
-        Get a brief description of the element and its symbol.
+Get a brief description of the element and its symbol.
+
+Returns
+-------
+str
         """
         raise Exception("Method has not been implemented!")
 
     @staticmethod
     def get_defaults() -> Dict[str, float]:
         """
-        Get the default values for the element's parameters.
+Get the default values for the element's parameters.
 
-        Returns
-        -------
-        Dict[str, float]
+Returns
+-------
+Dict[str, float]
         """
         raise Exception("Method has not been implemented!")
 
     @staticmethod
     def get_default_fixed() -> Dict[str, bool]:
         """
-        Get whether or not the element's parameters are fixed by default.
+Get whether or not the element's parameters are fixed by default.
 
-        Returns
-        -------
-        Dict[str, bool]
+Returns
+-------
+Dict[str, bool]
         """
         raise Exception("Method has not been implemented!")
 
     @staticmethod
     def get_default_lower_limits() -> Dict[str, float]:
         """
-        Get the default lower limits for the element's parameters.
+Get the default lower limits for the element's parameters.
 
-        Returns
-        -------
-        Dict[str, float]
+Returns
+-------
+Dict[str, float]
         """
         raise Exception("Method has not been implemented!")
 
     @staticmethod
     def get_default_upper_limits() -> Dict[str, float]:
         """
-        Get the default upper limits for the element's parameters.
+Get the default upper limits for the element's parameters.
 
-        Returns
-        -------
-        Dict[str, float]
+Returns
+-------
+Dict[str, float]
         """
         raise Exception("Method has not been implemented!")
 
     def get_default_label(self) -> str:
         """
-        Get the default label for this element.
+Get the default label for this element.
 
-        Returns
-        -------
-        str
+Returns
+-------
+str
         """
         if self._identifier >= 0:
             return f"{self.get_symbol()}_{self._identifier}"
@@ -102,11 +120,11 @@ class Element:
 
     def get_label(self) -> str:
         """
-        Get the label assigned to a specific instance of the element.
+Get the label assigned to a specific instance of the element.
 
-        Returns
-        -------
-        str
+Returns
+-------
+str
         """
         if self._label == "":
             return self.get_default_label()
@@ -114,12 +132,12 @@ class Element:
 
     def set_label(self, label: str):
         """
-        Set the label assigned to a specific instance of the element.
+Set the label assigned to a specific instance of the element.
 
-        Parameters
-        ----------
-        label: str
-            The new label.
+Parameters
+----------
+label: str
+    The new label.
         """
         assert type(label) is str, f"{label=}"
         self._label = label.strip()
@@ -127,27 +145,27 @@ class Element:
     @staticmethod
     def get_symbol() -> str:
         """
-        Get the symbol representing the element.
+Get the symbol representing the element.
 
-        Returns
-        -------
-        str
+Returns
+-------
+str
         """
         raise Exception("NOT YET IMPLEMENTED!")
 
     def to_string(self, decimals: int = -1) -> str:
         """
-        Generates a string representation of the element.
+Generates a string representation of the element.
 
-        Parameters
-        ----------
-        decimals: int = -1
-            The number of decimals used when formatting the current value and the limits for the
-            element's parameters. -1 corresponds to no values being included in the output.
+Parameters
+----------
+decimals: int = -1
+    The number of decimals used when formatting the current value and the limits for the
+    element's parameters. -1 corresponds to no values being included in the output.
 
-        Returns
-        -------
-        str
+Returns
+-------
+str
         """
         assert type(decimals) is int
         if decimals < 0:
@@ -174,14 +192,14 @@ class Element:
 
     def _assign_identifier(self, current: int) -> int:
         """
-        Get the internal identifier that is unique in the context of a circuit.
-        Used internally when generating unique names for parameters when fitting a circuit to a
-        data set.
+Get the internal identifier that is unique in the context of a circuit.
+Used internally when generating unique names for parameters when fitting a circuit to a
+data set.
 
-        Parameters
-        ----------
-        current: int
-            The most recently assigned identifier.
+Parameters
+----------
+current: int
+    The most recently assigned identifier.
         """
         assert type(current) is int and current >= 0
         self._identifier = current
@@ -189,44 +207,44 @@ class Element:
 
     def get_identifier(self) -> int:
         """
-        Get the internal identifier that is unique in the context of a circuit.
-        Used internally when generating unique names for parameters when fitting a circuit to a
-        data set.
+Get the internal identifier that is unique in the context of a circuit.
+Used internally when generating unique names for parameters when fitting a circuit to a
+data set.
 
-        Returns
-        -------
-        int
+Returns
+-------
+int
         """
         return self._identifier
 
     def impedance(self, f: float) -> complex:
         """
-        Calculates the complex impedance of the element at a specific frequency.
+Calculates the complex impedance of the element at a specific frequency.
 
-        Parameters
-        ----------
-        f: float
-            Frequency in Hz
+Parameters
+----------
+f: float
+    Frequency in hertz.
 
-        Returns
-        -------
-        complex
+Returns
+-------
+complex
         """
         assert f > 0 and f < inf
         return complex(-999, 999)
 
     def impedances(self, freq: Union[list, ndarray]) -> ndarray:
         """
-        Calculates the complex impedance of the element at specific frequencies.
+Calculates the complex impedance of the element at specific frequencies.
 
-        Parameters
-        ----------
-        freq: Union[list, ndarray]
-            Frequencies in Hz
+Parameters
+----------
+freq: Union[list, ndarray]
+    Frequencies in hertz.
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+ndarray
         """
         assert type(freq) is list or type(freq) is ndarray
         assert min(freq) > 0 and max(freq) < inf
@@ -234,12 +252,12 @@ class Element:
 
     def reset_parameters(self, keys: List[str]):
         """
-        Resets the value, lower limit, upper limit, and fixed state of one or more parameters.
+Resets the value, lower limit, upper limit, and fixed state of one or more parameters.
 
-        Parameters
-        ----------
-        keys: List[str]
-            Names of the parameters to reset.
+Parameters
+----------
+keys: List[str]
+    Names of the parameters to reset.
         """
         assert type(keys) is list
         assert len(keys) > 0
@@ -260,11 +278,11 @@ class Element:
 
     def get_parameters(self) -> OrderedDict[str, float]:
         """
-        Get the current parameters of the element.
+Get the current parameters of the element.
 
-        Returns
-        -------
-        OrderedDict[str, float]
+Returns
+-------
+OrderedDict[str, float]
         """
         # This implementation is just for basic testing
         return OrderedDict(
@@ -276,43 +294,44 @@ class Element:
 
     def set_parameters(self, parameters: Dict[str, float]):
         """
-        Set new values for the parameters of the element.
+Set new values for the parameters of the element.
 
-        Parameters
-        ----------
-        parameters: Dict[str, float]
+Parameters
+----------
+parameters: Dict[str, float]
         """
         raise Exception("Method has not been implemented!")
 
     def is_fixed(self, key: str) -> bool:
         """
-        Check if an element parameter should have a fixed value when fitting a circuit to a data
-        set.
+Check if an element parameter should have a fixed value when fitting a circuit to a data
+set.
+True if fixed and False if not fixed.
 
-        Parameters
-        ----------
-        key: str
-            A key corresponding to an element parameter.
+Parameters
+----------
+key: str
+    A key corresponding to an element parameter.
 
-        Returns
-        -------
-        bool
-            True if fixed and False if not fixed.
+Returns
+-------
+bool
         """
         assert type(key) is str and key.strip() != ""
         return self._fixed_parameters[key]
 
     def set_fixed(self, key: str, value: bool):
         """
-        Set whether or not an element parameter should have a fixed value when fitting a circuit
-        to a data set.
+Set whether or not an element parameter should have a fixed value when fitting a circuit
+to a data set.
 
-        Parameters
-        ----------
-        key: str
-            A key corresponding to an element parameter.
-        value: bool
-            True if the value should be fixed.
+Parameters
+----------
+key: str
+    A key corresponding to an element parameter.
+
+value: bool
+    True if the value should be fixed.
         """
         assert type(key) is str and key.strip() != ""
         assert key in self._fixed_parameters, f"{key=}"
@@ -321,34 +340,35 @@ class Element:
 
     def get_lower_limit(self, key: str) -> float:
         """
-        Get the lower limit for the value of an element parameter when fitting a circuit to a data
-        set.
+Get the lower limit for the value of an element parameter when fitting a circuit to a data
+set.
+The absence of a limit is represented by -numpy.inf.
 
-        Parameters
-        ----------
-        key: str
-            A key corresponding to an element parameter.
+Parameters
+----------
+key: str
+    A key corresponding to an element parameter.
 
-        Returns
-        -------
-        float
-            The absence of a limit is represented by -numpy.inf.
+Returns
+-------
+float
         """
         assert type(key) is str and key.strip() != ""
         return self._lower_limits[key]
 
     def set_lower_limit(self, key: str, value: float):
         """
-        Set the upper limit for the value of an element parameter when fitting a circuit to a data
-        set.
+Set the upper limit for the value of an element parameter when fitting a circuit to a data
+set.
 
-        Parameters
-        ----------
-        key: str
-            A key corresponding to an element parameter.
-        value: float
-            The new limit for the element parameter. The limit can be removed by setting the limit
-            to be -numpy.inf.
+Parameters
+----------
+key: str
+    A key corresponding to an element parameter.
+
+value: float
+    The new limit for the element parameter. The limit can be removed by setting the limit
+    to be -numpy.inf.
         """
         assert type(key) is str and key.strip() != ""
         assert key in self._lower_limits, f"{key=}"
@@ -356,34 +376,35 @@ class Element:
 
     def get_upper_limit(self, key: str) -> float:
         """
-        Get the upper limit for the value of an element parameter when fitting a circuit to a data
-        set.
+Get the upper limit for the value of an element parameter when fitting a circuit to a data
+set.
+The absence of a limit is represented by numpy.inf.
 
-        Parameters
-        ----------
-        key: str
-            A key corresponding to an element parameter.
+Parameters
+----------
+key: str
+    A key corresponding to an element parameter.
 
-        Returns
-        -------
-        float
-            The absence of a limit is represented by numpy.inf.
+Returns
+-------
+float
         """
         assert type(key) is str and key.strip() != ""
         return self._upper_limits[key]
 
     def set_upper_limit(self, key: str, value: float):
         """
-        Set the upper limit for the value of an element parameter when fitting a circuit to a data
-        set.
+Set the upper limit for the value of an element parameter when fitting a circuit to a data
+set.
 
-        Parameters
-        ----------
-        key: str
-            A key corresponding to an element parameter.
-        value: float
-            The new limit for the element parameter. The limit can be removed by setting the limit
-            to be numpy.inf.
+Parameters
+----------
+key: str
+    A key corresponding to an element parameter.
+
+value: float
+    The new limit for the element parameter. The limit can be removed by setting the limit
+    to be numpy.inf.
         """
         assert type(key) is str and key.strip() != ""
         assert key in self._upper_limits, f"{key=}"
@@ -445,24 +466,39 @@ class Connection:
     def contains(
         self, element: Union[Element, "Connection"], top_level: bool = False
     ) -> bool:
+        """
+Check if this connection contains a specific Element or Connection instance.
+
+Parameters
+----------
+element: Union[Element, Connection]
+    The Element or Connection instance to check for.
+
+top_level: bool = False
+    Whether to only check in the current Connection instance instead of also checking in any nested Connection instances.
+    
+Returns
+-------
+bool
+        """
         if top_level:
             return element in self._elements
         return element in self
 
     def _assign_identifier(self, current: int) -> int:
         """
-        Used internally when generating unique names for parameters when fitting a circuit to a
-        data set.
+Used internally when generating unique names for parameters when fitting a circuit to a
+data set.
 
-        Parameters
-        ----------
-        current: int
-            The most recently assigned identifier.
+Parameters
+----------
+current: int
+    The most recently assigned identifier.
 
-        Returns
-        -------
-        int
-            The most recently assigned identifier.
+Returns
+-------
+int
+    The most recently assigned identifier.
         """
         element: Union[Element, "Connection"]
         for element in reversed(self._elements):
@@ -479,11 +515,16 @@ class Connection:
         self, flattened: bool = True
     ) -> List[Union[Element, "Connection"]]:
         """
-        Get a list of elements and connections nested inside this connection.
+Get a list of elements and connections nested inside this connection.
 
-        Returns
-        -------
-        List[Union[Element, Connection]]
+Parameters
+----------
+flattened: bool = True
+    Whether the returned list should only contain elements or a combination of elements and connections.
+
+Returns
+-------
+List[Union[Element, Connection]]
         """
         if flattened:
             elements: List[Union[Element, "Connection"]] = []
@@ -497,31 +538,31 @@ class Connection:
 
     def impedance(self, f: float) -> complex:
         """
-        Calculates the complex impedance of the connection at a specific frequency.
+Calculates the impedance of the connection at a single frequency.
 
-        Parameters
-        ----------
-        f: float
-            Frequency in Hz
+Parameters
+----------
+f: float
+    Frequency in Hz
 
-        Returns
-        -------
-        complex
+Returns
+-------
+complex
         """
         raise Exception("Method has not been implemented!")
 
     def impedances(self, freq: Union[list, ndarray]) -> ndarray:
         """
-        Calculates the complex impedance of the element at specific frequencies.
+Calculates the impedance of the element at multiple frequencies.
 
-        Parameters
-        ----------
-        freq: Union[list, ndarray]
-            Frequencies in Hz
+Parameters
+----------
+freq: Union[list, ndarray]
+    Frequencies in Hz
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+ndarray
         """
         assert type(freq) is list or type(freq) is ndarray
         assert min(freq) > 0 and max(freq) < inf
@@ -529,13 +570,13 @@ class Connection:
 
     def get_parameters(self) -> Dict[int, OrderedDict[str, float]]:
         """
-        Get the current element parameters of all elements nested inside this connection.
+Get the current element parameters of all elements nested inside this connection.
+The outer key is the unique identifier assigned to an element.
+The inner key is the symbol corresponding to an element parameter.
 
-        Returns
-        -------
-        Dict[int, Dict[str, float]]
-            The outer key is the unique identifier assigned to an element.
-            The inner key is the symbol corresponding to an element parameter.
+Returns
+-------
+Dict[int, OrderedDict[str, float]]
         """
         parameters: Dict[int, OrderedDict[str, float]] = {}
         element: Union[Element, "Connection"]
@@ -548,13 +589,13 @@ class Connection:
 
     def set_parameters(self, parameters: Dict[int, Dict[str, float]]):
         """
-        Set new element parameters to some/all elements nested inside this connection.
+Set new element parameters to some/all elements nested inside this connection.
 
-        Parameters
-        ----------
-        parameters: Dict[int, Dict[str, float]
-            The outer key is the unique identifier assigned to an element.
-            The inner key is the symbol corresponding to an element parameter.
+Parameters
+----------
+parameters: Dict[int, Dict[str, float]]
+    The outer key is the unique identifier assigned to an element.
+    The inner key is the symbol corresponding to an element parameter.
         """
         assert type(parameters) is dict
         element: Union[Element, "Connection"]
@@ -569,16 +610,16 @@ class Connection:
 
     def get_element(self, ident: int) -> Optional[Element]:
         """
-        Get a specific element based on its unique identifier.
+Get a specific element based on its unique identifier.
 
-        Parameters
-        ----------
-        ident: int
-            The integer identifier that should be unique in the context of the circuit.
+Parameters
+----------
+ident: int
+    The integer identifier that should be unique in the context of the circuit.
 
-        Returns
-        -------
-        Optional[Element]
+Returns
+-------
+Optional[Element]
         """
         assert type(ident) is int
         element: Optional[Union[Element, "Connection"]]

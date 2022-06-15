@@ -17,24 +17,13 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from os.path import exists
-from pyimpspec.data.data_set import DataSet, dataframe_to_dataset
-from pandas import read_csv, DataFrame
-
-
-def parse_csv(path: str, **kwargs) -> DataSet:
-    """
-Parse a file containing data as character-separated values.
-
-Parameters
-----------
-path: str
-    The path to the file to process.
-
-Returns
--------
-DataSet
-    """
-    assert type(path) is str and exists(path)
-    df: DataFrame = read_csv(path, engine="python", **kwargs)
-    return dataframe_to_dataset(df, path=path)
+from .mpl import (
+    plot_bode,
+    plot_circuit,
+    plot_data,
+    plot_exploratory_tests,
+    plot_fit,
+    plot_mu_xps,
+    plot_nyquist,
+    plot_residual,
+)

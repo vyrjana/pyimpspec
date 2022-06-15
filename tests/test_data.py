@@ -5,7 +5,7 @@
 
 from unittest import TestCase
 from pyimpspec import DataSet, parse_data
-from pyimpspec.data.dataset import VERSION
+from pyimpspec.data.data_set import VERSION
 from numpy import allclose, array, ndarray, log10 as log
 from typing import Callable, Dict, List, Optional
 from os import walk
