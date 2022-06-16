@@ -14,11 +14,45 @@ def write_file(path: str, content: str):
 
 
 if __name__ == "__main__":
+    # PDF
+    write_file(
+        join(getcwd(), "API.md"),
+        r"""---
+header-includes:
+    \usepackage{geometry}
+    \geometry{a4paper, margin=2.5cm}
+---
+""" + process(
+            title="pyimpspec - API reference",
+            modules_to_document=[
+                pyimpspec,
+                pyimpspec.plot.mpl,
+            ],
+            minimal_classes=[
+                pyimpspec.FittingError,
+                pyimpspec.ParsingError,
+                pyimpspec.UnexpectedCharacter,
+                pyimpspec.Capacitor,
+                pyimpspec.ConstantPhaseElement,
+                pyimpspec.Gerischer,
+                pyimpspec.HavriliakNegami,
+                pyimpspec.Inductor,
+                pyimpspec.Parallel,
+                pyimpspec.Resistor,
+                pyimpspec.Series,
+                pyimpspec.Warburg,
+                pyimpspec.WarburgOpen,
+                pyimpspec.WarburgShort,
+                pyimpspec.DeLevieFiniteLength,
+            ],
+            latex_pagebreak=True,
+        )
+    )
     # Main module
     write_file(
         join(getcwd(), "API-main.md"),
         process(
-            title="API - pyimpspec",
+            title="pyimpspec",
             modules_to_document=[
                 pyimpspec,
             ],
@@ -135,7 +169,7 @@ if __name__ == "__main__":
     write_file(
         join(getcwd(), "API-plot.mpl.md"),
         process(
-            title="API - pyimpspec.plot.mpl",
+            title="pyimpspec.plot.mpl",
             modules_to_document=[
                 pyimpspec.plot.mpl,
             ],
