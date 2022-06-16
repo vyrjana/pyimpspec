@@ -11,8 +11,11 @@ from sympy import Expr
 from pyimpspec.circuit import (
     Circuit,
     Element,
+    Parallel,
     Parser,
     ParsingError,
+    Resistor,
+    Series,
     get_elements,
     string_to_circuit,
 )
@@ -32,7 +35,6 @@ from pyimpspec.circuit.parser import (
 )
 
 
-# TODO: Create tests for the individual elements
 class TestElement(TestCase):
     def test_01_base_methods(self):
         description: str
@@ -91,30 +93,12 @@ class TestElement(TestCase):
             element.set_label("test")
             self.assertEqual(element.get_default_label(), element.get_symbol() + "_8")
             self.assertEqual(element.get_label(), element.get_symbol() + "_test")
-
             self.assertIn(":test}", element.to_string(1))
-            # def to_string(self, decimals: int = -1) -> str:
-            # def _str_expr(self, substitute: bool = False) -> str:
-            # def _subs_str_expr(self, string: str, parameters: OrderedDict[str, float], symbols_only: bool) -> str:
-            # def to_sympy(self, substitute: bool = False) -> Expr:
-            # def to_latex(self) -> str:
-            # def impedance(self, f: float) -> complex:
-            # def impedances(self, freq: Union[list, ndarray]) -> ndarray:
-
             parameters: OrderedDict[str, float] = element.get_parameters()
             self.assertIsInstance(parameters, OrderedDict)
             for k, v in parameters.items():
                 self.assertIsInstance(k, str)
                 self.assertIsInstance(v, float)
-
-            # def set_parameters(self, parameters: Dict[str, float]):
-            # def reset_parameters(self, keys: List[str]):
-            # def is_fixed(self, key: str) -> bool:
-            # def set_fixed(self, key: str, value: bool):
-            # def get_lower_limit(self, key: str) -> float:
-            # def set_lower_limit(self, key: str, value: float):
-            # def get_upper_limit(self, key: str) -> float:
-            # def set_upper_limit(self, key: str, value: float):
 
     def test_02_sympy(self):
         freq: List[float] = [1e-5, 1, 1e5]
@@ -139,6 +123,14 @@ class TestConnection(TestCase):
     def test_01_base_methods(self):
         pass
 
+    def test_02_series(self):
+        series: Series = Series([Resistor(R=250), Resistor(R=500)])
+        self.assertEqual(series.impedance(1), 250 + 500)
+
+    def test_03_parallel(self):
+        parallel: Parallel = Parallel([Resistor(R=250), Resistor(R=500)])
+        self.assertEqual(parallel.impedance(1), 1/(1/250 + 1/500))
+
 
 # TODO: Create tests for the Circuit class
 class TestCircuit(TestCase):
@@ -152,7 +144,6 @@ class TestTokenizer(TestCase):
         pass
 
 
-# TODO: Create tests for the Parser class
 class TestParser(TestCase):
     def test_01_valid_cdcs(self):
         CDCs: List[str] = [
@@ -228,9 +219,17 @@ class TestParser(TestCase):
             "RL(QW)(L[(RR)(RR)L(RR)])",
         ]
         parser: Parser = Parser()
+        freq: List[float] = [1e-5, 1, 1e5]
         cdc: str
         for cdc in CDCs:
-            parser.process(cdc)
+            circuit: Circuit = parser.process(cdc)
+            Z_regular: ndarray = circuit.impedances(freq)
+            expr: Expr = circuit.to_sympy(substitute=True)
+            Z_sympy: ndarray = array(
+                list(map(lambda _: complex(expr.subs("f", _)), freq))
+            )
+            self.assertTrue(allclose(Z_regular.real, Z_sympy.real))
+            self.assertTrue(allclose(Z_regular.imag, Z_sympy.imag))
 
     def test_02_invalid_cdcs(self):
         CDCs: List[Tuple[str, ParsingError]] = [

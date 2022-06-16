@@ -1,11 +1,32 @@
 from setuptools import setup, find_packages
+from os import walk
+from os.path import join
+
+
+licenses = []
+for _, _, files in walk("LICENSES"):
+    licenses.extend(
+        list(
+            map(
+                lambda _: join("LICENSES", _),
+                filter(lambda _: _.startswith("LICENSE-"), files),
+            )
+        )
+    )
 
 setup(
     name="pyimpspec",
-    version="0.1.3",
+    version="1.0.0",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    include_package_data=True,
+    data_files=[
+        "COPYRIGHT",
+        "CONTRIBUTORS",
+        "LICENSES/README.md",
+    ]
+    + licenses,
     url="https://github.com/vyrjana/pyimpspec",
     project_urls={
         "Bug Tracker": "https://github.com/vyrjana/pyimpspec/issues",
@@ -25,13 +46,13 @@ setup(
     ],
     python_requires=">=3.6",
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Programming Language :: Python :: 3",
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Science/Research",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
         "Operating System :: OS Independent",
-        "Topic :: Scientific/Engineering",
+        "Programming Language :: Python :: 3",
         "Topic :: Scientific/Engineering :: Chemistry",
         "Topic :: Scientific/Engineering :: Physics",
-        "Intended Audience :: Science/Research",
+        "Topic :: Scientific/Engineering",
     ],
 )

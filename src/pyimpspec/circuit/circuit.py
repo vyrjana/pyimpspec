@@ -1,5 +1,19 @@
-# Copyright 2022 pyimpspec developers
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
+# Copyright 2022 pyimpspec developers
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
@@ -20,6 +34,17 @@ ElementParameters = Dict[str, Dict[str, str]]
 
 
 class Circuit:
+    """
+A class that represents an equivalent circuit.
+
+Parameters
+----------
+elements: Series
+    The elements of the circuit wrapped in a Series connection.
+
+label: str = ""
+    The label assigned to the circuit.
+    """
     def __init__(self, elements: Series, label: str = ""):
         assert type(elements) is Series
         self._elements: Series = elements
@@ -33,9 +58,24 @@ class Circuit:
         return self.to_string()
 
     def get_label(self) -> str:
+        """
+Get the label assigned to this circuit.
+
+Returns
+-------
+str
+        """
         return self._label
 
     def set_label(self, label: str):
+        """
+Set the label assigned to this circuit.
+
+Parameters
+----------
+label: str
+    The new label.
+        """
         assert type(label) is str
         self._label = label.strip()
 
@@ -48,37 +88,131 @@ class Circuit:
         return stack
 
     def to_string(self, decimals: int = -1) -> str:
+        """
+Generate the circuit description code (CDC) that represents this circuit.
+
+Parameters
+----------
+decimals: int = -1
+    The number of decimals to include for the current element parameter values and limits.
+    -1 means that the CDC is generated using the basic syntax, which omits element labels, parameter values, and parameter limits.
+
+Returns
+-------
+str
+        """
         return self._elements.to_string(decimals=decimals)
 
     def impedance(self, f: float) -> complex:
+        """
+Calculate the impedance of this circuit at a single frequency.
+
+Parameters
+----------
+f: float
+    The frequency in hertz.
+
+Returns
+-------
+complex
+        """
         assert f > 0 and f < inf
         return self._elements.impedance(f)
 
-    def impedances(self, freq: Union[list, ndarray]) -> ndarray:
-        assert type(freq) is list or type(freq) is ndarray
-        assert min(freq) > 0 and max(freq) < inf
-        return array(list(map(self.impedance, freq)))
+    def impedances(self, f: Union[list, ndarray]) -> ndarray:
+        """
+Calculate the impedance of this circuit at multiple frequencies.
+
+Parameters
+----------
+f: Union[list, ndarray]
+
+Returns
+-------
+ndarray
+        """
+        assert type(f) is list or type(f) is ndarray, f
+        assert min(f) > 0 and max(f) < inf, f
+        return array(list(map(self.impedance, f)))
 
     def get_elements(self, flattened: bool = True) -> List[Union[Element, Connection]]:
+        """
+Get the elements in this circuit.
+
+Parameters
+----------
+flattened: bool = True
+    Whether or not the elements should be returned as a list of only elements or as a list of elements and connections.
+
+Returns
+-------
+List[Union[Element, Connection]]
+        """
         if flattened is True:
             return self._elements.get_elements(flattened=flattened)
         return [self._elements]
 
     def get_parameters(self) -> Dict[int, OrderedDict[str, float]]:
+        """
+Get a mapping of each circuit element's integer identifier to an OrderedDict representing that element's parameters.
+
+Returns
+-------
+Dict[int, OrderedDict[str, float]]
+        """
         return self._elements.get_parameters()
 
     def set_parameters(self, parameters: Dict[int, Dict[str, float]]):
+        """
+Assign new parameters to the circuit elements.
+
+Parameters
+----------
+parameters: Dict[int, Dict[str, float]]
+    A mapping of circuit element integer identifiers to an OrderedDict mapping the parameter symbol to the new value.
+        """
         self._elements.set_parameters(parameters)
 
     def get_element(self, ident: int) -> Optional[Element]:
+        """
+Get the circuit element with a given integer identifier.
+
+Parameters
+----------
+ident: int
+    The integer identifier corresponding to an element in the circuit.
+
+Returns
+-------
+Optional[Element]
+        """
         return self._elements.get_element(ident)
 
     def to_sympy(self, substitute: bool = False) -> Expr:
+        """
+Get the SymPy expression corresponding to this circuit's impedance.
+
+Parameters
+----------
+substitute: bool = False
+    Whether or not the variables should be substituted with the current values.
+
+Returns
+-------
+Expr
+        """
         expr: Expr = self._elements.to_sympy(substitute=substitute)
         assert isinstance(expr, Expr)
         return expr
 
     def to_latex(self) -> str:
+        """
+Get the LaTeX math expression corresponding to this circuit's impedance.
+
+Returns
+-------
+str
+        """
         return latex(self.to_sympy(substitute=False))
 
     def to_circuitikz(
@@ -89,6 +223,30 @@ class Circuit:
         counter_label: str = "CE+RE",
         hide_labels: bool = False,
     ) -> str:
+        """
+Get the LaTeX source needed to draw a circuit diagram for this circuit using the circuitikz package.
+
+Parameters
+----------
+node_width: float = 3.0
+    The width of each node.
+
+node_height: float = 1.5
+    The height of each node.
+
+working_label: str = "WE+WS"
+    The label assigned to the terminal representing the working and working sense electrodes.
+
+counter_label: str = "CE+RE"
+    The label assigned to the terminal representing the counter and reference electrodes.
+
+hide_labels: bool = False
+    Whether or not to hide element and terminal labels.
+
+Returns
+-------
+str
+        """
         assert node_width > 0
         assert node_height > 0
         assert type(working_label) is str

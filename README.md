@@ -14,35 +14,52 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 	- [Plotting](#plotting)
 - [Contributors](#contributors)
 - [License](#license)
+- [Changelog](#changelog)
 
 
 ## Installing
 
-_pyimpspec_ can be installed with _pip_.
+The latest version of _pyimpspec_ requires **Python 3.6 or newer** and the most straightforward way to install _pyimpspec_ is by using [_pip_](https://pip.pypa.io/en/stable/):
+Make sure that _pip_ is installed first and then type the following command into a terminal of your choice (e.g. _PowerShell_ in Windows).
 
 ```
 pip install pyimpspec
 ```
 
+Newer versions of _pyimpspec_ can be installed at a later date by appending the `-U` option to the command:
+
+```
+pip install pyimpspec -U
+```
+
+Supported platforms:
+- Linux
+	- Primary development and testing platform.
+- Windows
+	- Tested on Windows 10 (x86-64).
+
+The package **may** also work on other platforms (e.g. MacOS) depending on whether or not those platforms are supported by _pyimpspec_'s [dependencies](setup.py).
+
 
 ## Features
 
-The sections below are merely brief descriptions of _pyimpspec_'s features.
-See [the Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main/examples/examples.ipynb) for examples of those features in action.
+See [the Jupyter notebook](examples/examples.ipynb) for examples of how to make use of the features described below.
+Documentation about the API can be found on the [wiki](https://github.com/vyrjana/pyimpspec/wiki).
 
 
 ### Circuits
 
 _pyimpspec_ supports the creation of `Circuit` objects, which can be used to simulate impedance spectra or to extract information from experimental data by means of complex non-linear least squares (CNLS) fitting.
-The easiest way to create circuits is by letting _pyimpspec_ parse a circuit description code (CDC).
+The recommended way to create circuits is by letting _pyimpspec_ parse a circuit description code (CDC).
 An extended CDC syntax, which makes it possible to define e.g. initial values, is also supported.
+`Circuit` objects also have additional features such as generation of LaTeX source for drawing circuit diagrams (requires `\usepackage{circuitikz}` in the header of the LaTeX document).
 
 
 ### Data parsing
 
-Several file formats are supported by _pyimpspec_ and the data within is used to generate a `DataSet` object.
+Several file formats are supported by _pyimpspec_ and the data within are used to generate a `DataSet` object.
 The file formats include:
-- Files containing the data as character-separate values (CSV).
+- Files containing the data as character-separated values (CSV).
 - Spreadsheets (`.xls`, `.xlsx`, `.ods`).
 - Ivium data files (`.idf`, `.ids`).
 - Gamry data files (`.dta`).
@@ -52,8 +69,8 @@ The parsers expect to find at least a column with frequencies and columns for ei
 The sign of the imaginary part of the impedance and/or the phase angle/shift may be negative, but then that has to be indicated in the column header with a `-` prefix.
 Additional file formats may be supported in the future.
 
-`DataSet` objects can also be created from dictionaries.
-The contents of the `DataSet` can be transformed into a `pandas.DataFrame` object, which in turn can be used to output the data in a variety of formats (CSV, Markdown, LaTeX, etc.).
+`DataSet` objects can also be turned into `dict` objects as well as created from them, which is convenient for serialization (e.g. using Javascript Object Notation).
+The contents of the `DataSet` can also be transformed into a `pandas.DataFrame` object, which in turn can be used to output the data in a variety of formats (CSV, Markdown, LaTeX, etc.).
 
 
 ### Kramers-Kronig tests
@@ -65,7 +82,7 @@ The procedure described in _"A method for improving the robustness of linear Kra
 
 The relevant functions return `KramersKronigResult` objects that include:
 - The fitted `Circuit` object that is generated as part of the test.
-- The pseudo chi-squared and the µ values.
+- The corresponding pseudo chi-squared and the µ values.
 - The frequencies of the data points that were tested.
 - The complex impedances produced by the fitted circuit at each of the tested frequencies.
 - The residuals of the real and imaginary parts of the impedances.
@@ -89,9 +106,14 @@ _pyimpspec_ includes functions for visualizing `Circuit`, `DataSet`, `KramersKro
 The only backend that is currently supported is _matplotlib_.
 
 
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for details.
+
+
 ## Contributors
 
-See [CONTRIBUTORS](https://github.com/vyrjana/pyimpspec/blob/main/CONTRIBUTORS) for a list of people who have contributed to the _pyimpspec_ project.
+See [CONTRIBUTORS](CONTRIBUTORS) for a list of people who have contributed to the _pyimpspec_ project.
 
 
 ## License
@@ -101,4 +123,3 @@ Copyright 2022 pyimpspec developers
 _pyimpspec_ is licensed under the [GPLv3 or later](https://www.gnu.org/licenses/gpl-3.0.html).
 
 The licenses of _pyimpspec_'s dependencies and/or sources of portions of code are included in the LICENSES folder.
-

@@ -1,5 +1,19 @@
-# Copyright 2022 pyimpspec developers
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
+# Copyright 2022 pyimpspec developers
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
@@ -28,37 +42,45 @@ from pyimpspec.analysis.fitting import (
     _from_lmfit,
     _to_lmfit,
     _interpolate,
+    _calculate_residuals,
     FittingError,
 )
 from pyimpspec.circuit import string_to_circuit
 from pyimpspec.circuit.base import Connection
 from pyimpspec.circuit.circuit import Circuit
-from pyimpspec.data.dataset import DataSet
+from pyimpspec.data import DataSet
 
 
 @dataclass(frozen=True)
 class KramersKronigResult:
     """
-    An object representing the results of a linear Kramers-Kronig test applied to a data set.
+An object representing the results of a linear Kramers-Kronig test applied to a data set.
 
-    Properties
-    ----------
-    circuit: Circuit
-        The fitted circuit.
-    num_RC: int
-        The final number of parallel RC circuits in the fitted model (Boukamp, 1995).
-    mu: float
-        The mu-value of the final fit (eq. 21 in Schönleber et al., 2014).
-    pseudo_chisqr: float
-        The pseudo chi-squared fit value (eq. 14 in Boukamp, 1995).
-    frequency: ndarray
-        The frequencies used to perform the test.
-    impedance: ndarray
-        The impedance produced by the fitted circuit at each of the tested frequencies.
-    real_residual: ndarray
-        The residuals for the real parts (eq. 15 in Schönleber et al., 2014).
-    imaginary_residual: ndarray
-        The residuals for the imaginary parts (eq. 16 in Schönleber et al., 2014).
+Parameters
+----------
+circuit: Circuit
+    The fitted circuit.
+
+num_RC: int
+    The final number of parallel RC circuits in the fitted model (Boukamp, 1995).
+
+mu: float
+    The mu-value of the final fit (eq. 21 in Schönleber et al., 2014).
+
+pseudo_chisqr: float
+    The pseudo chi-squared fit value (eq. 14 in Boukamp, 1995).
+
+frequency: ndarray
+    The frequencies used to perform the test.
+
+impedance: ndarray
+    The impedance produced by the fitted circuit at each of the tested frequencies.
+
+real_residual: ndarray
+    The residuals for the real parts (eq. 15 in Schönleber et al., 2014).
+
+imaginary_residual: ndarray
+    The residuals for the imaginary parts (eq. 16 in Schönleber et al., 2014).
     """
 
     circuit: Circuit
@@ -87,16 +109,15 @@ class KramersKronigResult:
 
     def get_nyquist_data(self, num_per_decade: int = -1) -> Tuple[ndarray, ndarray]:
         """
-        Get the data necessary to plot this KramersKronigResult as a Nyquist plot: the real and the
-        negative imaginary parts of the impedances.
+Get the data necessary to plot this KramersKronigResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.
 
-        Parameters
-        ----------
-        num_per_decade: int = -1
+Parameters
+----------
+num_per_decade: int = -1
 
-        Returns
-        -------
-        Tuple[numpy.ndarray, numpy.ndarray]
+Returns
+-------
+Tuple[ndarray, ndarray]
         """
         assert type(num_per_decade) is int
         if num_per_decade > 0:
@@ -114,17 +135,15 @@ class KramersKronigResult:
         self, num_per_decade: int = -1
     ) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot this KramersKronigResult as a Bode plot: the base-10
-        logarithms of the frequencies, the base-10 logarithms of the absolute magnitudes of the
-        impedances, and the negative phase angles/shifts of the impedances in degrees.
+Get the data necessary to plot this KramersKronigResult as a Bode plot: the base-10 logarithms of the frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
 
-        Parameters
-        ----------
-        num_per_decade: int = -1
+Parameters
+----------
+num_per_decade: int = -1
 
-        Returns
-        -------
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+Returns
+-------
+Tuple[ndarray, ndarray, ndarray]
         """
         assert type(num_per_decade) is int
         if num_per_decade > 0:
@@ -143,14 +162,11 @@ class KramersKronigResult:
 
     def get_residual_data(self) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot the relative residuals for this KramersKronigResult: the
-        base-10 logarithms of the frequencies, the relative residuals for the real parts of the
-        impedances in percents, and the relative residuals for the imaginary parts of the
-        impedances in percents.
+Get the data necessary to plot the relative residuals for this KramersKronigResult: the base-10 logarithms of the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.
 
-        Returns
-        -------
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+Returns
+-------
+Tuple[ndarray, ndarray, ndarray]
         """
         return (
             log(self.frequency),
@@ -643,58 +659,63 @@ def perform_test(
     num_procs: int = -1,
 ) -> KramersKronigResult:
     """
-    Performs a linear Kramers-Kronig test as described by Boukamp (1995). The results can be used
-    to check the validity of an impedance spectrum before performing equivalent circuit fitting.
-    If the number of (RC) circuits is less than two, then a suitable number of (RC) circuits is
-    determined using the procedure described by Schönleber et al. (2014) based on a criterion
-    for the calculated mu-value (zero to one). A mu-value of one represents underfitting and a
-    mu-value of zero represents overfitting.
+Performs a linear Kramers-Kronig test as described by Boukamp (1995).
+The results can be used to check the validity of an impedance spectrum before performing equivalent circuit fitting.
+If the number of (RC) circuits is less than two, then a suitable number of (RC) circuits is determined using the procedure described by Schönleber et al.(2014) based on a criterion for the calculated mu-value (zero to one).
+A mu-value of one represents underfitting and a mu-value of zero represents overfitting.
 
-    References:
-    - B.A. Boukamp, 1995, J. Electrochem. Soc., 142, 1885-1894
-      (https://doi.org/10.1149/1.2044210)
-    - M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27
-      (https://doi.org/10.1016/j.electacta.2014.01.034)
+References:
 
-    Parameters
-    ----------
-    data: DataSet
-        The data set to be tested.
-    test: str = "complex"
-        Supported values include "cnls", "complex", "imaginary", and "real". The "cnls" test
-        performs a complex non-linear least squares fit using lmfit.minimize, which usually
-        provides a good fit but is also quite slow. The "complex", "imaginary", and "real" tests
-        perform the complex, imaginary, and real tests, respectively, according to Boukamp (1995).
-    num_RC: int = 0
-        The number of parallel RC circuits to use. A value less than one results in the use of the
-        procedure described by Schönleber et al. (2014) based on the chosen mu-criterion.
-    mu_criterion: float = 0.85
-        The chosen mu-criterion. See Schönleber et al. (2014) for more information.
-    add_capacitance: bool = False
-        Add an additional capacitance in series with the rest of the circuit.
-    add_inductance: bool = False
-        Add an additional inductance in series with the rest of the circuit. Applies only to the
-        "cnls" test.
-    method: str = "leastsq"
-        The fitting method to use when performing a "cnls" test. See the list of methods that are
-        listed in the documentation for the lmfit package. Methods that do not require providing
-        bounds for all parameters or a function to calculate the Jacobian should work.
-    max_nfev: int = -1
-        The maximum number of function evaluations when fitting. A value less than one equals no
-        limit. Applies only to the "cnls" test.
-    num_procs: int = -1
-        The maximum number of parallel processes to use when performing a test. A value less than
-        one results in using the number of cores returned by multiprocessing.cpu_count. Applies
-        only to the "cnls" test.
+- B.A. Boukamp, 1995, J. Electrochem. Soc., 142, 1885-1894 (https://doi.org/10.1149/1.2044210)
+- M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 (https://doi.org/10.1016/j.electacta.2014.01.034)
 
-    Returns
-    -------
-    KramersKronigResult
+Parameters
+----------
+data: DataSet
+    The data set to be tested.
+
+test: str = "complex"
+    Supported values include "cnls", "complex", "imaginary", and "real". The "cnls" test performs a complex non-linear least squares fit using lmfit.minimize, which usually provides a good fit but is also quite slow.
+    The "complex", "imaginary", and "real" tests perform the complex, imaginary, and real tests, respectively, according to Boukamp (1995).
+
+num_RC: int = 0
+    The number of parallel RC circuits to use.
+    A value less than one results in the use of the procedure described by Schönleber et al. (2014) based on the chosen mu-criterion.
+
+mu_criterion: float = 0.85
+    The chosen mu-criterion. See Schönleber et al. (2014) for more information.
+
+add_capacitance: bool = False
+    Add an additional capacitance in series with the rest of the circuit.
+
+add_inductance: bool = False
+    Add an additional inductance in series with the rest of the circuit.
+    Applies only to the "cnls" test.
+
+method: str = "leastsq"
+    The fitting method to use when performing a "cnls" test.
+    See the list of methods that are listed in the documentation for the lmfit package.
+    Methods that do not require providing bounds for all parameters or a function to calculate the Jacobian should work.
+
+max_nfev: int = -1
+    The maximum number of function evaluations when fitting.
+    A value less than one equals no limit.
+    Applies only to the "cnls" test.
+
+num_procs: int = -1
+    The maximum number of parallel processes to use when performing a test.
+    A value less than one results in using the number of cores returned by multiprocessing.cpu_count.
+    Applies only to the "cnls" test.
+
+Returns
+-------
+KramersKronigResult
     """
-    assert type(data) is DataSet, (
+    assert isinstance(data, DataSet), (
         type(data),
         data,
     )
+    assert data.get_num_points() > 0
     assert type(test) is str, (
         type(test),
         test,
@@ -852,8 +873,7 @@ def perform_test(
         Z_fit,
         # Residuals calculated according to eqs. 15 and 16
         # in Schönleber et al. (2014)
-        (Z_exp.real - Z_fit.real) / abs(Z_exp),
-        (Z_exp.imag - Z_fit.imag) / abs(Z_exp),
+        *_calculate_residuals(Z_exp, Z_fit),
     )
 
 
@@ -869,39 +889,47 @@ def perform_exploratory_tests(
     num_procs: int = -1,
 ) -> List[KramersKronigResult]:
     """
-    Performs a batch of linear Kramers-Kronig tests.
+Performs a batch of linear Kramers-Kronig tests.
 
-    Parameters
-    ----------
-    data: DataSet
-        The data set to be tested.
-    test: str = "complex"
-        See perform_test for details.
-    num_RCs: List[int] = []
-        A list of integers representing the various number of parallel RC circuits to test.
-        An empty list results in all possible numbers of parallel RC circuits up to the total
-        number of frequencies being tested.
-    mu_criterion: float = 0.85
-        See perform_test for details.
-    add_capacitance: bool = False
-        See perform_test for details.
-    add_inductance: bool = False
-        See perform_test for details.
-    method: str = "leastsq"
-        See perform_test for details.
-    max_nfev: int = -1
-        See perform_test for details.
-    num_procs: int = -1
-        See perform_test for details.
+Parameters
+----------
+data: DataSet
+    The data set to be tested.
 
-    Returns
-    -------
-    List[KramersKronigResult]
+test: str = "complex"
+    See perform_test for details.
+
+num_RCs: List[int] = []
+    A list of integers representing the various number of parallel RC circuits to test.
+    An empty list results in all possible numbers of parallel RC circuits up to the total number of frequencies being tested.
+
+mu_criterion: float = 0.85
+    See perform_test for details.
+
+add_capacitance: bool = False
+    See perform_test for details.
+
+add_inductance: bool = False
+    See perform_test for details.
+
+method: str = "leastsq"
+    See perform_test for details.
+
+max_nfev: int = -1
+    See perform_test for details.
+
+num_procs: int = -1
+    See perform_test for details.
+
+Returns
+-------
+List[KramersKronigResult]
     """
-    assert type(data) is DataSet, (
+    assert isinstance(data, DataSet), (
         type(data),
         data,
     )
+    assert data.get_num_points() > 0
     assert type(test) is str, (
         type(test),
         test,
@@ -1011,8 +1039,7 @@ def perform_exploratory_tests(
                 Z_fit,
                 # Residuals calculated according to eqs. 15 and 16
                 # in Schönleber et al. (2014)
-                (Z_exp.real - Z_fit.real) / abs(Z_exp),
-                (Z_exp.imag - Z_fit.imag) / abs(Z_exp),
+                *_calculate_residuals(Z_exp, Z_fit),
             )
         )
     return results
@@ -1022,27 +1049,25 @@ def score_test_results(
     results: List[KramersKronigResult], mu_criterion: float
 ) -> List[Tuple[float, KramersKronigResult]]:
     """
-    Assign scores to test results as an alternative to just using the mu-value generated when
-    using the procedure described by Schönleber et al. (2014). The mu-value can in some cases
-    fluctuate wildly at low numbers of parallel RC circuits and result in false positives (i.e.
-    the mu-value briefly dips below the mu-criterion only to rises above it again). The score is
-    -numpy.inf for results with mu-values greater than or equal to the mu-criterion. For results
-    with mu-values below the mu-criterion, the score is calculated based on the pseudo chi-squared
-    value of the result and on the difference between the mu-criterion and the result's mu-value.
-    The results and their corresponding scores are returned as a list of tuples. The list is sorted
-    from the highest score to the lowest score. The result with the highest score should be a good
-    initial guess for a suitable candidate.
+Assign scores to test results as an alternative to just using the mu-value generated when using the procedure described by Schönleber et al. (2014).
+The mu-value can in some cases fluctuate wildly at low numbers of parallel RC circuits and result in false positives (i.e. the mu-value briefly dips below the mu-criterion only to rises above it again).
+The score is equal to -numpy.inf for results with mu-values greater than or equal to the mu-criterion.
+For results with mu-values below the mu-criterion, the score is calculated based on the pseudo chi-squared value of the result and on the difference between the mu-criterion and the result's mu-value.
+The results and their corresponding scores are returned as a list of tuples.
+The list is sorted from the highest score to the lowest score.
+The result with the highest score should be a good initial guess for a suitable candidate.
 
-    Parameters
-    ----------
-    result: KramersKronigResult
-        The result to score.
-    mu_criterion: float
-        The mu_criterion to use.
+Parameters
+----------
+results: List[KramersKronigResult]
+    The result to score.
 
-    Returns
-    -------
-    List[Tuple[float, KramersKronigResult]]
+mu_criterion: float
+    The mu_criterion to use.
+
+Returns
+-------
+List[Tuple[float, KramersKronigResult]]
     """
     assert type(results) is list, (
         type(results),

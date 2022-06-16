@@ -1,5 +1,19 @@
-# Copyright 2022 pyimpspec developers
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
+# Copyright 2022 pyimpspec developers
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
@@ -16,7 +30,55 @@ from uuid import uuid4
 VERSION: int = 1
 
 
+def _parse_v1(dictionary: dict) -> dict:
+    assert type(dictionary) is dict
+    assert "frequency" in dictionary
+    assert "real" in dictionary
+    assert "imaginary" in dictionary
+    return {
+        "frequency": array(dictionary["frequency"]),
+        "impedance": array(
+            list(
+                map(
+                    lambda _: complex(*_),
+                    zip(dictionary["real"], dictionary["imaginary"]),
+                )
+            )
+        ),
+        "mask": {int(k): v for k, v in dictionary.get("mask", {}).items()},
+        "path": dictionary.get("path", ""),
+        "label": dictionary.get("label", ""),
+        "uuid": dictionary.get("uuid", ""),
+    }
+
+
 class DataSet:
+    """
+A class that represents an impedance spectrum.
+The data points can be masked, which results in those data points being omitted from any analyses and visualization.
+
+Parameters
+----------
+frequency: ndarray
+    A 1-dimensional array of frequencies in hertz.
+
+impedance: ndarray
+    A 1-dimensional array of complex impedances in ohms.
+
+mask: Dict[int, bool] = {}
+    A mapping of integer indices to boolean values where a value of True means that the data point is to be omitted.
+
+path: str = ""
+    The path to the file that has been parsed to generate this DataSet instance.
+
+label: str = ""
+    The label assigned to this DataSet instance.
+
+uuid: str = ""
+    The universivally unique identifier assigned to this DataSet instance.
+    If empty, then one will be automatically assigned.
+    """
+
     def __init__(
         self,
         frequency: ndarray,
@@ -57,6 +119,14 @@ class DataSet:
         return f"DataSet ({self._label}, {hex(id(self))})"
 
     def subtract_impedance(self, Z: Union[complex, List[complex], ndarray]):
+        """
+Subtract either the same complex value from all data points or a unique complex value for each data point in this DataSet.
+
+Parameters
+----------
+Z: Union[complex, List[complex], ndarray]
+    The complex value(s) to subtract from this DataSet's impedances.
+        """
         if type(Z) is list or type(Z) is ndarray:
             assert all(map(lambda _: hasattr(_, "real") and hasattr(_, "imag"), Z)), (
                 type(Z),
@@ -71,55 +141,51 @@ class DataSet:
         self._impedance = self._impedance - Z
 
     @staticmethod
-    def _parse_v1(dictionary: dict) -> dict:
-        assert type(dictionary) is dict
-        assert "frequency" in dictionary
-        assert "real" in dictionary
-        assert "imaginary" in dictionary
-        return {
-            "frequency": array(dictionary["frequency"]),
-            "impedance": array(
-                list(
-                    map(
-                        lambda _: complex(*_),
-                        zip(dictionary["real"], dictionary["imaginary"]),
-                    )
-                )
-            ),
-            "mask": {int(k): v for k, v in dictionary.get("mask", {}).items()},
-            "path": dictionary.get("path", ""),
-            "label": dictionary.get("label", ""),
-            "uuid": dictionary.get("uuid", ""),
-        }
-
-    @classmethod
-    def from_dict(Class, dictionary: dict) -> "DataSet":
-        """
-        Create a DataSet from a dictionary.
-
-        Parameters
-        ----------
-        dictionary: dict
-            A dictionary containing at least the frequencies, and the real and the imaginary parts
-            of the impedances.
-
-        Returns
-        -------
-        DataSet
-        """
+    def _parse(dictionary: dict) -> dict:
         assert type(dictionary) is dict
         parsers: Dict[int, Callable] = {
-            1: Class._parse_v1,
+            1: _parse_v1,
         }
         version: int = dictionary.get("version", VERSION)
         assert version <= VERSION, f"Unsupported version: {version=} > {VERSION=}"
         assert (
             version in parsers
         ), f"Unsupported version: {version=} not in {parsers.keys()=}"
-        return Class(**parsers[version](dictionary))
+        return parsers[version](dictionary)
+
+    @classmethod
+    def from_dict(Class, dictionary: dict) -> "DataSet":
+        """
+Create a DataSet from a dictionary.
+
+Parameters
+----------
+dictionary: dict
+    A dictionary containing at least the frequencies, and the real and the imaginary parts of the impedances.
+
+Returns
+-------
+DataSet
+        """
+        return Class(**Class._parse(dictionary))
 
     @classmethod
     def copy(Class, data: "DataSet", label: Optional[str] = None) -> "DataSet":
+        """
+Create a copy of an existing DataSet.
+
+Parameters
+----------
+data: DataSet
+    The existing DataSet to make a copy of.
+
+label: Optional[str] = None
+    The label that the copy should have.
+
+Returns
+-------
+DataSet
+        """
         assert type(data) is Class
         assert type(label) is str or label is None
         dictionary: dict = data.to_dict()
@@ -129,14 +195,29 @@ class DataSet:
         return Class.from_dict(dictionary)
 
     @classmethod
-    def average(Class, datasets: List["DataSet"], label: str = "Average") -> "DataSet":
-        assert type(datasets) is list and all(map(lambda _: type(_) is Class, datasets))
+    def average(Class, data_sets: List["DataSet"], label: str = "Average") -> "DataSet":
+        """
+Create a DataSet by averaging the impedances of multiple DataSet instances.
+
+Parameters
+----------
+data_sets: List[DataSet]
+    The DataSet instances to average.
+
+label: str = "Average"
+    The label that the new DataSet should have.
+
+Returns
+-------
+DataSet
+        """
+        assert type(data_sets) is list and all(map(lambda _: type(_) is Class, data_sets))
         assert type(label) is str
         freqs: List[ndarray] = list(
-            map(lambda _: _.get_frequency(masked=None), datasets)
+            map(lambda _: _.get_frequency(masked=None), data_sets)
         )
         imps: List[ndarray] = list(
-            map(lambda _: _.get_impedance(masked=None), datasets)
+            map(lambda _: _.get_impedance(masked=None), data_sets)
         )
         f: ndarray = freqs.pop(0)
         assert all(map(lambda _: allclose(f, _), freqs))
@@ -152,50 +233,58 @@ class DataSet:
 
     def get_path(self) -> str:
         """
-        Get the path to the file that was parsed and turned into this DataSet.
+Get the path to the file that was parsed to generate this DataSet.
 
-        Returns
-        -------
-        str
+Returns
+-------
+str
         """
         return self._path
 
     def set_path(self, path: str):
+        """
+Set the path to the file that was parsed to generate this DataSet.
+
+Parameters
+----------
+path: str
+    The path.
+        """
         assert type(path) is str
         self._path = path
 
     def get_label(self) -> str:
         """
-        Get the label assigned to this DataSet.
+Get the label assigned to this DataSet.
 
-        Returns
-        -------
-        str
+Returns
+-------
+str
         """
         return self._label
 
     def set_label(self, label: str):
         """
-        Set the label assigned to this DataSet.
+Set the label assigned to this DataSet.
 
-        Parameters
-        ----------
-        label: str
-            The new label.
+Parameters
+----------
+label: str
+    The new label.
         """
         assert type(label) is str
         self._label = label
 
     def set_mask(self, mask: Dict[int, bool]):
         """
-        Set the mask for this DataSet.
+Set the mask for this DataSet.
 
-        Parameters
-        ----------
-        mask: Dict[int, bool]
-            The new mask. The keys must be zero-based indices and the values must be boolean values.
-            True means that the data point is masked/excluded/ignored and False means that the
-            data point is included.
+Parameters
+----------
+mask: Dict[int, bool]
+    The new mask.
+    The keys must be zero-based indices and the values must be boolean values.
+    True means that the data point is to be omitted and False means that the data point is to be included.
         """
         assert (
             type(mask) is dict
@@ -218,30 +307,30 @@ class DataSet:
 
     def get_mask(self) -> Dict[int, bool]:
         """
-        Get the mask for this DataSet. The keys are zero-based indices and the values are booleans.
-        True means that the data point is masked/excluded/ignored and False means that the data
-        point is included.
+Get the mask for this DataSet.
+The keys are zero-based indices and the values are booleans.
+True means that the data point is to be omitted and False means that the data point is to be included.
 
-        Returns
-        -------
-        Dict[int, bool]
+Returns
+-------
+Dict[int, bool]
         """
         return self._mask.copy()
 
     def get_frequency(self, masked: Optional[bool] = False) -> ndarray:
         """
-        Get the frequencies in this DataSet.
+Get the frequencies in this DataSet.
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that all frequencies are returned. True means that only frequencies that are
-            masked/excluded/ignored are returned. False means that only frequencies that are
-            included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all frequencies are returned.
+    True means that only frequencies that are to be omitted are returned.
+    False means that only frequencies that are to be included are returned.
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+ndarray
         """
         assert type(masked) is bool or masked is None
         if masked is None:
@@ -258,18 +347,18 @@ class DataSet:
 
     def get_impedance(self, masked: Optional[bool] = False) -> ndarray:
         """
-        Get the complex impedances in this DataSet.
+Get the complex impedances in this DataSet.
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that all impedances are returned. True means that only impedances that are
-            masked/excluded/ignored are returned. False means that only impedances that are
-            included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+ndarray
         """
         assert type(masked) is bool or masked is None
         if masked is None:
@@ -286,86 +375,86 @@ class DataSet:
 
     def get_real(self, masked: Optional[bool] = False) -> ndarray:
         """
-        Get the real parts of the impedances in this DataSet.
+Get the real parts of the impedances in this DataSet.
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that all impedances are returned. True means that only impedances that are
-            masked/excluded/ignored are returned. False means that only impedances that are
-            included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+ndarray
         """
         return self.get_impedance(masked=masked).real
 
     def get_imaginary(self, masked: Optional[bool] = False) -> ndarray:
         """
-        Get the imaginary parts of the impedances in this DataSet.
+Get the imaginary parts of the impedances in this DataSet.
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that all impedances are returned. True means that only impedances that are
-            masked/excluded/ignored are returned. False means that only impedances that are
-            included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+ndarray
         """
         return self.get_impedance(masked=masked).imag
 
     def get_magnitude(self, masked: Optional[bool] = False) -> ndarray:
         """
-        Get the absolute magnitudes of the impedances in this DataSet.
+Get the absolute magnitudes of the impedances in this DataSet.
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that all impedances are returned. True means that only impedances that are
-            masked/excluded/ignored are returned. False means that only impedances that are
-            included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+ndarray
         """
         return abs(self.get_impedance(masked=masked))
 
     def get_phase(self, masked: Optional[bool] = False) -> ndarray:
         """
-        Get the phase angles/shifts of the impedances in this DataSet in degrees.
+Get the phase angles/shifts of the impedances in this DataSet in degrees.
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that all impedances are returned. True means that only impedances that are
-            masked/excluded/ignored are returned. False means that only impedances that are
-            included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+ndarray
         """
         return angle(self.get_impedance(masked=masked), deg=True)
 
     def get_num_points(self, masked: Optional[bool] = False) -> int:
         """
-        Get the number of data points in this DataSet
+Get the number of data points in this DataSet
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that the number of all impedances are returned. True means that only the
-            number of impedances that are masked/excluded/ignored are returned. False means that
-            only the number of impedances that are included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
 
-        Returns
-        -------
-        numpy.ndarray
+Returns
+-------
+int
         """
         return len(self.get_impedance(masked=masked))
 
@@ -373,19 +462,18 @@ class DataSet:
         self, masked: Optional[bool] = False
     ) -> Tuple[ndarray, ndarray]:
         """
-        Get the data necessary to plot this DataSet as a Nyquist plot: the real and the negative
-        imaginary parts of the impedances.
+Get the data necessary to plot this DataSet as a Nyquist plot: the real and the negative imaginary parts of the impedances.
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that all impedances are returned. True means that only impedances that are
-            masked/excluded/ignored are returned. False means that only impedances that are
-            included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
 
-        Returns
-        -------
-        Tuple[numpy.ndarray, numpy.ndarray]
+Returns
+-------
+Tuple[ndarray, ndarray]
         """
         Z: ndarray = self.get_impedance(masked=masked)
         return (
@@ -397,20 +485,18 @@ class DataSet:
         self, masked: Optional[bool] = False
     ) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot this DataSet as a Bode plot: the base-10 logarithms of the
-        frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and the
-        negative phase angles/shifts of the impedances in degrees.
+Get the data necessary to plot this DataSet as a Bode plot: the base-10 logarithms of the frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
 
-        Parameters
-        ----------
-        masked: Optional[bool] = False
-            None means that all impedances are returned. True means that only impedances that are
-            masked/excluded/ignored are returned. False means that only impedances that are
-            included are returned.
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
 
-        Returns
-        -------
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]
+Returns
+-------
+Tuple[ndarray, ndarray, ndarray]
         """
         f: ndarray = self.get_frequency(masked=masked)
         Z: ndarray = self.get_impedance(masked=masked)
@@ -422,9 +508,11 @@ class DataSet:
 
     def to_dict(self) -> dict:
         """
-        Get a dictionary that represents this DataSet, can be used to serialize the DataSet (e.g.
-        as a JSON file), and then used to recreate this DataSet.
+Get a dictionary that represents this DataSet, can be used to serialize the DataSet (e.g. as a JSON file), and then used to recreate this DataSet.
 
+Returns
+-------
+dict
         """
         return {
             "version": VERSION,
@@ -448,6 +536,41 @@ class DataSet:
         negative_imaginary: bool = False,
         negative_phase: bool = False,
     ) -> DataFrame:
+        """
+Create a pandas.DataFrame instance from this DataSet.
+
+Parameters
+----------
+masked: Optional[bool] = False
+    None means that all impedances are returned.
+    True means that only impedances that are to be omitted are returned.
+    False means that only impedances that are to be included are returned.
+
+frequency_label: str = "f (Hz)"
+    The label assigned to the frequency data.
+
+real_label: Optional[str] = "Zre (ohm)"
+    The label assigned to the real part of the impedance data.
+
+imaginary_label: Optional[str] = "Zim (ohm)"
+    The label assigned to the imaginary part of the impedance data.
+
+magnitude_label: Optional[str] = "|Z| (ohm)"
+    The label assigned to the magnitude of the impedance data.
+
+phase_label: Optional[str] = "phase angle (deg.)"
+    The label assigned to the phase of the imedance data.
+
+negative_imaginary: bool = False
+    Whether or not the sign of the imaginary part of the impedance data should be inverted.
+
+negative_phase: bool = False
+    Whether or not the sign of the phase of the impedance data should be inverted.
+
+Returns
+-------
+DataFrame
+        """
         assert type(frequency_label) is str
         assert type(real_label) is str or real_label is None
         assert type(imaginary_label) is str or imaginary_label is None
@@ -472,16 +595,22 @@ class DataSet:
 
 def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
     """
-    Convert a pandas.DataFrame into a DataSet.
+Convert a pandas.DataFrame into a DataSet.
 
-    Parameters
-    ----------
-    df: DataFrame
-        The DataFrame to be converted.
-    path: str
-        The path to the file that was used to create the DataFrame.
-    label: str = ""
-        The label assigned to the new DataSet.
+Parameters
+----------
+df: DataFrame
+    The DataFrame to be converted.
+
+path: str
+    The path to the file that was used to create the DataFrame.
+
+label: str = ""
+    The label assigned to the new DataSet.
+
+Returns
+-------
+DataSet
     """
     assert type(df) is DataFrame
     assert type(path) is str
