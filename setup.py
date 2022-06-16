@@ -14,7 +14,6 @@ for _, _, files in walk("LICENSES"):
         )
     )
 
-
 setup(
     name="pyimpspec",
     version="1.0.0",
@@ -26,7 +25,8 @@ setup(
         "COPYRIGHT",
         "CONTRIBUTORS",
         "LICENSES/README.md",
-    ] + licenses,
+    ]
+    + licenses,
     url="https://github.com/vyrjana/pyimpspec",
     project_urls={
         "Bug Tracker": "https://github.com/vyrjana/pyimpspec/issues",
