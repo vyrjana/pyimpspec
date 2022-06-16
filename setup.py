@@ -1,4 +1,19 @@
 from setuptools import setup, find_packages
+from os import walk
+from os.path import join
+
+
+licenses = []
+for _, _, files in walk("LICENSES"):
+    licenses.extend(
+        list(
+            map(
+                lambda _: join("LICENSES", _),
+                filter(lambda _: _.startswith("LICENSE-"), files),
+            )
+        )
+    )
+
 
 setup(
     name="pyimpspec",
@@ -6,6 +21,12 @@ setup(
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
+    include_package_data=True,
+    data_files=[
+        "COPYRIGHT",
+        "CONTRIBUTORS",
+        "LICENSES/README.md",
+    ] + licenses,
     url="https://github.com/vyrjana/pyimpspec",
     project_urls={
         "Bug Tracker": "https://github.com/vyrjana/pyimpspec/issues",
