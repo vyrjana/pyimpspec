@@ -59,7 +59,7 @@ An extended CDC syntax, which makes it possible to define e.g. initial values, i
 
 Several file formats are supported by _pyimpspec_ and the data within are used to generate a `DataSet` object.
 The file formats include:
-- Files containing the data as character-separate values (CSV).
+- Files containing the data as character-separated values (CSV).
 - Spreadsheets (`.xls`, `.xlsx`, `.ods`).
 - Ivium data files (`.idf`, `.ids`).
 - Gamry data files (`.dta`).
