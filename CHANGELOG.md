@@ -1,3 +1,6 @@
+# PENDING
+- Updated docstrings.
+
 # 1.0.0
 - Added assertions to ensure that DataSet objects have at least one unmasked data point before performing a Kramers-Kronig test or a circuit fit.
 - Updated the parsing of .dta files to support files generated with the THD (total harmonic distortion) setting enabled.
