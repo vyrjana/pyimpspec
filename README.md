@@ -21,7 +21,10 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 ## About
 
 _pyimpspec_ is a Python package that provides an application programming interface (API) for working with impedance spectra.
-The API implements the functionality required to:
+The target audience is researchers who use electrochemical impedance spectroscopy (EIS).
+Those looking for a program with a graphical user interface may wish to instead use [DearEIS](https://github.com/vyrjana/DearEIS), which is based on _pyimpspec_.
+
+The API of _pyimpspec_ implements the functionality required to:
 
 - read certain data formats and parse the experimental data contained within
 - validate impedance spectra by checking if the data is Kramers-Kronig transformable
@@ -34,10 +37,6 @@ See the [Features](#features) section for more information and [this Jupyter not
 Documentation about the API can be found on the [wiki](https://github.com/vyrjana/pyimpspec/wiki).
 
 If you encounter issues, then please open an issue on [GitHub](https://github.com/vyrjana/pyimpspec/issues).
-
-Projects that use _pyimpspec_:
-
-- [DearEIS](https://github.com/vyrjana/DearEIS)
 
 
 ## Installing
