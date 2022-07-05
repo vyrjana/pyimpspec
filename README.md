@@ -5,6 +5,7 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 
 ## Table of contents
 
+- [About](#about)
 - [Installing](#installing)
 - [Features](#features)
 	- [Circuits](#circuits)
@@ -12,9 +13,30 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 	- [Kramers-Kronig tests](#kramers-kronig-tests)
 	- [Equivalent circuit fitting](#equivalent-circuit-fitting)
 	- [Plotting](#plotting)
-- [Contributors](#contributors)
+- [Contributing](#contributing)
 - [License](#license)
 - [Changelog](#changelog)
+
+
+## About
+
+_pyimpspec_ is a Python package that provides an application programming interface (API) for working with impedance spectra.
+The target audience is researchers who use electrochemical impedance spectroscopy (EIS).
+Those looking for a program with a graphical user interface may wish to instead use [DearEIS](https://github.com/vyrjana/DearEIS), which is based on _pyimpspec_.
+
+The API of _pyimpspec_ implements the functionality required to:
+
+- read certain data formats and parse the experimental data contained within
+- validate impedance spectra by checking if the data is Kramers-Kronig transformable
+- construct circuits by parsing a circuit description code
+- extract quantitative data from an impedance spectrum through complex non-linear least squares fitting of a circuit
+- simulate the impedance response of circuits
+- perform basic visualization of impedance spectra and test/fit/simulation results
+
+See the [Features](#features) section for more information and [this Jupyter notebook](examples/examples.ipynb) for examples of how to use _pyimpspec_.
+Documentation about the API can be found on the [wiki](https://github.com/vyrjana/pyimpspec/wiki).
+
+If you encounter issues, then please open an issue on [GitHub](https://github.com/vyrjana/pyimpspec/issues).
 
 
 ## Installing
@@ -42,10 +64,6 @@ The package **may** also work on other platforms (e.g. MacOS) depending on wheth
 
 
 ## Features
-
-See [the Jupyter notebook](examples/examples.ipynb) for examples of how to make use of the features described below.
-Documentation about the API can be found on the [wiki](https://github.com/vyrjana/pyimpspec/wiki).
-
 
 ### Circuits
 
@@ -111,7 +129,13 @@ The only backend that is currently supported is _matplotlib_.
 See [CHANGELOG.md](CHANGELOG.md) for details.
 
 
-## Contributors
+## Contributing
+
+If you wish to contribute to the further development of _pyimpspec_, then there are several options available to you depending on your ability and the amount of time that you can spare.
+If you find bugs, wish some feature was added, or find the documentation to be lacking, then please open an issue on [GitHub](https://github.com/vyrjana/pyimpspec/issues).
+If you wish to contribute code, then clone the repository, create a new branch based on either the main branch or the most recent development branch, and submit your changes as a pull request.
+Code contributions should, if it is applicable, also include unit tests, which should be implemented in files placed in the `tests` folder found in the root of the repository along with any assets required by the tests.
+It should be possible to run the tests by executing the `run_tests.sh` script, which uses the test discovery built into the `unittest` module that is included with Python.
 
 See [CONTRIBUTORS](CONTRIBUTORS) for a list of people who have contributed to the _pyimpspec_ project.
 

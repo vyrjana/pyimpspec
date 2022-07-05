@@ -30,22 +30,40 @@ from typing import List, Optional, Tuple, Union
 
 
 # Vibrant color scheme from https://personal.sron.nl/~pault/
-COLOR_BLACK: str = "black"
-COLOR_BLUE: str = "#0077BB"
-COLOR_MAGENTA: str = "#EE3377"
-COLOR_ORANGE: str = "#EE7733"
-COLOR_RED: str = "#CC3311"
-COLOR_TEAL: str = "#009988"
 
 
 def plot_nyquist(
     data: Union[DataSet, KramersKronigResult, FittingResult],
-    color: str = COLOR_BLACK,
+    color: str = "black",
     line: bool = False,
     fig: Optional[Figure] = None,
     axis: Optional[Axes] = None,
     num_per_decade: int = 100,
 ) -> Tuple[Figure, Axes]:
+    """
+Plot some data as a Nyquist plot (-Z" vs Z').
+
+Parameters
+----------
+data: Union[DataSet, KramersKronigResult, FittingResult]
+    The data to plot.
+    DataSet instances are plotted using markers (optionally as a line) while all other types of data are plotted as lines.
+
+color: str = "black"
+    The color of the marker (and line).
+
+line: bool = False
+    Whether or not a DataSet instance should be plotted as a line instead.
+
+fig: Optional[Figure] = None
+    The matplotlib.figure.Figure instance to use when plotting the data.
+
+axis: Optional[Axes] = None
+    The matplotlib.axes.Axes instance to use when plotting the data.
+
+num_per_decade: int = 100
+    If the data being plotted is not a DataSet instance (e.g. a KramersKronigResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
+    """
     assert (
         isinstance(data, DataSet)
         or type(data) is KramersKronigResult
@@ -108,13 +126,40 @@ def plot_nyquist(
 
 def plot_bode(
     data: Union[DataSet, KramersKronigResult, FittingResult],
-    color_mag: str = COLOR_BLACK,
-    color_phase: str = COLOR_BLACK,
+    color_mag: str = "black",
+    color_phase: str = "black",
     line: bool = False,
     fig: Optional[Figure] = None,
     axes: List[Axes] = [],
     num_per_decade: int = 100,
 ) -> Tuple[Figure, List[Axes]]:
+    """
+Plot some data as a Bode plot (log |Z| and phi vs log f).
+
+Parameters
+----------
+data: Union[DataSet, KramersKronigResult, FittingResult]
+    The data to plot.
+    DataSet instances are plotted using markers (optionally as a line) while all other types of data are plotted as lines.
+
+color_mag: str = "black"
+    The color of the marker (and line) for the logarithm of the absolute magnitude.
+
+color_phase: str = "black"
+    The color of the marker (and line) for the logarithm of the phase shift.
+
+line: bool = False
+    Whether or not a DataSet instance should be plotted as a line instead.
+
+fig: Optional[Figure] = None
+    The matplotlib.figure.Figure instance to use when plotting the data.
+
+axes: List[Axes] = []
+    A list of matplotlib.axes.Axes instances to use when plotting the data.
+
+num_per_decade: int = 100
+    If the data being plotted is not a DataSet instance (e.g. a KramersKronigResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
+    """
     assert (
         isinstance(data, DataSet)
         or type(data) is KramersKronigResult
@@ -150,6 +195,7 @@ def plot_bode(
                 y2,
                 color=color_phase,
                 label=(data.get_label() or "Data") + phase_suffix,
+                linestyle=":",
             )
         else:
             axes[0].scatter(
@@ -205,11 +251,31 @@ def plot_bode(
 
 def plot_residual(
     result: Union[KramersKronigResult, FittingResult],
-    color_re: str = COLOR_BLACK,
-    color_im: str = COLOR_BLACK,
+    color_re: str = "black",
+    color_im: str = "black",
     fig: Optional[Figure] = None,
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
+    """
+Plot the residuals of a test or fit result.
+
+Parameters
+----------
+result: Union[KramersKronigResult, FittingResult]
+    The result to plot.
+
+color_re: str = "black"
+    The color of the markers and line for the residuals of the real parts of the impedances.
+
+color_im: str = "black"
+    The color of the markers and line for the residuals of the imaginary parts of the impedances.
+
+fig: Optional[Figure] = None
+    The matplotlib.figure.Figure instance to use when plotting the data.
+
+axes: List[Axes] = []
+    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    """
     assert (
         type(result) is KramersKronigResult
         or type(result) is FittingResult
@@ -225,7 +291,7 @@ def plot_residual(
         axes = [axis, axis.twinx()]
     assert len(axes) == 2, axes
     if not axes[0].lines:
-        axes[0].axhline(0, color=COLOR_BLACK, alpha=0.25)
+        axes[0].axhline(0, color="black", alpha=0.25)
     x: ndarray
     y1: ndarray
     y2: ndarray
@@ -277,12 +343,38 @@ def plot_residual(
 def plot_mu_xps(
     scored_tests: List[Tuple[float, KramersKronigResult]],
     mu_criterion: float,
-    color_mu: str = COLOR_BLACK,
-    color_xps: str = COLOR_BLACK,
-    color_criterion: str = COLOR_BLACK,
+    color_mu: str = "black",
+    color_xps: str = "black",
+    color_criterion: str = "black",
     fig: Optional[Figure] = None,
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
+    """
+Plot the mu-values and pseudo chi-squared values of exploratory Kramers-Kronig test results.
+
+Parameters
+----------
+scored_tests: List[Tuple[float, KramersKronigResult]]
+    The scored test results as returned by the pyimpspec.analysis.kramers_kronig.score_test_results function.
+
+mu_criterion: float
+    The mu-criterion that was used when performing the tests.
+
+color_mu: str = "black"
+    The color of the markers and line for the mu-values.
+
+color_xps: str = "black"
+    The color of the markers and line for the pseudo chi-squared values.
+
+color_criterion: str = "black"
+    The color of the line for the mu-criterion.
+
+fig: Optional[Figure] = None
+    The matplotlib.figure.Figure instance to use when plotting the data.
+
+axes: List[Axes] = []
+    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    """
     assert type(scored_tests) is list, scored_tests
     assert type(color_mu) is str, color_mu
     assert type(color_xps) is str, color_xps
@@ -328,6 +420,42 @@ def plot_circuit(
     fig: Optional[Figure] = None,
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
+    """
+Plot the simulated impedance response of a circuit as both a Nyquist and a Bode plot.
+
+Parameters
+----------
+circuit: Circuit
+    The circuit to use when simulating the impedance response.
+
+f: Union[List[float], ndarray] = []
+    The frequencies (in hertz) to use when simulating the impedance response.
+    If no frequencies are provided, then the range defined by the min_f and max_f parameters will be used instead.
+    Alternatively, a DataSet instance can be provided via the data parameter.
+
+min_f: float = 0.1
+    The lower limit of the frequency range to use if a list of frequencies is not provided.
+    
+max_f: float = 100000.0
+    The upper limit of the frequency range to use if a list of frequencies is not provided.
+
+data: Optional[DataSet] = None
+    An optional DataSet instance.
+    If provided, then the frequencies of this instance will be used when simulating the impedance spectrum of the circuit.
+    
+visible_data: bool = False
+    Whether or not the optional DataSet instance should also be plotted alongside the simulated impedance spectrum of the circuit.
+
+title: Optional[str] = None
+    The title of the figure.
+    If not title is provided, then the circuit description code of the circuit is used instead.
+
+fig: Optional[Figure] = None
+    The matplotlib.figure.Figure instance to use when plotting the data.
+
+axes: List[Axes] = []
+    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    """
     assert type(circuit) is Circuit, circuit
     assert type(f) is list or type(f) is ndarray, f
     assert min_f > 0 and max_f < inf and min_f < max_f, (
@@ -352,21 +480,21 @@ def plot_circuit(
         if title != "":
             fig.suptitle(title)
     assert len(axes) == 3, axes
-    nyquist_color: str = COLOR_BLUE
-    bode_mag_color: str = COLOR_BLUE
-    bode_phase_color: str = COLOR_ORANGE
+    nyquist_color: str = "#0077BB"
+    bode_mag_color: str = "#0077BB"
+    bode_phase_color: str = "#EE7733"
     if data is not None and visible_data is True:
-        plot_nyquist(data, color=COLOR_BLUE, fig=fig, axis=axes[0])
+        plot_nyquist(data, color="#0077BB", fig=fig, axis=axes[0])
         plot_bode(
             data,
-            color_mag=COLOR_BLUE,
-            color_phase=COLOR_ORANGE,
+            color_mag="#0077BB",
+            color_phase="#EE7733",
             fig=fig,
             axes=[axes[1], axes[2]],
         )
-        nyquist_color = COLOR_RED
-        bode_mag_color = COLOR_RED
-        bode_phase_color = COLOR_TEAL
+        nyquist_color = "#CC3311"
+        bode_mag_color = "#CC3311"
+        bode_phase_color = "#009988"
     spectrum: DataSet
     if len(f) == 0:
         if data is not None:
@@ -405,6 +533,24 @@ def plot_data(
     fig: Optional[Figure] = None,
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
+    """
+Plot a DataSet instance as both a Nyquist and a Bode plot.
+
+Parameters
+----------
+data: DataSet
+    The DataSet instance to plot.
+
+title: Optional[str] = None
+    The title of the figure.
+    If not title is provided, then the label of the DataSet is used instead.
+
+fig: Optional[Figure] = None
+    The matplotlib.figure.Figure instance to use when plotting the data.
+
+axes: List[Axes] = []
+    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    """
     assert isinstance(data, DataSet), data
     assert type(title) is str or title is None, title
     assert type(fig) is Figure or fig is None, fig
@@ -422,11 +568,11 @@ def plot_data(
         if title != "":
             fig.suptitle(title)
     assert len(axes) == 3, axes
-    plot_nyquist(data, color=COLOR_BLUE, fig=fig, axis=axes[0])
+    plot_nyquist(data, color="#0077BB", fig=fig, axis=axes[0])
     plot_bode(
         data,
-        color_mag=COLOR_BLUE,
-        color_phase=COLOR_ORANGE,
+        color_mag="#0077BB",
+        color_phase="#EE7733",
         fig=fig,
         axes=[axes[1], axes[2]],
     )
@@ -444,6 +590,30 @@ def plot_exploratory_tests(
     fig: Optional[Figure] = None,
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
+    """
+Plot the results of an exploratory Kramers-Kronig test and the tested DataSet as a Nyquist plot, a Bode plot, a plot of the residuals, and a plot of the mu-values and pseudo chi-squared values.
+
+Parameters
+----------
+scored_tests: List[Tuple[float, KramersKronigResult]]
+    The scored test results as returned by the pyimpspec.analysis.kramers_kronig.score_test_results function.
+
+mu_criterion: float
+    The mu-criterion that was used when performing the tests.
+
+data: DataSet
+    The DataSet instance that was tested.
+
+title: Optional[str] = None
+    The title of the figure.
+    If no title is provided, then the label of the DataSet is used instead.
+
+fig: Optional[Figure] = None
+    The matplotlib.figure.Figure instance to use when plotting the data.
+
+axes: List[Axes] = []
+    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    """
     assert type(scored_tests) is list and all(
         map(lambda _: type(_) is tuple, scored_tests)
     ), scored_tests
@@ -473,32 +643,32 @@ def plot_exploratory_tests(
     plot_mu_xps(
         scored_tests,
         mu_criterion,
-        color_mu=COLOR_MAGENTA,
-        color_xps=COLOR_TEAL,
-        color_criterion=COLOR_RED,
+        color_mu="#EE3377",
+        color_xps="#009988",
+        color_criterion="#CC3311",
         fig=fig,
         axes=[axes[0], axes[1]],
     )
     plot_residual(
         test,
-        color_re=COLOR_MAGENTA,
-        color_im=COLOR_TEAL,
+        color_re="#EE3377",
+        color_im="#009988",
         fig=fig,
         axes=[axes[2], axes[3]],
     )
-    plot_nyquist(data, color=COLOR_BLUE, fig=fig, axis=axes[4])
-    plot_nyquist(test, color=COLOR_RED, fig=fig, axis=axes[4])
+    plot_nyquist(data, color="#0077BB", fig=fig, axis=axes[4])
+    plot_nyquist(test, color="#CC3311", fig=fig, axis=axes[4])
     plot_bode(
         data,
-        color_mag=COLOR_BLUE,
-        color_phase=COLOR_ORANGE,
+        color_mag="#0077BB",
+        color_phase="#EE7733",
         fig=fig,
         axes=[axes[5], axes[6]],
     )
     plot_bode(
         test,
-        color_mag=COLOR_RED,
-        color_phase=COLOR_TEAL,
+        color_mag="#CC3311",
+        color_phase="#009988",
         fig=fig,
         axes=[axes[5], axes[6]],
     )
@@ -515,6 +685,27 @@ def plot_fit(
     fig: Optional[Figure] = None,
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Tuple[Axes]]]:
+    """
+Plot a the result of a circuit fit as a Nyquist plot, a Bode plot, and a plot of the residuals.
+
+Parameters
+----------
+fit: Union[FittingResult, KramersKronigResult]
+    The circuit fit or test result.
+
+data: Optional[DataSet] = None
+    The DataSet instance that a circuit was fitted to.
+
+title: Optional[str] = None
+    The title of the figure.
+    If no title is provided, then the circuit description code (and label of the DataSet) is used instead.
+
+fig: Optional[Figure] = None
+    The matplotlib.figure.Figure instance to use when plotting the data.
+
+axes: List[Axes] = []
+    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    """
     assert (
         type(fit) is FittingResult
         or type(fit) is KramersKronigResult
@@ -573,27 +764,27 @@ def plot_fit(
             fig.suptitle(title)
     assert len(axes) == 5, axes
     if data is not None:
-        plot_nyquist(data, color=COLOR_BLUE, fig=fig, axis=axes[0])
+        plot_nyquist(data, color="#0077BB", fig=fig, axis=axes[0])
     if data is not None:
         plot_bode(
             data,
-            color_mag=COLOR_BLUE,
-            color_phase=COLOR_ORANGE,
+            color_mag="#0077BB",
+            color_phase="#EE7733",
             fig=fig,
             axes=[axes[1], axes[2]],
         )
-    plot_nyquist(fit, color=COLOR_RED, fig=fig, axis=axes[0])
+    plot_nyquist(fit, color="#CC3311", fig=fig, axis=axes[0])
     plot_bode(
         fit,
-        color_mag=COLOR_RED,
-        color_phase=COLOR_TEAL,
+        color_mag="#CC3311",
+        color_phase="#009988",
         fig=fig,
         axes=[axes[1], axes[2]],
     )
     plot_residual(
         fit,
-        color_re=COLOR_MAGENTA,
-        color_im=COLOR_TEAL,
+        color_re="#EE3377",
+        color_im="#009988",
         fig=fig,
         axes=[axes[3], axes[4]],
     )
