@@ -3,10 +3,10 @@ The target audience is researchers who use electrochemical impedance spectroscop
 pyimpspec includes features such as:
 
 - reading experimental data from multiple different file formats:
-	- `.dta`: Gamry data files
-  - `.idf/.ids`: Ivium data files
-	- `.xls(x)`: Microsoft Excel
-	- `.ods`: OpenDocument Spreadsheet
+	- Gamry data files: `.dta`
+  - Ivium data files: `.idf/.ids`
+	- Microsoft Excel: `.xls(x)`
+	- OpenDocument Spreadsheet: `.ods`
 	- plain-text files with character-separated values
 - validation of impedance spectra by checking if the data is Kramers-Kronig transformable
 - construction of equivalent circuits by parsing circuit description code (CDC)
