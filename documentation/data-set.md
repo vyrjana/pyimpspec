@@ -30,6 +30,7 @@ Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/ap
 	- [subtract_impedance](#pyimpspecdatasetsubtract_impedance)
 	- [to_dataframe](#pyimpspecdatasetto_dataframe)
 	- [to_dict](#pyimpspecdatasetto_dict)
+- [UnsupportedFileFormat](#pyimpspecunsupportedfileformat)
 
 
 ### **pyimpspec.DataSet**
@@ -447,6 +448,22 @@ _Returns_
 ```python
 dict
 ```
+
+
+
+
+### **pyimpspec.UnsupportedFileFormat**
+
+```python
+class UnsupportedFileFormat(Exception):
+	args
+	kwargs
+```
+
+_Constructor parameters_
+
+- `args`
+- `kwargs`
 
 
 
