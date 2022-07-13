@@ -1,6 +1,6 @@
 ---
 layout: documentation
-title: API - fitting result
+title: API - fitting
 permalink: /api/fitting/
 ---
 

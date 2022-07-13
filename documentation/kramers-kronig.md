@@ -1,6 +1,6 @@
 ---
 layout: documentation
-title: API - Kramers-Kronig result
+title: API - Kramers-Kronig testing
 permalink: /api/kramers-kronig/
 ---
 
