@@ -388,6 +388,16 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
+    def test_09_dfr(self):
+        control: DataSet = get_control_data()
+        paths: List[str] = get_test_files(".dfr")
+        self.assertTrue(len(paths) > 0)
+        path: str
+        for path in paths:
+            data: DataSet
+            for data in parse_data(path):
+                self.validate(data, control)
+
     # TODO: Implement support for .fods files and then implement tests for the parser.
     """
     def test_N_fods(self):

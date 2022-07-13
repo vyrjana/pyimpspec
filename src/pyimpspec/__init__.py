@@ -17,7 +17,11 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from pyimpspec.data import parse_data, DataSet
+from pyimpspec.data import (
+    DataSet,
+    UnsupportedFileFormat,
+    parse_data,
+)
 from pyimpspec.circuit import (
     Capacitor,
     Circuit,

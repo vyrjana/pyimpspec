@@ -1,3 +1,10 @@
+# 1.1.0
+
+- Added support for parsing the .dfr data format.
+- Refactored `pyimpspec.data.formats`.
+- Updated the API and its documentation.
+
+
 # 1.0.1
 
 - Updated docstrings.

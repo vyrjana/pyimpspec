@@ -16,7 +16,7 @@ for _, _, files in walk("LICENSES"):
 
 setup(
     name="pyimpspec",
-    version="1.0.1",
+    version="1.1.0",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},

@@ -17,17 +17,32 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import Callable, List, Optional, Union
+from typing import Callable, Dict, List, Optional, Union
 from pyimpspec.data.data_set import DataSet
 from os.path import exists, splitext, basename
 from .csv import parse_csv
 from .spreadsheet import parse_spreadsheet
 from .ids import parse_ids
 from .dta import parse_dta
+from .dfr import parse_dfr
 
 
 class UnsupportedFileFormat(Exception):
     pass
+
+
+def get_parsers() -> Dict[str, Callable]:
+    return {
+        ".csv": parse_csv,
+        ".dfr": parse_dfr,
+        ".dta": parse_dta,
+        ".idf": parse_ids,
+        ".ids": parse_ids,
+        ".ods": parse_spreadsheet,
+        ".txt": parse_csv,
+        ".xls": parse_spreadsheet,
+        ".xlsx": parse_spreadsheet,
+    }
 
 
 def is_spreadsheet(path: str = "", extension: str = "") -> bool:
@@ -89,16 +104,7 @@ List[DataSet]
             data_sets.extend(parse_spreadsheet(path, **kwargs))
         else:
             fmt: str = file_format or extension
-            func: Optional[Callable] = {  # type: ignore
-                ".csv": parse_csv,
-                ".txt": parse_csv,
-                ".ids": parse_ids,
-                ".idf": parse_ids,
-                ".xls": parse_spreadsheet,
-                ".xlsx": parse_spreadsheet,
-                ".ods": parse_spreadsheet,
-                ".dta": parse_dta,
-            }.get(fmt)
+            func: Optional[Callable] = get_parsers().get(fmt)
             if func is None:
                 raise UnsupportedFileFormat(f"Unsupported file format: {fmt}")
             if fmt == ".csv":
@@ -116,9 +122,10 @@ List[DataSet]
         parsers: List[Callable] = [
             parse_csv,
             lambda _, **kwargs: parse_csv(_, sep=None, decimal=",", **kwargs),
+            parse_dfr,
+            parse_dta,
             parse_ids,
             parse_spreadsheet,
-            parse_dta,
         ]
         parsed_data: bool = False
         for parser in parsers:

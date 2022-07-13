@@ -18,4 +18,11 @@
 # the LICENSES folder.
 
 from .data_set import DataSet
-from .formats import parse_data, parse_csv, parse_ids, parse_spreadsheet
+from .formats import (
+    UnsupportedFileFormat,
+    get_parsers,
+    parse_csv,
+    parse_data,
+    parse_ids,
+    parse_spreadsheet,
+)

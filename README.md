@@ -20,11 +20,11 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 
 ## About
 
-_pyimpspec_ is a Python package that provides an application programming interface (API) for working with impedance spectra.
+pyimpspec is a Python package that provides an application programming interface (API) for working with impedance spectra.
 The target audience is researchers who use electrochemical impedance spectroscopy (EIS).
-Those looking for a program with a graphical user interface may wish to instead use [DearEIS](https://github.com/vyrjana/DearEIS), which is based on _pyimpspec_.
+Those looking for a program with a graphical user interface may wish to instead use [DearEIS](https://github.com/vyrjana/DearEIS), which is based on pyimpspec.
 
-The API of _pyimpspec_ implements the functionality required to:
+The API of pyimpspec implements the functionality required to:
 
 - read certain data formats and parse the experimental data contained within
 - validate impedance spectra by checking if the data is Kramers-Kronig transformable
@@ -33,25 +33,27 @@ The API of _pyimpspec_ implements the functionality required to:
 - simulate the impedance response of circuits
 - perform basic visualization of impedance spectra and test/fit/simulation results
 
-See the [Features](#features) section for more information and [this Jupyter notebook](examples/examples.ipynb) for examples of how to use _pyimpspec_.
-Documentation about the API can be found on the [wiki](https://github.com/vyrjana/pyimpspec/wiki).
+See the [Features](#features) section for more information.
+
+Check out [this Jupyter notebook](examples/examples.ipynb) for examples of how to use pyimpspec.
+Documentation about the API can be found [here](https://vyrjana.github.io/pyimpspec/api).
 
 If you encounter issues, then please open an issue on [GitHub](https://github.com/vyrjana/pyimpspec/issues).
 
 
 ## Installing
 
-The latest version of _pyimpspec_ requires **Python 3.6 or newer** and the most straightforward way to install _pyimpspec_ is by using [_pip_](https://pip.pypa.io/en/stable/):
-Make sure that _pip_ is installed first and then type the following command into a terminal of your choice (e.g. _PowerShell_ in Windows).
+The latest version of pyimpspec requires **Python 3.6 or newer** and the most straightforward way to install pyimpspec is by using [pip](https://pip.pypa.io/en/stable/):
+Make sure that pip is installed first and then type the following command into a terminal of your choice (e.g. PowerShell in Windows).
 
 ```
 pip install pyimpspec
 ```
 
-Newer versions of _pyimpspec_ can be installed at a later date by appending the `-U` option to the command:
+Newer versions of pyimpspec can be installed at a later date by adding the `--upgrade` option to the command:
 
 ```
-pip install pyimpspec -U
+pip install --upgrade pyimpspec
 ```
 
 Supported platforms:
@@ -60,22 +62,22 @@ Supported platforms:
 - Windows
 	- Tested on Windows 10 (x86-64).
 
-The package **may** also work on other platforms (e.g. MacOS) depending on whether or not those platforms are supported by _pyimpspec_'s [dependencies](setup.py).
+The package **may** also work on other platforms (e.g. MacOS) depending on whether or not those platforms are supported by pyimpspec's [dependencies](setup.py).
 
 
 ## Features
 
 ### Circuits
 
-_pyimpspec_ supports the creation of `Circuit` objects, which can be used to simulate impedance spectra or to extract information from experimental data by means of complex non-linear least squares (CNLS) fitting.
-The recommended way to create circuits is by letting _pyimpspec_ parse a circuit description code (CDC).
+pyimpspec supports the creation of `Circuit` objects, which can be used to simulate impedance spectra or to extract information from experimental data by means of complex non-linear least squares (CNLS) fitting.
+The recommended way to create circuits is by letting pyimpspec parse a circuit description code (CDC).
 An extended CDC syntax, which makes it possible to define e.g. initial values, is also supported.
 `Circuit` objects also have additional features such as generation of LaTeX source for drawing circuit diagrams (requires `\usepackage{circuitikz}` in the header of the LaTeX document).
 
 
 ### Data parsing
 
-Several file formats are supported by _pyimpspec_ and the data within are used to generate a `DataSet` object.
+Several file formats are supported by pyimpspec and the data within are used to generate a `DataSet` object.
 The file formats include:
 - Files containing the data as character-separated values (CSV).
 - Spreadsheets (`.xls`, `.xlsx`, `.ods`).
@@ -93,10 +95,10 @@ The contents of the `DataSet` can also be transformed into a `pandas.DataFrame` 
 
 ### Kramers-Kronig tests
 
-The three tests (i.e. complex, real, and imaginary) described in _"A linear Kramers-Kronig transform test for immittance data validation"_ by Bernard A. Boukamp (_Journal of the Electrochemical Society_, **1995**, 142, 6, pp. 1885-1894, DOI: 10.1149/1.2044210) are implemented in _pyimpspec_.
+The three tests (i.e. complex, real, and imaginary) described in _"A linear Kramers-Kronig transform test for immittance data validation"_ by Bernard A. Boukamp (_Journal of the Electrochemical Society_, **1995**, 142, 6, pp. 1885-1894, DOI: 10.1149/1.2044210) are implemented in pyimpspec.
 A variant of the complex test that uses CNLS to perform the fitting is also included.
 
-The procedure described in _"A method for improving the robustness of linear Kramers-Kronig validity tests"_ by Michael Schönleber, Dino Klotz, and Ellen Ivers-Tiffée (_Electrochimica Acta_, **2014**, 131, pp. 20-27, DOI: 10.1016/j.electacta.2014.01.034) is also implemented in _pyimpspec_.
+The procedure described in _"A method for improving the robustness of linear Kramers-Kronig validity tests"_ by Michael Schönleber, Dino Klotz, and Ellen Ivers-Tiffée (_Electrochimica Acta_, **2014**, 131, pp. 20-27, DOI: 10.1016/j.electacta.2014.01.034) is also implemented in pyimpspec.
 
 The relevant functions return `KramersKronigResult` objects that include:
 - The fitted `Circuit` object that is generated as part of the test.
@@ -108,20 +110,20 @@ The relevant functions return `KramersKronigResult` objects that include:
 
 ### Equivalent circuit fitting
 
-Fitting equivalent circuits to impedance spectra is easy with _pyimpspec_ and generates a `FittingResult` object.
+Fitting equivalent circuits to impedance spectra is easy with pyimpspec and generates a `FittingResult` object.
 The `FittingResult` object includes:
 - The fitted `Circuit` object.
 - Information about all of the parameters (e.g. final fitted value, estimated error, and whether or not the parameter had a fixed value during fitting).
 - The frequencies that were used during the fitting.
 - The complex impedances produced by the fitted circuit at each of the frequencies.
 - The residuals of the real and imaginary parts of the impedances.
-- The `MinimizerResult` object returned by _lmfit_.
+- The `MinimizerResult` object returned by lmfit.
 
 
 ### Plotting
 
-_pyimpspec_ includes functions for visualizing `Circuit`, `DataSet`, `KramersKronigResult`, and `FittingResult` objects.
-The only backend that is currently supported is _matplotlib_.
+pyimpspec includes functions for visualizing `Circuit`, `DataSet`, `KramersKronigResult`, and `FittingResult` objects.
+The only backend that is currently supported is matplotlib.
 
 
 ## Changelog
@@ -131,19 +133,19 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 
 ## Contributing
 
-If you wish to contribute to the further development of _pyimpspec_, then there are several options available to you depending on your ability and the amount of time that you can spare.
+If you wish to contribute to the further development of pyimpspec, then there are several options available to you depending on your ability and the amount of time that you can spare.
 If you find bugs, wish some feature was added, or find the documentation to be lacking, then please open an issue on [GitHub](https://github.com/vyrjana/pyimpspec/issues).
 If you wish to contribute code, then clone the repository, create a new branch based on either the main branch or the most recent development branch, and submit your changes as a pull request.
 Code contributions should, if it is applicable, also include unit tests, which should be implemented in files placed in the `tests` folder found in the root of the repository along with any assets required by the tests.
 It should be possible to run the tests by executing the `run_tests.sh` script, which uses the test discovery built into the `unittest` module that is included with Python.
 
-See [CONTRIBUTORS](CONTRIBUTORS) for a list of people who have contributed to the _pyimpspec_ project.
+See [CONTRIBUTORS](CONTRIBUTORS) for a list of people who have contributed to the pyimpspec project.
 
 
 ## License
 
 Copyright 2022 pyimpspec developers
 
-_pyimpspec_ is licensed under the [GPLv3 or later](https://www.gnu.org/licenses/gpl-3.0.html).
+pyimpspec is licensed under the [GPLv3 or later](https://www.gnu.org/licenses/gpl-3.0.html).
 
-The licenses of _pyimpspec_'s dependencies and/or sources of portions of code are included in the LICENSES folder.
+The licenses of pyimpspec's dependencies and/or sources of portions of code are included in the LICENSES folder.
