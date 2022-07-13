@@ -6,6 +6,8 @@ permalink: /api/
 
 ## API documentation
 
+Check out [this Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main/examples/examples.ipynb) for examples of how to use the various functions and classes.
+
 - [High-level functions](https://vyrjana.github.io/pyimpspec/api/high-level-functions)
 - [Data set](https://vyrjana.github.io/pyimpspec/api/data-set)
 - [Kramers-Kronig testing](https://vyrjana.github.io/pyimpspec/api/kramers-kronig)
