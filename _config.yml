@@ -1,2 +1,4 @@
 theme: jekyll-theme-midnight
 baseurl: /pyimpspec
+include: ['documentation']
+

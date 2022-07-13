@@ -68,6 +68,8 @@ pip install --upgrade pyimpspec
 The pyimpspec package should now be importable in, e.g., a Python script or a Jupyter notebook.
 See [this Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main/examples/examples.ipynb) for examples of how to use the various functions and classes.
 
+[The API documentation can be found here](https://vyrjana.github.io/pyimpspec/api)
+
 
 ## Support
 
