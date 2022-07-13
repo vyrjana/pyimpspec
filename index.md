@@ -4,12 +4,12 @@ pyimpspec includes features such as:
 
 - reading experimental data from multiple different file formats:
 	- Gamry data files: `.dta`
-  - Ivium data files: `.idf/.ids`
-	- Microsoft Excel: `.xls(x)`
+  - Ivium data files: `.idf` and .ids`
+	- Microsoft Excel: `.xls` and `.xlsx`
 	- OpenDocument Spreadsheet: `.ods`
 	- plain-text files with character-separated values
 - validation of impedance spectra by checking if the data is Kramers-Kronig transformable
-- construction of equivalent circuits by parsing circuit description code (CDC)
+- construction of equivalent circuits by parsing a circuit description code (CDC)
 - equivalent circuit fitting as a means of extracting quantitative data
 - simulation of impedance spectra
 - basic visualization of impedance spectra using, e.g., Bode and Nyquist plots
