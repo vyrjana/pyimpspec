@@ -4,7 +4,7 @@ title: API - connections
 permalink: /api/connections/
 ---
 
-These are used inside of [`Circuit` objects](https://vyrjana.github.io/pyimpspec/api/circuit).
+These are used inside of [`Circuit`](https://vyrjana.github.io/pyimpspec/api/circuit) objects.
 
 **Table of Contents**
 

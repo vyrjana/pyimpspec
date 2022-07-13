@@ -4,7 +4,7 @@ title: API - circuit
 permalink: /api/circuit/
 ---
 
-[Check the page for high-level functions for relevant functions.](https://vyrjana.github.io/pyimpspec/api/high-level-functions)
+Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/api/high-level-functions) for the recommended way of parsing a circuit description code (CDC) to generate a `Circuit` object.
 
 **Table of Contents**
 
@@ -22,6 +22,8 @@ permalink: /api/circuit/
 	- [to_stack](#pyimpspeccircuitto_stack)
 	- [to_string](#pyimpspeccircuitto_string)
 	- [to_sympy](#pyimpspeccircuitto_sympy)
+- [ParsingError](#pyimpspecparsingerror)
+- [UnexpectedCharacter](#pyimpspecunexpectedcharacter)
 
 
 ### **pyimpspec.Circuit**
@@ -260,6 +262,36 @@ _Returns_
 ```python
 Expr
 ```
+
+
+
+
+### **pyimpspec.ParsingError**
+
+```python
+class ParsingError(Exception):
+	msg: str
+```
+
+_Constructor parameters_
+
+- `msg`
+
+
+
+
+### **pyimpspec.UnexpectedCharacter**
+
+```python
+class UnexpectedCharacter(Exception):
+	args
+	kwargs
+```
+
+_Constructor parameters_
+
+- `args`
+- `kwargs`
 
 
 

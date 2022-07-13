@@ -4,10 +4,14 @@ title: API - fitting result
 permalink: /api/fitting/
 ---
 
-[Check the page for high-level functions for relevant functions.](https://vyrjana.github.io/pyimpspec/api/high-level-functions)
+Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/api/high-level-functions) for the recommended way to perform an equivalent circuit fit to generate a `FittingResult` object.
 
 **Table of Contents**
 
+- [FittedParameter](#pyimpspecfittedparameter)
+	- [from_dict](#pyimpspecfittedparameterfrom_dict)
+	- [to_dict](#pyimpspecfittedparameterto_dict)
+- [FittingError](#pyimpspecfittingerror)
 - [FittingResult](#pyimpspecfittingresult)
 	- [get_bode_data](#pyimpspecfittingresultget_bode_data)
 	- [get_frequency](#pyimpspecfittingresultget_frequency)
@@ -15,6 +19,76 @@ permalink: /api/fitting/
 	- [get_nyquist_data](#pyimpspecfittingresultget_nyquist_data)
 	- [get_residual_data](#pyimpspecfittingresultget_residual_data)
 	- [to_dataframe](#pyimpspecfittingresultto_dataframe)
+
+
+### **pyimpspec.FittedParameter**
+
+An object representing a fitted parameter.
+
+```python
+class FittedParameter(object):
+	value: float
+	stderr: Optional[float] = None
+	fixed: bool = False
+```
+
+_Constructor parameters_
+
+- `value`: The fitted value.
+- `stderr`: The estimated standard error of the fitted value.
+- `fixed`: Whether or not this parameter had a fixed value during the circuit fitting.
+
+
+_Functions and methods_
+
+#### **pyimpspec.FittedParameter.from_dict**
+
+
+```python
+def from_dict(dictionary: dict) -> FittedParameter:
+```
+
+
+_Parameters_
+
+- `dictionary`
+
+
+_Returns_
+```python
+FittedParameter
+```
+
+#### **pyimpspec.FittedParameter.to_dict**
+
+
+```python
+def to_dict(self) -> dict:
+```
+
+
+_Returns_
+```python
+dict
+```
+
+
+
+
+### **pyimpspec.FittingError**
+
+```python
+class FittingError(Exception):
+	args
+	kwargs
+```
+
+_Constructor parameters_
+
+- `args`
+- `kwargs`
+
+
 
 
 ### **pyimpspec.FittingResult**

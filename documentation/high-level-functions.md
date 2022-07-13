@@ -4,6 +4,7 @@ title: API - high-level functions
 permalink: /api/high-level-functions/
 ---
 
+The functions presented here are the recommended way of reading data, creating circuits, performing tests, etc.
 Check the other pages for information about the objects returned by the functions presented here.
             
 

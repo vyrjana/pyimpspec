@@ -4,7 +4,7 @@ title: API - Kramers-Kronig result
 permalink: /api/kramers-kronig/
 ---
 
-[Check the page for high-level functions for relevant functions.](https://vyrjana.github.io/pyimpspec/api/high-level-functions)
+Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/api/high-level-functions) for the recommended ways to perform a Kramers-Kronig test to generate a `KramersKronigResult` object.
 
 **Table of Contents**
 

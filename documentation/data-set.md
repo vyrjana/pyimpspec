@@ -4,7 +4,7 @@ title: API - data set
 permalink: /api/data-set/
 ---
 
-[Check the page for high-level functions for relevant functions.](https://vyrjana.github.io/pyimpspec/api/high-level-functions)
+Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/api/high-level-functions) for the recommended way of reading data to generate a `DataSet` object.
 
 **Table of Contents**
 

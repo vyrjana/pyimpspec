@@ -4,7 +4,8 @@ title: API - elements
 permalink: /api/elements/
 ---
 
-[Check the page for the base element class for information about the available methods.](https://vyrjana.github.io/pyimpspec/api/base-element)
+These are used inside of [`Circuit`](https://vyrjana.github.io/pyimpspec/api/circuit) and [`Connection`](https://vyrjana.github.io/pyimpspec/api/connections) objects.
+Check the page for the [base element class](https://vyrjana.github.io/pyimpspec/api/base-element) for information about the methods that are available for various elements.
 
 **Table of Contents**
 
@@ -14,9 +15,7 @@ permalink: /api/elements/
 - [Gerischer](#pyimpspecgerischer)
 - [HavriliakNegami](#pyimpspechavriliaknegami)
 - [Inductor](#pyimpspecinductor)
-- [Parallel](#pyimpspecparallel)
 - [Resistor](#pyimpspecresistor)
-- [Series](#pyimpspecseries)
 - [Warburg](#pyimpspecwarburg)
 - [WarburgOpen](#pyimpspecwarburgopen)
 - [WarburgShort](#pyimpspecwarburgshort)
@@ -176,22 +175,6 @@ _Constructor parameters_
 
 
 
-### **pyimpspec.Parallel**
-
-Elements connected in parallel.
-
-```python
-class Parallel(Connection):
-	elements: List[Union[Element, Connection]]
-```
-
-_Constructor parameters_
-
-- `elements`: List of elements (and connections) that are connected in parallel.
-
-
-
-
 ### **pyimpspec.Resistor**
 
 Resistor
@@ -212,22 +195,6 @@ class Resistor(Element):
 _Constructor parameters_
 
 - `kwargs`
-
-
-
-
-### **pyimpspec.Series**
-
-Elements connected in series.
-
-```python
-class Series(Connection):
-	elements: List[Union[Element, Connection]]
-```
-
-_Constructor parameters_
-
-- `elements`: List of elements (and connections) that are connected in series.
 
 
 
