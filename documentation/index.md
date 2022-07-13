@@ -1,6 +1,6 @@
 ---
 layout: documentation
-title: API
+title: API documentation
 permalink: /api/
 ---
 

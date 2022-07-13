@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: documentation
 title: API - plotting - matplotlib
 permalink: /api/plot-mpl/
 ---

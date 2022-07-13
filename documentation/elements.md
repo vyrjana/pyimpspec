@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: documentation
 title: API - elements
 permalink: /api/elements/
 ---

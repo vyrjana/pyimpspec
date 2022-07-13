@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: documentation
 title: API - Kramers-Kronig result
 permalink: /api/kramers-kronig/
 ---

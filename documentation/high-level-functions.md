@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: documentation
 title: API - high-level functions
 permalink: /api/high-level-functions/
 ---

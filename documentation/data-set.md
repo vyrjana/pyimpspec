@@ -1,5 +1,5 @@
 ---
-layout: default
+layout: documentation
 title: API - data set
 permalink: /api/data-set/
 ---
