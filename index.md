@@ -28,6 +28,8 @@ Check out [DearEIS](https://vyrjana.github.io/DearEIS/), which is based on pyimp
   {% endfor %}
 </ul>
 
+[Archive](archive.md)
+
 
 ## How to install
 
