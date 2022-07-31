@@ -2,11 +2,11 @@ pyimpspec is a Python package that implements an application programming interfa
 The target audience is researchers who use electrochemical impedance spectroscopy (EIS) though the program may also be useful in educational settings.
 pyimpspec includes features such as:
 
-- reading experimental data from multiple different file formats:
+- reading experimental data from multiple different file formats such as:
 	- Eco Chemie data files (`.dfr`)
 	- Gamry data files (`.dta`)
 	- Ivium data files (`.idf` and `.ids`)
-	- Microsoft Excel (`.xls` and `.xlsx`)
+	- Microsoft Excel (`.xlsx`)
 	- OpenDocument Spreadsheet (`.ods`)
 	- plain-text files with character-separated values
 - validation of impedance spectra by checking if the data is Kramers-Kronig transformable
