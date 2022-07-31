@@ -41,14 +41,32 @@ Documentation about the API can be found [here](https://vyrjana.github.io/pyimps
 If you encounter issues, then please open an issue on [GitHub](https://github.com/vyrjana/pyimpspec/issues).
 
 
-## Installing
+## Getting started
 
-The latest version of pyimpspec requires **Python 3.6 or newer** and the most straightforward way to install pyimpspec is by using [pip](https://pip.pypa.io/en/stable/):
-Make sure that pip is installed first and then type the following command into a terminal of your choice (e.g. PowerShell in Windows).
+### Requirements
+
+- [Python](https://www.python.org)
+- The following Python packages
+	- [lmfit](https://lmfit.github.io/lmfit-py/): non-linear least squares minimization
+	- [matplotlib](https://matplotlib.org/): visualization
+	- [numpy](https://numpy.org/): numerical computation
+	- [odfpy](https://github.com/eea/odfpy): reading and writing OpenDocument files
+	- [openpyxl](https://openpyxl.readthedocs.io/en/stable/): reading and writing Excel files
+	- [pandas](https://pandas.pydata.org/): data manipulation and analysis
+	- [sympy](https://www.sympy.org/en/index.html): symbolic computation
+
+The Python packages (and their dependencies) are installed automatically when pyimpspec is installed using [pip](https://pip.pypa.io/en/stable/).
+
+### Installing
+
+The latest version of pyimpspec requires a **recent version of Python (3.8+)** and the most straightforward way to install pyimpspec is by using [pip](https://pip.pypa.io/en/stable/):
+Make sure that Python and pip are installed first and then type the following command into a terminal of your choice (e.g. PowerShell in Windows).
 
 ```
 pip install pyimpspec
 ```
+
+pyimpspec should now be importable in, e.g., Python scripts and Jupyter notebooks.
 
 Newer versions of pyimpspec can be installed at a later date by adding the `--upgrade` option to the command:
 

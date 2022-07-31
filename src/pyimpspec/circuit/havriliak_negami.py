@@ -26,18 +26,18 @@ from numpy import inf
 
 class HavriliakNegami(Element):
     """
-Havriliak-Negami relaxation
+    Havriliak-Negami relaxation
 
-    Symbol: H
+        Symbol: H
 
-    Z = (((1+(j*2*pi*f*t)^a)^b)/(j*2*pi*f*dC))
+        Z = (((1+(j*2*pi*f*t)^a)^b)/(j*2*pi*f*dC))
 
-    Variables
-    ---------
-    dC: float = 1E-6 (F)
-    t: float = 1.0 (s)
-    a: float = 0.9
-    b: float = 0.9
+        Variables
+        ---------
+        dC: float = 1E-6 (F)
+        t: float = 1.0 (s)
+        a: float = 0.9
+        b: float = 0.9
     """
 
     def __init__(self, **kwargs):

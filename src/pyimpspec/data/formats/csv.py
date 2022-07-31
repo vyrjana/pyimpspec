@@ -24,16 +24,16 @@ from pandas import read_csv, DataFrame
 
 def parse_csv(path: str, **kwargs) -> DataSet:
     """
-Parse a file containing data as character-separated values.
+    Parse a file containing data as character-separated values.
 
-Parameters
-----------
-path: str
-    The path to the file to process.
+    Parameters
+    ----------
+    path: str
+        The path to the file to process.
 
-Returns
--------
-DataSet
+    Returns
+    -------
+    DataSet
     """
     assert type(path) is str and exists(path)
     df: DataFrame = read_csv(path, engine="python", **kwargs)

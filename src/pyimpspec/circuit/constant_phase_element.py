@@ -25,16 +25,16 @@ from .base import Element
 
 class ConstantPhaseElement(Element):
     """
-Constant phase element.
+    Constant phase element
 
-    Symbol: Q
+        Symbol: Q
 
-    Z = 1/(Y*(j*2*pi*f)^n)
+        Z = 1/(Y*(j*2*pi*f)^n)
 
-    Variables
-    ---------
-    Y: float = 1E-6 (F*s^(n-1))
-    n: float = 0.95
+        Variables
+        ---------
+        Y: float = 1E-6 (F*s^(n-1))
+        n: float = 0.95
     """
 
     def __init__(self, **kwargs):

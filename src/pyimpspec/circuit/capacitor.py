@@ -25,15 +25,15 @@ from .base import Element
 
 class Capacitor(Element):
     """
-Capacitor
+    Capacitor
 
-    Symbol: C
+        Symbol: C
 
-    Z = 1/(j*2*pi*f*C)
+        Z = 1/(j*2*pi*f*C)
 
-    Variables
-    ---------
-    C: float = 1E-6 (F)
+        Variables
+        ---------
+        C: float = 1E-6 (F)
     """
 
     def __init__(self, **kwargs):

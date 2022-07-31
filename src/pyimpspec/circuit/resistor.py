@@ -25,15 +25,15 @@ from numpy import inf
 
 class Resistor(Element):
     """
-Resistor
+    Resistor
 
-    Symbol: R
+        Symbol: R
 
-    Z = R
+        Z = R
 
-    Variables
-    ---------
-    R: float = 1E+3 (ohm)
+        Variables
+        ---------
+        R: float = 1E+3 (ohm)
     """
 
     def __init__(self, **kwargs):

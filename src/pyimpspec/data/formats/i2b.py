@@ -22,9 +22,9 @@ from typing import IO, List
 from pyimpspec.data.data_set import DataSet, dataframe_to_dataset, DataFrame
 
 
-def parse_dfr(path: str) -> DataSet:
+def parse_i2b(path: str) -> DataSet:
     """
-    Parse an Eco Chemie .dfr file containing an impedance spectrum.
+    Parse an Elchemea Analytical .i2b file containing an impedance spectrum.
 
     Parameters
     ----------
@@ -41,25 +41,21 @@ def parse_dfr(path: str) -> DataSet:
         lines: List[str] = list(
             filter(lambda _: _ != "", map(str.lower, map(str.strip, fp.readlines())))
         )
-    line: str = lines.pop(0)
-    assert line == "version8.0", line
-    num_points: int = int(lines.pop(0))
-    lines.pop(0)  # ?
+    # Metadata (first six lines)
+    lines = lines[5:]
     freq: List[float] = []
     real: List[float] = []
     imag: List[float] = []
-    for _ in range(0, num_points):
-        assert len(lines) >= 10, lines
-        freq.append(float(lines.pop(0)))
-        real.append(float(lines.pop(0)))
-        imag.append(-float(lines.pop(0)))
-        lines.pop(0)  # E_dc
-        lines.pop(0)  # I_dc
-        lines.pop(0)  # time
-        lines.pop(0)  # ?
-        lines.pop(0)  # ?
-        lines.pop(0)  # ?
-    assert len(freq) == len(real) == len(imag) == num_points > 0, len(freq)
+    while lines:
+        line: str = lines.pop(0)
+        f: float
+        re: float
+        im: float
+        f, re, im = tuple(map(float, line.split(" ")))
+        freq.append(f)
+        real.append(re)
+        imag.append(im)
+    assert len(freq) == len(real) == len(imag) > 0, len(freq)
     return dataframe_to_dataset(
         DataFrame.from_dict(
             {

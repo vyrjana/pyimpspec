@@ -26,17 +26,17 @@ from numpy import inf
 
 class Gerischer(Element):
     """
-Gerischer
+    Gerischer
 
-    Symbol: G
+        Symbol: G
 
-    Z = 1/(Y*(k+j*2*pi*f)^n)
+        Z = 1/(Y*(k+j*2*pi*f)^n)
 
-    Variables
-    ---------
-    Y: float = 1.0 (S*s^n)
-    k: float = 1.0 (s^-1)
-    n: float = 0.5
+        Variables
+        ---------
+        Y: float = 1.0 (S*s^n)
+        k: float = 1.0 (s^-1)
+        n: float = 0.5
     """
 
     def __init__(self, **kwargs):

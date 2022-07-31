@@ -23,6 +23,9 @@ from .formats import (
     get_parsers,
     parse_csv,
     parse_data,
+    parse_dfr,
+    parse_i2b,
     parse_ids,
+    parse_p00,
     parse_spreadsheet,
 )

@@ -16,7 +16,7 @@ for _, _, files in walk("LICENSES"):
 
 setup(
     name="pyimpspec",
-    version="1.1.0",
+    version="2.0.0",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
@@ -27,8 +27,10 @@ setup(
         "LICENSES/README.md",
     ]
     + licenses,
-    url="https://github.com/vyrjana/pyimpspec",
+    url="https://vyrjana.github.io/pyimpspec",
     project_urls={
+        "Documentation": "https://vyrjana.github.io/pyimpspec/api/",
+        "Source Code": "https://github.com/vyrjana/pyimpspec",
         "Bug Tracker": "https://github.com/vyrjana/pyimpspec/issues",
     },
     license="GPLv3",
@@ -37,14 +39,14 @@ setup(
     long_description_content_type="text/markdown",
     install_requires=[
         "lmfit>=1.0.3",  # Needed for performing non-linear fitting.
-        "matplotlib>=3.5.1",  # Needed for the plotting module.
-        "numpy>=1.21.5",
+        "matplotlib>=3.5.2",  # Needed for the plotting module.
+        "numpy>=1.22.4",
         "odfpy>=1.4.1",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
-        "openpyxl>=3.0.9",  # Needed by pandas for parsing newer Excel files (.xlsx).
-        "pandas>=1.3.5",  # Needed for dealing with various file formats.
-        "sympy>=1.9",
+        "openpyxl>=3.0.10",  # Needed by pandas for parsing newer Excel files (.xlsx).
+        "pandas>=1.4.2",  # Needed for dealing with various file formats.
+        "sympy>=1.10.1",
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.8",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Science/Research",

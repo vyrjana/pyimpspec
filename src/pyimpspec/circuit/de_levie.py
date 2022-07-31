@@ -30,19 +30,19 @@ def coth(x: complex) -> complex:
 
 class DeLevieFiniteLength(Element):
     """
-de Levie pore (finite length)
+    de Levie pore (finite length)
 
-    Symbol: Ls
+        Symbol: Ls
 
-    Z = (Ri*Rr)^(1/2)*coth(d*(Ri/Rr)^(1/2)*(1+Y*(2*pi*f*j)^n)^(1/2))/(1+Y*(2*pi*f*j)^n)^(1/2)
+        Z = (Ri*Rr)^(1/2)*coth(d*(Ri/Rr)^(1/2)*(1+Y*(2*pi*f*j)^n)^(1/2))/(1+Y*(2*pi*f*j)^n)^(1/2)
 
-    Variables
-    ---------
-    Ri: float = 10.0 (ohm/cm)
-    Rr: float = 1.0 (ohm*cm)
-    Y: float = 0.01 (F*s^(n-1)/cm)
-    n: float = 0.8
-    d: float = 0.2 (cm)
+        Variables
+        ---------
+        Ri: float = 10.0 (ohm/cm)
+        Rr: float = 1.0 (ohm*cm)
+        Y: float = 0.01 (F*s^(n-1)/cm)
+        n: float = 0.8
+        d: float = 0.2 (cm)
     """
 
     def __init__(self, **kwargs):

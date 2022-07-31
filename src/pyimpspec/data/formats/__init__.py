@@ -25,6 +25,8 @@ from .spreadsheet import parse_spreadsheet
 from .ids import parse_ids
 from .dta import parse_dta
 from .dfr import parse_dfr
+from .i2b import parse_i2b
+from .p00 import parse_p00
 
 
 class UnsupportedFileFormat(Exception):
@@ -33,14 +35,15 @@ class UnsupportedFileFormat(Exception):
 
 def get_parsers() -> Dict[str, Callable]:
     return {
+        ".P00": parse_p00,
         ".csv": parse_csv,
         ".dfr": parse_dfr,
         ".dta": parse_dta,
+        ".i2b": parse_i2b,
         ".idf": parse_ids,
         ".ids": parse_ids,
         ".ods": parse_spreadsheet,
         ".txt": parse_csv,
-        ".xls": parse_spreadsheet,
         ".xlsx": parse_spreadsheet,
     }
 
@@ -55,7 +58,6 @@ def is_spreadsheet(path: str = "", extension: str = "") -> bool:
     if path == "":
         _, extension = splitext(path)
     return extension in [
-        ".xls",
         ".xlsx",
         ".ods",
     ]
@@ -67,26 +69,26 @@ def parse_data(
     **kwargs,
 ) -> List[DataSet]:
     """
-Parse experimental data and return a list of DataSet instances.
-One or more specific sheets can be specified by name when parsing spreadsheets (e.g. .xlsx or .ods) to only return DataSet instances for those sheets.
-If no sheets are specified, then all sheets will be processed and the data from successfully parsed sheets will be returned as DataSet instances.
+    Parse experimental data and return a list of DataSet instances.
+    One or more specific sheets can be specified by name when parsing spreadsheets (e.g., .xlsx or .ods) to only return DataSet instances for those sheets.
+    If no sheets are specified, then all sheets will be processed and the data from successfully parsed sheets will be returned as DataSet instances.
 
-Parameters
-----------
-path: str
-    The path to a file containing experimental data that is to be parsed.
+    Parameters
+    ----------
+    path: str
+        The path to a file containing experimental data that is to be parsed.
 
-file_format: Optional[str] = None
-    The file format (or extension) that should be assumed when parsing the data.
-    If no file format is specified, then the file format will be determined based on the file extension.
-    If there is no file extension, then attempts will be made to parse the file as if it was one of the supported file formats.
+    file_format: Optional[str] = None
+        The file format (or extension) that should be assumed when parsing the data.
+        If no file format is specified, then the file format will be determined based on the file extension.
+        If there is no file extension, then attempts will be made to parse the file as if it was one of the supported file formats.
 
-kwargs:
-    Keyword arguments are passed to the parser.
+    kwargs:
+        Keyword arguments are passed to the parser.
 
-Returns
--------
-List[DataSet]
+    Returns
+    -------
+    List[DataSet]
     """
     assert type(path) is str and exists(path), path
     assert type(file_format) is str or file_format is None, file_format
@@ -106,6 +108,8 @@ List[DataSet]
             fmt: str = file_format or extension
             func: Optional[Callable] = get_parsers().get(fmt)
             if func is None:
+                func = {k.lower(): v for k, v in get_parsers().items()}.get(fmt)
+            if func is None:
                 raise UnsupportedFileFormat(f"Unsupported file format: {fmt}")
             if fmt == ".csv":
                 try:
@@ -120,13 +124,8 @@ List[DataSet]
                 data_sets.append(data)  # type: ignore
     else:
         parsers: List[Callable] = [
-            parse_csv,
             lambda _, **kwargs: parse_csv(_, sep=None, decimal=",", **kwargs),
-            parse_dfr,
-            parse_dta,
-            parse_ids,
-            parse_spreadsheet,
-        ]
+        ] + list(set(get_parsers().values()))
         parsed_data: bool = False
         for parser in parsers:
             try:

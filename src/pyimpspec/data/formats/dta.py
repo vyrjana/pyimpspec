@@ -24,16 +24,16 @@ from pyimpspec.data.data_set import DataSet, dataframe_to_dataset, DataFrame
 
 def parse_dta(path: str) -> DataSet:
     """
-Parse a Gamry .dta file containing an impedance spectrum.
+    Parse a Gamry .dta file containing an impedance spectrum.
 
-Parameters
-----------
-path: str
-    The path to the file to process.
+    Parameters
+    ----------
+    path: str
+        The path to the file to process.
 
-Returns
--------
-DataSet
+    Returns
+    -------
+    DataSet
     """
     assert type(path) is str and exists(path)
     fp: IO
@@ -47,13 +47,9 @@ DataSet
             break
     assert len(lines) > 0, f"Failed to find any impedance data in '{path}'"
     line = lines.pop(0)
-    assert line.startswith(
-        "pt"
-    ), f"Expected a line containing column headers: {line}"
+    assert line.startswith("pt"), f"Expected a line containing column headers: {line}"
     line = lines.pop(0)
-    assert line.startswith(
-        "#"
-    ), f"Expected a line containing column units: {line}"
+    assert line.startswith("#"), f"Expected a line containing column units: {line}"
     freq: List[float] = []
     real: List[float] = []
     imag: List[float] = []

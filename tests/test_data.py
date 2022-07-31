@@ -305,10 +305,10 @@ class TestDataSet(TestCase):
 
 
 class TestFormatParsers(TestCase):
-    def validate(self, data: DataSet, control: DataSet):
+    def validate(self, data: DataSet, control: DataSet, atol: float = 1e-8):
         self.assertEqual(control.get_num_points(), data.get_num_points())
-        self.assertTrue(allclose(control.get_frequency(), data.get_frequency()))
-        self.assertTrue(allclose(control.get_impedance(), data.get_impedance()))
+        self.assertTrue(allclose(control.get_frequency(), data.get_frequency(), atol=atol))
+        self.assertTrue(allclose(control.get_impedance(), data.get_impedance(), atol=atol))
 
     def test_01_csv(self):
         control: DataSet = get_control_data()
@@ -318,9 +318,9 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
-    def test_02_xls(self):
+    def test_02_i2b(self):
         control: DataSet = get_control_data()
-        paths: List[str] = get_test_files(".xls")
+        paths: List[str] = get_test_files(".i2b")
         self.assertTrue(len(paths) > 0)
         path: str
         for path in paths:
@@ -386,7 +386,7 @@ class TestFormatParsers(TestCase):
         for path in paths:
             data: DataSet
             for data in parse_data(path):
-                self.validate(data, control)
+                self.validate(data, control, atol=1e-1)
 
     def test_09_dfr(self):
         control: DataSet = get_control_data()
@@ -397,6 +397,16 @@ class TestFormatParsers(TestCase):
             data: DataSet
             for data in parse_data(path):
                 self.validate(data, control)
+
+    def test_10_p00(self):
+        control: DataSet = get_control_data()
+        paths: List[str] = get_test_files(".P00")
+        self.assertTrue(len(paths) > 0)
+        path: str
+        for path in paths:
+            data: DataSet
+            for data in parse_data(path):
+                self.validate(data, control, atol=1e-1)
 
     # TODO: Implement support for .fods files and then implement tests for the parser.
     """

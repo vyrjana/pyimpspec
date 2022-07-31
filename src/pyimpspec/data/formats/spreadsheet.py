@@ -25,19 +25,19 @@ from typing import List
 
 def parse_spreadsheet(path: str, **kwargs) -> List[DataSet]:
     """
-Parse a spreadsheet (.xlsx, .xls, or .ods) containing one ore more impedance spectra.
+    Parse a spreadsheet (.xlsx or .ods) containing one ore more impedance spectra.
 
-Parameters
-----------
-path: str
-    The path to the file to process.
+    Parameters
+    ----------
+    path: str
+        The path to the file to process.
 
-kwargs:
-    Keyword arguments (e.g. sheet names) to pass on to the parser. See the pandas.read_excel documentation for a list of the supported keyword arguments.
+    kwargs:
+        Keyword arguments (e.g. sheet names) to pass on to the parser. See the pandas.read_excel documentation for a list of the supported keyword arguments.
 
-Returns
--------
-List[DataSet]
+    Returns
+    -------
+    List[DataSet]
     """
     assert type(path) is str and exists(path), path
     data_sets: List[DataSet] = []

@@ -18,7 +18,7 @@
 # the LICENSES folder.
 
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union, Type
+from typing import Dict, List, Optional, Tuple, Union, Type, TypeAlias
 from .base import Element, Connection
 from .series import Series
 from .parallel import Parallel
@@ -35,16 +35,17 @@ ElementParameters = Dict[str, Dict[str, str]]
 
 class Circuit:
     """
-A class that represents an equivalent circuit.
+    A class that represents an equivalent circuit.
 
-Parameters
-----------
-elements: Series
-    The elements of the circuit wrapped in a Series connection.
+    Parameters
+    ----------
+    elements: Series
+        The elements of the circuit wrapped in a Series connection.
 
-label: str = ""
-    The label assigned to the circuit.
+    label: str = ""
+        The label assigned to the circuit.
     """
+
     def __init__(self, elements: Series, label: str = ""):
         assert type(elements) is Series
         self._elements: Series = elements
@@ -59,22 +60,22 @@ label: str = ""
 
     def get_label(self) -> str:
         """
-Get the label assigned to this circuit.
+        Get the label assigned to this circuit.
 
-Returns
--------
-str
+        Returns
+        -------
+        str
         """
         return self._label
 
     def set_label(self, label: str):
         """
-Set the label assigned to this circuit.
+        Set the label assigned to this circuit.
 
-Parameters
-----------
-label: str
-    The new label.
+        Parameters
+        ----------
+        label: str
+            The new label.
         """
         assert type(label) is str
         self._label = label.strip()
@@ -89,47 +90,47 @@ label: str
 
     def to_string(self, decimals: int = -1) -> str:
         """
-Generate the circuit description code (CDC) that represents this circuit.
+        Generate the circuit description code (CDC) that represents this circuit.
 
-Parameters
-----------
-decimals: int = -1
-    The number of decimals to include for the current element parameter values and limits.
-    -1 means that the CDC is generated using the basic syntax, which omits element labels, parameter values, and parameter limits.
+        Parameters
+        ----------
+        decimals: int = -1
+            The number of decimals to include for the current element parameter values and limits.
+            -1 means that the CDC is generated using the basic syntax, which omits element labels, parameter values, and parameter limits.
 
-Returns
--------
-str
+        Returns
+        -------
+        str
         """
         return self._elements.to_string(decimals=decimals)
 
     def impedance(self, f: float) -> complex:
         """
-Calculate the impedance of this circuit at a single frequency.
+        Calculate the impedance of this circuit at a single frequency.
 
-Parameters
-----------
-f: float
-    The frequency in hertz.
+        Parameters
+        ----------
+        f: float
+            The frequency in hertz.
 
-Returns
--------
-complex
+        Returns
+        -------
+        complex
         """
         assert f > 0 and f < inf
         return self._elements.impedance(f)
 
     def impedances(self, f: Union[list, ndarray]) -> ndarray:
         """
-Calculate the impedance of this circuit at multiple frequencies.
+        Calculate the impedance of this circuit at multiple frequencies.
 
-Parameters
-----------
-f: Union[list, ndarray]
+        Parameters
+        ----------
+        f: Union[list, ndarray]
 
-Returns
--------
-ndarray
+        Returns
+        -------
+        ndarray
         """
         assert type(f) is list or type(f) is ndarray, f
         assert min(f) > 0 and max(f) < inf, f
@@ -137,16 +138,16 @@ ndarray
 
     def get_elements(self, flattened: bool = True) -> List[Union[Element, Connection]]:
         """
-Get the elements in this circuit.
+        Get the elements in this circuit.
 
-Parameters
-----------
-flattened: bool = True
-    Whether or not the elements should be returned as a list of only elements or as a list of elements and connections.
+        Parameters
+        ----------
+        flattened: bool = True
+            Whether or not the elements should be returned as a list of only elements or as a list of elements and connections.
 
-Returns
--------
-List[Union[Element, Connection]]
+        Returns
+        -------
+        List[Union[Element, Connection]]
         """
         if flattened is True:
             return self._elements.get_elements(flattened=flattened)
@@ -154,52 +155,52 @@ List[Union[Element, Connection]]
 
     def get_parameters(self) -> Dict[int, OrderedDict[str, float]]:
         """
-Get a mapping of each circuit element's integer identifier to an OrderedDict representing that element's parameters.
+        Get a mapping of each circuit element's integer identifier to an OrderedDict representing that element's parameters.
 
-Returns
--------
-Dict[int, OrderedDict[str, float]]
+        Returns
+        -------
+        Dict[int, OrderedDict[str, float]]
         """
         return self._elements.get_parameters()
 
     def set_parameters(self, parameters: Dict[int, Dict[str, float]]):
         """
-Assign new parameters to the circuit elements.
+        Assign new parameters to the circuit elements.
 
-Parameters
-----------
-parameters: Dict[int, Dict[str, float]]
-    A mapping of circuit element integer identifiers to an OrderedDict mapping the parameter symbol to the new value.
+        Parameters
+        ----------
+        parameters: Dict[int, Dict[str, float]]
+            A mapping of circuit element integer identifiers to an OrderedDict mapping the parameter symbol to the new value.
         """
         self._elements.set_parameters(parameters)
 
     def get_element(self, ident: int) -> Optional[Element]:
         """
-Get the circuit element with a given integer identifier.
+        Get the circuit element with a given integer identifier.
 
-Parameters
-----------
-ident: int
-    The integer identifier corresponding to an element in the circuit.
+        Parameters
+        ----------
+        ident: int
+            The integer identifier corresponding to an element in the circuit.
 
-Returns
--------
-Optional[Element]
+        Returns
+        -------
+        Optional[Element]
         """
         return self._elements.get_element(ident)
 
     def to_sympy(self, substitute: bool = False) -> Expr:
         """
-Get the SymPy expression corresponding to this circuit's impedance.
+        Get the SymPy expression corresponding to this circuit's impedance.
 
-Parameters
-----------
-substitute: bool = False
-    Whether or not the variables should be substituted with the current values.
+        Parameters
+        ----------
+        substitute: bool = False
+            Whether or not the variables should be substituted with the current values.
 
-Returns
--------
-Expr
+        Returns
+        -------
+        Expr
         """
         expr: Expr = self._elements.to_sympy(substitute=substitute)
         assert isinstance(expr, Expr)
@@ -207,11 +208,11 @@ Expr
 
     def to_latex(self) -> str:
         """
-Get the LaTeX math expression corresponding to this circuit's impedance.
+        Get the LaTeX math expression corresponding to this circuit's impedance.
 
-Returns
--------
-str
+        Returns
+        -------
+        str
         """
         return latex(self.to_sympy(substitute=False))
 
@@ -224,28 +225,28 @@ str
         hide_labels: bool = False,
     ) -> str:
         """
-Get the LaTeX source needed to draw a circuit diagram for this circuit using the circuitikz package.
+        Get the LaTeX source needed to draw a circuit diagram for this circuit using the circuitikz package.
 
-Parameters
-----------
-node_width: float = 3.0
-    The width of each node.
+        Parameters
+        ----------
+        node_width: float = 3.0
+            The width of each node.
 
-node_height: float = 1.5
-    The height of each node.
+        node_height: float = 1.5
+            The height of each node.
 
-working_label: str = "WE+WS"
-    The label assigned to the terminal representing the working and working sense electrodes.
+        working_label: str = "WE+WS"
+            The label assigned to the terminal representing the working and working sense electrodes.
 
-counter_label: str = "CE+RE"
-    The label assigned to the terminal representing the counter and reference electrodes.
+        counter_label: str = "CE+RE"
+            The label assigned to the terminal representing the counter and reference electrodes.
 
-hide_labels: bool = False
-    Whether or not to hide element and terminal labels.
+        hide_labels: bool = False
+            Whether or not to hide element and terminal labels.
 
-Returns
--------
-str
+        Returns
+        -------
+        str
         """
         assert node_width > 0
         assert node_height > 0
@@ -256,7 +257,7 @@ str
             working_label = ""
             counter_label = ""
         # Phase 1 - figure out the dimensions of the connections and the positions of elements.
-        Short = int
+        Short: TypeAlias = int
         short_counter: Short = 0
         dimensions: Dict[
             Union[Series, Parallel, Element, Short], Tuple[float, float]

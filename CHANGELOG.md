@@ -1,6 +1,16 @@
+# 2.0.0
+
+- Added support for parsing the `.i2b` data format.
+- Added support for parsing the `.P00` data format.
+- Updated minimum Python and dependency versions.
+- Updated documentation.
+- Refactored code.
+- Removed support for parsing `.xls` files.
+
+
 # 1.1.0
 
-- Added support for parsing the .dfr data format.
+- Added support for parsing the `.dfr` data format.
 - Refactored `pyimpspec.data.formats`.
 - Updated the API and its documentation.
 
@@ -24,14 +34,14 @@
 
 # 0.1.3
 
-- Updated the implementation of the .idf/.ids parser.
-- Updated assertion messages in .idf/.ids and .dta parsers.
+- Updated the implementation of the `.idf/.ids` parser.
+- Updated assertion messages in `.idf/.ids` and `.dta` parsers.
 
 
 # 0.1.2
 
 - Added a missing trigger for raising an exception when encountering an unsupported file format.
-- Fixed a bug that prevented parsing of some .idf/.ids data files.
+- Fixed a bug that prevented parsing of some `.idf/.ids` data files.
 
 # 0.1.1
 

@@ -23,12 +23,12 @@ from .base import Connection, Element
 
 class Series(Connection):
     """
-Elements connected in series.
+    Elements connected in series.
 
-Parameters
-----------
-elements: List[Union[Element, Connection]]
-    List of elements (and connections) that are connected in series.
+    Parameters
+    ----------
+    elements: List[Union[Element, Connection]]
+        List of elements (and connections) that are connected in series.
     """
 
     def __init__(self, elements: List[Union[Element, Connection]]):

@@ -186,6 +186,7 @@ Check the page for [high-level functions]({root_url}/high-level-functions) for t
         jekyll_header("circuit", "circuit")
         + f"""
 Check the page for [high-level functions]({root_url}/high-level-functions) for the recommended way of parsing a circuit description code (CDC) to generate a `Circuit` object.
+Information about the supported circuit elements can be found [here]({root_url}/elements).
 
 """
         + process_classes(

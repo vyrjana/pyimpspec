@@ -25,15 +25,15 @@ from .base import Element
 
 class Inductor(Element):
     """
-Inductor
-    
-    Symbol: L
+    Inductor
 
-    Z = j*2*pi*f*L
+        Symbol: L
 
-    Variables
-    ---------
-    L: float = 1E-6 (H)
+        Z = j*2*pi*f*L
+
+        Variables
+        ---------
+        L: float = 1E-6 (H)
     """
 
     def __init__(self, **kwargs):

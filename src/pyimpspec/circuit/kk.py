@@ -26,16 +26,16 @@ from numpy import inf
 
 class KramersKronigRC(Element):
     """
-Parallel RC element used in linear Kramers-Kronig tests
+    Parallel RC element used in linear Kramers-Kronig tests
 
-    Symbol: K
+        Symbol: K
 
-    Z = R / (1 + j*2*pi*f*t)
+        Z = R / (1 + j*2*pi*f*t)
 
-    Variables
-    ---------
-    R: float = 1 (ohm)
-    t: float = 1 (s)
+        Variables
+        ---------
+        R: float = 1 (ohm)
+        t: float = 1 (s)
     """
 
     def __init__(self, **kwargs):

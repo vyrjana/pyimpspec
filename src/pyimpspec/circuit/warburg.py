@@ -30,15 +30,15 @@ def coth(x: complex) -> complex:
 
 class Warburg(Element):
     """
-Warburg (semi-infinite diffusion)
+    Warburg (semi-infinite diffusion)
 
-    Symbol: W
+        Symbol: W
 
-    Z = 1/(Y*(2*pi*f*j)^(1/2))
+        Z = 1/(Y*(2*pi*f*j)^(1/2))
 
-    Variables
-    ---------
-    Y: float = 1.0 (S*s^(1/2))
+        Variables
+        ---------
+        Y: float = 1.0 (S*s^(1/2))
     """
 
     def __init__(self, **kwargs):
@@ -100,17 +100,17 @@ Warburg (semi-infinite diffusion)
 
 class WarburgShort(Element):
     """
-Warburg, finite length or short (finite length diffusion with transmissive boundary)
+    Warburg, finite length or short (finite length diffusion with transmissive boundary)
 
-    Symbol: Ws
+        Symbol: Ws
 
-    Z = tanh((B*j*2*pi*f)^n)/((Y*j*2*pi*f)^n)
+        Z = tanh((B*j*2*pi*f)^n)/((Y*j*2*pi*f)^n)
 
-    Variables
-    ---------
-    Y: float = 1.0 (S)
-    B: float = 1.0 (s^n)
-    n: float = 0.5
+        Variables
+        ---------
+        Y: float = 1.0 (S)
+        B: float = 1.0 (s^n)
+        n: float = 0.5
     """
 
     def __init__(self, **kwargs):
@@ -189,17 +189,17 @@ Warburg, finite length or short (finite length diffusion with transmissive bound
 
 class WarburgOpen(Element):
     """
-Warburg, finite space or open (finite length diffusion with reflective boundary)
+    Warburg, finite space or open (finite length diffusion with reflective boundary)
 
-    Symbol: Wo
+        Symbol: Wo
 
-    Z = coth((B*j*2*pi*f)^n)/((Y*j*2*pi*f)^n)
+        Z = coth((B*j*2*pi*f)^n)/((Y*j*2*pi*f)^n)
 
-    Variables
-    ---------
-    Y: float = 1.0 (S)
-    B: float = 1.0 (s^n)
-    n: float = 0.5
+        Variables
+        ---------
+        Y: float = 1.0 (S)
+        B: float = 1.0 (s^n)
+        n: float = 0.5
     """
 
     def __init__(self, **kwargs):

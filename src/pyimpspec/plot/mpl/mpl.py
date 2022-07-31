@@ -41,28 +41,28 @@ def plot_nyquist(
     num_per_decade: int = 100,
 ) -> Tuple[Figure, Axes]:
     """
-Plot some data as a Nyquist plot (-Z" vs Z').
+    Plot some data as a Nyquist plot (-Z" vs Z').
 
-Parameters
-----------
-data: Union[DataSet, KramersKronigResult, FittingResult]
-    The data to plot.
-    DataSet instances are plotted using markers (optionally as a line) while all other types of data are plotted as lines.
+    Parameters
+    ----------
+    data: Union[DataSet, KramersKronigResult, FittingResult]
+        The data to plot.
+        DataSet instances are plotted using markers (optionally as a line) while all other types of data are plotted as lines.
 
-color: str = "black"
-    The color of the marker (and line).
+    color: str = "black"
+        The color of the marker (and line).
 
-line: bool = False
-    Whether or not a DataSet instance should be plotted as a line instead.
+    line: bool = False
+        Whether or not a DataSet instance should be plotted as a line instead.
 
-fig: Optional[Figure] = None
-    The matplotlib.figure.Figure instance to use when plotting the data.
+    fig: Optional[Figure] = None
+        The matplotlib.figure.Figure instance to use when plotting the data.
 
-axis: Optional[Axes] = None
-    The matplotlib.axes.Axes instance to use when plotting the data.
+    axis: Optional[Axes] = None
+        The matplotlib.axes.Axes instance to use when plotting the data.
 
-num_per_decade: int = 100
-    If the data being plotted is not a DataSet instance (e.g. a KramersKronigResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
+    num_per_decade: int = 100
+        If the data being plotted is not a DataSet instance (e.g. a KramersKronigResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
     """
     assert (
         isinstance(data, DataSet)
@@ -134,31 +134,31 @@ def plot_bode(
     num_per_decade: int = 100,
 ) -> Tuple[Figure, List[Axes]]:
     """
-Plot some data as a Bode plot (log |Z| and phi vs log f).
+    Plot some data as a Bode plot (log |Z| and phi vs log f).
 
-Parameters
-----------
-data: Union[DataSet, KramersKronigResult, FittingResult]
-    The data to plot.
-    DataSet instances are plotted using markers (optionally as a line) while all other types of data are plotted as lines.
+    Parameters
+    ----------
+    data: Union[DataSet, KramersKronigResult, FittingResult]
+        The data to plot.
+        DataSet instances are plotted using markers (optionally as a line) while all other types of data are plotted as lines.
 
-color_mag: str = "black"
-    The color of the marker (and line) for the logarithm of the absolute magnitude.
+    color_mag: str = "black"
+        The color of the marker (and line) for the logarithm of the absolute magnitude.
 
-color_phase: str = "black"
-    The color of the marker (and line) for the logarithm of the phase shift.
+    color_phase: str = "black"
+        The color of the marker (and line) for the logarithm of the phase shift.
 
-line: bool = False
-    Whether or not a DataSet instance should be plotted as a line instead.
+    line: bool = False
+        Whether or not a DataSet instance should be plotted as a line instead.
 
-fig: Optional[Figure] = None
-    The matplotlib.figure.Figure instance to use when plotting the data.
+    fig: Optional[Figure] = None
+        The matplotlib.figure.Figure instance to use when plotting the data.
 
-axes: List[Axes] = []
-    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    axes: List[Axes] = []
+        A list of matplotlib.axes.Axes instances to use when plotting the data.
 
-num_per_decade: int = 100
-    If the data being plotted is not a DataSet instance (e.g. a KramersKronigResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
+    num_per_decade: int = 100
+        If the data being plotted is not a DataSet instance (e.g. a KramersKronigResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
     """
     assert (
         isinstance(data, DataSet)
@@ -257,24 +257,24 @@ def plot_residual(
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
     """
-Plot the residuals of a test or fit result.
+    Plot the residuals of a test or fit result.
 
-Parameters
-----------
-result: Union[KramersKronigResult, FittingResult]
-    The result to plot.
+    Parameters
+    ----------
+    result: Union[KramersKronigResult, FittingResult]
+        The result to plot.
 
-color_re: str = "black"
-    The color of the markers and line for the residuals of the real parts of the impedances.
+    color_re: str = "black"
+        The color of the markers and line for the residuals of the real parts of the impedances.
 
-color_im: str = "black"
-    The color of the markers and line for the residuals of the imaginary parts of the impedances.
+    color_im: str = "black"
+        The color of the markers and line for the residuals of the imaginary parts of the impedances.
 
-fig: Optional[Figure] = None
-    The matplotlib.figure.Figure instance to use when plotting the data.
+    fig: Optional[Figure] = None
+        The matplotlib.figure.Figure instance to use when plotting the data.
 
-axes: List[Axes] = []
-    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    axes: List[Axes] = []
+        A list of matplotlib.axes.Axes instances to use when plotting the data.
     """
     assert (
         type(result) is KramersKronigResult
@@ -350,30 +350,30 @@ def plot_mu_xps(
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
     """
-Plot the mu-values and pseudo chi-squared values of exploratory Kramers-Kronig test results.
+    Plot the mu-values and pseudo chi-squared values of exploratory Kramers-Kronig test results.
 
-Parameters
-----------
-scored_tests: List[Tuple[float, KramersKronigResult]]
-    The scored test results as returned by the pyimpspec.analysis.kramers_kronig.score_test_results function.
+    Parameters
+    ----------
+    scored_tests: List[Tuple[float, KramersKronigResult]]
+        The scored test results as returned by the pyimpspec.analysis.kramers_kronig.score_test_results function.
 
-mu_criterion: float
-    The mu-criterion that was used when performing the tests.
+    mu_criterion: float
+        The mu-criterion that was used when performing the tests.
 
-color_mu: str = "black"
-    The color of the markers and line for the mu-values.
+    color_mu: str = "black"
+        The color of the markers and line for the mu-values.
 
-color_xps: str = "black"
-    The color of the markers and line for the pseudo chi-squared values.
+    color_xps: str = "black"
+        The color of the markers and line for the pseudo chi-squared values.
 
-color_criterion: str = "black"
-    The color of the line for the mu-criterion.
+    color_criterion: str = "black"
+        The color of the line for the mu-criterion.
 
-fig: Optional[Figure] = None
-    The matplotlib.figure.Figure instance to use when plotting the data.
+    fig: Optional[Figure] = None
+        The matplotlib.figure.Figure instance to use when plotting the data.
 
-axes: List[Axes] = []
-    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    axes: List[Axes] = []
+        A list of matplotlib.axes.Axes instances to use when plotting the data.
     """
     assert type(scored_tests) is list, scored_tests
     assert type(color_mu) is str, color_mu
@@ -400,7 +400,7 @@ axes: List[Axes] = []
     axes[0].plot(x, y1, color=color_mu, linestyle="--")
     axes[1].plot(x, y2, color=color_xps, linestyle=":")
     axes[0].set_ylim(-0.1, 1.1)
-    axes[0].set_xlabel(r"num. RC")
+    axes[0].set_xlabel(r"number of RC elements")
     axes[0].set_ylabel(r"$\mu$")
     axes[1].set_ylabel(r"$\log{\chi^{2}_{\rm ps}}$")
     return (
@@ -421,40 +421,40 @@ def plot_circuit(
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
     """
-Plot the simulated impedance response of a circuit as both a Nyquist and a Bode plot.
+    Plot the simulated impedance response of a circuit as both a Nyquist and a Bode plot.
 
-Parameters
-----------
-circuit: Circuit
-    The circuit to use when simulating the impedance response.
+    Parameters
+    ----------
+    circuit: Circuit
+        The circuit to use when simulating the impedance response.
 
-f: Union[List[float], ndarray] = []
-    The frequencies (in hertz) to use when simulating the impedance response.
-    If no frequencies are provided, then the range defined by the min_f and max_f parameters will be used instead.
-    Alternatively, a DataSet instance can be provided via the data parameter.
+    f: Union[List[float], ndarray] = []
+        The frequencies (in hertz) to use when simulating the impedance response.
+        If no frequencies are provided, then the range defined by the min_f and max_f parameters will be used instead.
+        Alternatively, a DataSet instance can be provided via the data parameter.
 
-min_f: float = 0.1
-    The lower limit of the frequency range to use if a list of frequencies is not provided.
-    
-max_f: float = 100000.0
-    The upper limit of the frequency range to use if a list of frequencies is not provided.
+    min_f: float = 0.1
+        The lower limit of the frequency range to use if a list of frequencies is not provided.
 
-data: Optional[DataSet] = None
-    An optional DataSet instance.
-    If provided, then the frequencies of this instance will be used when simulating the impedance spectrum of the circuit.
-    
-visible_data: bool = False
-    Whether or not the optional DataSet instance should also be plotted alongside the simulated impedance spectrum of the circuit.
+    max_f: float = 100000.0
+        The upper limit of the frequency range to use if a list of frequencies is not provided.
 
-title: Optional[str] = None
-    The title of the figure.
-    If not title is provided, then the circuit description code of the circuit is used instead.
+    data: Optional[DataSet] = None
+        An optional DataSet instance.
+        If provided, then the frequencies of this instance will be used when simulating the impedance spectrum of the circuit.
 
-fig: Optional[Figure] = None
-    The matplotlib.figure.Figure instance to use when plotting the data.
+    visible_data: bool = False
+        Whether or not the optional DataSet instance should also be plotted alongside the simulated impedance spectrum of the circuit.
 
-axes: List[Axes] = []
-    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    title: Optional[str] = None
+        The title of the figure.
+        If not title is provided, then the circuit description code of the circuit is used instead.
+
+    fig: Optional[Figure] = None
+        The matplotlib.figure.Figure instance to use when plotting the data.
+
+    axes: List[Axes] = []
+        A list of matplotlib.axes.Axes instances to use when plotting the data.
     """
     assert type(circuit) is Circuit, circuit
     assert type(f) is list or type(f) is ndarray, f
@@ -534,22 +534,22 @@ def plot_data(
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
     """
-Plot a DataSet instance as both a Nyquist and a Bode plot.
+    Plot a DataSet instance as both a Nyquist and a Bode plot.
 
-Parameters
-----------
-data: DataSet
-    The DataSet instance to plot.
+    Parameters
+    ----------
+    data: DataSet
+        The DataSet instance to plot.
 
-title: Optional[str] = None
-    The title of the figure.
-    If not title is provided, then the label of the DataSet is used instead.
+    title: Optional[str] = None
+        The title of the figure.
+        If not title is provided, then the label of the DataSet is used instead.
 
-fig: Optional[Figure] = None
-    The matplotlib.figure.Figure instance to use when plotting the data.
+    fig: Optional[Figure] = None
+        The matplotlib.figure.Figure instance to use when plotting the data.
 
-axes: List[Axes] = []
-    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    axes: List[Axes] = []
+        A list of matplotlib.axes.Axes instances to use when plotting the data.
     """
     assert isinstance(data, DataSet), data
     assert type(title) is str or title is None, title
@@ -591,28 +591,28 @@ def plot_exploratory_tests(
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Axes]]:
     """
-Plot the results of an exploratory Kramers-Kronig test and the tested DataSet as a Nyquist plot, a Bode plot, a plot of the residuals, and a plot of the mu-values and pseudo chi-squared values.
+    Plot the results of an exploratory Kramers-Kronig test and the tested DataSet as a Nyquist plot, a Bode plot, a plot of the residuals, and a plot of the mu-values and pseudo chi-squared values.
 
-Parameters
-----------
-scored_tests: List[Tuple[float, KramersKronigResult]]
-    The scored test results as returned by the pyimpspec.analysis.kramers_kronig.score_test_results function.
+    Parameters
+    ----------
+    scored_tests: List[Tuple[float, KramersKronigResult]]
+        The scored test results as returned by the pyimpspec.analysis.kramers_kronig.score_test_results function.
 
-mu_criterion: float
-    The mu-criterion that was used when performing the tests.
+    mu_criterion: float
+        The mu-criterion that was used when performing the tests.
 
-data: DataSet
-    The DataSet instance that was tested.
+    data: DataSet
+        The DataSet instance that was tested.
 
-title: Optional[str] = None
-    The title of the figure.
-    If no title is provided, then the label of the DataSet is used instead.
+    title: Optional[str] = None
+        The title of the figure.
+        If no title is provided, then the label of the DataSet is used instead.
 
-fig: Optional[Figure] = None
-    The matplotlib.figure.Figure instance to use when plotting the data.
+    fig: Optional[Figure] = None
+        The matplotlib.figure.Figure instance to use when plotting the data.
 
-axes: List[Axes] = []
-    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    axes: List[Axes] = []
+        A list of matplotlib.axes.Axes instances to use when plotting the data.
     """
     assert type(scored_tests) is list and all(
         map(lambda _: type(_) is tuple, scored_tests)
@@ -686,25 +686,25 @@ def plot_fit(
     axes: List[Axes] = [],
 ) -> Tuple[Figure, List[Tuple[Axes]]]:
     """
-Plot a the result of a circuit fit as a Nyquist plot, a Bode plot, and a plot of the residuals.
+    Plot a the result of a circuit fit as a Nyquist plot, a Bode plot, and a plot of the residuals.
 
-Parameters
-----------
-fit: Union[FittingResult, KramersKronigResult]
-    The circuit fit or test result.
+    Parameters
+    ----------
+    fit: Union[FittingResult, KramersKronigResult]
+        The circuit fit or test result.
 
-data: Optional[DataSet] = None
-    The DataSet instance that a circuit was fitted to.
+    data: Optional[DataSet] = None
+        The DataSet instance that a circuit was fitted to.
 
-title: Optional[str] = None
-    The title of the figure.
-    If no title is provided, then the circuit description code (and label of the DataSet) is used instead.
+    title: Optional[str] = None
+        The title of the figure.
+        If no title is provided, then the circuit description code (and label of the DataSet) is used instead.
 
-fig: Optional[Figure] = None
-    The matplotlib.figure.Figure instance to use when plotting the data.
+    fig: Optional[Figure] = None
+        The matplotlib.figure.Figure instance to use when plotting the data.
 
-axes: List[Axes] = []
-    A list of matplotlib.axes.Axes instances to use when plotting the data.
+    axes: List[Axes] = []
+        A list of matplotlib.axes.Axes instances to use when plotting the data.
     """
     assert (
         type(fit) is FittingResult

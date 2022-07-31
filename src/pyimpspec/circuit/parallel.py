@@ -23,12 +23,12 @@ from .base import Connection, Element
 
 class Parallel(Connection):
     """
-Elements connected in parallel.
+    Elements connected in parallel.
 
-Parameters
-----------
-elements: List[Union[Element, Connection]]
-    List of elements (and connections) that are connected in parallel.
+    Parameters
+    ----------
+    elements: List[Union[Element, Connection]]
+        List of elements (and connections) that are connected in parallel.
     """
 
     def __init__(self, elements: List[Union[Element, Connection]]):

@@ -51,16 +51,16 @@ def _extract_primary_data(
 
 def parse_ids(path: str) -> List[DataSet]:
     """
-Parse an Ivium .ids or .idf file containing one or more impedance spectra.
+    Parse an Ivium .ids or .idf file containing one or more impedance spectra.
 
-Parameters
-----------
-path: str
-    The path to the file to process.
+    Parameters
+    ----------
+    path: str
+        The path to the file to process.
 
-Returns
--------
-DataSet
+    Returns
+    -------
+    DataSet
     """
     assert type(path) is str and exists(path)
     default_label: str = splitext(basename(path))[0]
