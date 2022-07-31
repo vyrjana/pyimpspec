@@ -106,8 +106,8 @@ _Parameters_
 
 - `data`: The data set to be tested.
 - `test`: See perform_test for details.
-- `num_RCs`: A list of integers representing the various number of parallel RC circuits to test.
-An empty list results in all possible numbers of parallel RC circuits up to the total number of frequencies being tested.
+- `num_RCs`: A list of integers representing the various number of RC elements to test.
+An empty list results in all possible numbers of RC elements up to the total number of frequencies being tested.
 - `mu_criterion`: See perform_test for details.
 - `add_capacitance`: See perform_test for details.
 - `add_inductance`: See perform_test for details.
@@ -125,7 +125,7 @@ List[KramersKronigResult]
 
 Performs a linear Kramers-Kronig test as described by Boukamp (1995).
 The results can be used to check the validity of an impedance spectrum before performing equivalent circuit fitting.
-If the number of (RC) circuits is less than two, then a suitable number of (RC) circuits is determined using the procedure described by Schönleber et al. (2014) based on a criterion for the calculated mu-value (zero to one).
+If the number of RC elements is less than two, then a suitable number of RC elements is determined using the procedure described by Schönleber et al. (2014) based on a criterion for the calculated mu-value (zero to one).
 A mu-value of one represents underfitting and a mu-value of zero represents overfitting.
 
 References:
@@ -143,7 +143,7 @@ _Parameters_
 - `data`: The data set to be tested.
 - `test`: Supported values include "cnls", "complex", "imaginary", and "real". The "cnls" test performs a complex non-linear least squares fit using lmfit.minimize, which usually provides a good fit but is also quite slow.
 The "complex", "imaginary", and "real" tests perform the complex, imaginary, and real tests, respectively, according to Boukamp (1995).
-- `num_RC`: The number of parallel RC circuits to use.
+- `num_RC`: The number of RC elements to use.
 A value less than one results in the use of the procedure described by Schönleber et al. (2014) based on the chosen mu-criterion.
 - `mu_criterion`: The chosen mu-criterion. See Schönleber et al. (2014) for more information.
 - `add_capacitance`: Add an additional capacitance in series with the rest of the circuit.
@@ -168,7 +168,7 @@ KramersKronigResult
 ### **pyimpspec.score_test_results**
 
 Assign scores to test results as an alternative to just using the mu-value generated when using the procedure described by Schönleber et al. (2014).
-The mu-value can in some cases fluctuate wildly at low numbers of parallel RC circuits and result in false positives (i.e. the mu-value briefly dips below the mu-criterion only to rises above it again).
+The mu-value can in some cases fluctuate wildly at low numbers of RC elements and result in false positives (i.e. the mu-value briefly dips below the mu-criterion only to rises above it again).
 The score is equal to -numpy.inf for results with mu-values greater than or equal to the mu-criterion.
 For results with mu-values below the mu-criterion, the score is calculated based on the pseudo chi-squared value of the result and on the difference between the mu-criterion and the result's mu-value.
 The results and their corresponding scores are returned as a list of tuples.

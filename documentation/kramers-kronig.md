@@ -35,7 +35,7 @@ class KramersKronigResult(object):
 _Constructor parameters_
 
 - `circuit`: The fitted circuit.
-- `num_RC`: The final number of parallel RC circuits in the fitted model (Boukamp, 1995).
+- `num_RC`: The final number of RC elements in the fitted model (Boukamp, 1995).
 - `mu`: The mu-value of the final fit (eq. 21 in Schönleber et al., 2014).
 - `pseudo_chisqr`: The pseudo chi-squared fit value (eq. 14 in Boukamp, 1995).
 - `frequency`: The frequencies used to perform the test.
