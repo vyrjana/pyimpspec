@@ -35,7 +35,7 @@ Check out [DearEIS](https://vyrjana.github.io/DearEIS/), which is based on pyimp
 
 ### Requirements
 
-- [Python (version 3.6 or later)](https://www.python.org/)
+- [Python (version 3.8 or later)](https://www.python.org/)
 
 
 ### Supported platforms
