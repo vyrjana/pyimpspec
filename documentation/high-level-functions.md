@@ -71,7 +71,7 @@ Dict[str, Element]
 ### **pyimpspec.parse_data**
 
 Parse experimental data and return a list of DataSet instances.
-One or more specific sheets can be specified by name when parsing spreadsheets (e.g. .xlsx or .ods) to only return DataSet instances for those sheets.
+One or more specific sheets can be specified by name when parsing spreadsheets (e.g., .xlsx or .ods) to only return DataSet instances for those sheets.
 If no sheets are specified, then all sheets will be processed and the data from successfully parsed sheets will be returned as DataSet instances.
 
 ```python
@@ -125,7 +125,7 @@ List[KramersKronigResult]
 
 Performs a linear Kramers-Kronig test as described by Boukamp (1995).
 The results can be used to check the validity of an impedance spectrum before performing equivalent circuit fitting.
-If the number of (RC) circuits is less than two, then a suitable number of (RC) circuits is determined using the procedure described by Schönleber et al.(2014) based on a criterion for the calculated mu-value (zero to one).
+If the number of (RC) circuits is less than two, then a suitable number of (RC) circuits is determined using the procedure described by Schönleber et al. (2014) based on a criterion for the calculated mu-value (zero to one).
 A mu-value of one represents underfitting and a mu-value of zero represents overfitting.
 
 References:

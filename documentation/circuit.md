@@ -5,6 +5,7 @@ permalink: /api/circuit/
 ---
 
 Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/api/high-level-functions) for the recommended way of parsing a circuit description code (CDC) to generate a `Circuit` object.
+Information about the supported circuit elements can be found [here](https://vyrjana.github.io/pyimpspec/api/elements).
 
 **Table of Contents**
 

@@ -47,7 +47,7 @@ _Constructor parameters_
 
 ### **pyimpspec.ConstantPhaseElement**
 
-Constant phase element.
+Constant phase element
 
     Symbol: Q
 
@@ -154,7 +154,7 @@ _Constructor parameters_
 ### **pyimpspec.Inductor**
 
 Inductor
-    
+
     Symbol: L
 
     Z = j*2*pi*f*L
