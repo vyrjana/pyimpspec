@@ -325,7 +325,7 @@ class TestFitting(TestCase):
         param: FittedParameter = fit.parameters["C_2"]["C"]
         self.assertAlmostEqual(param.value, 8.0E-7, delta=1E-8)
         param: FittedParameter = fit.parameters["R_3"]["R"]
-        self.assertAlmostEqual(param.value, 5.029E2, delta=1E-1)
+        self.assertAlmostEqual(param.value, 5.028E2, delta=2E-1)
         param: FittedParameter = fit.parameters["W_4"]["Y"]
         self.assertAlmostEqual(param.value, 4.0E-4, delta=1E-5)
 
