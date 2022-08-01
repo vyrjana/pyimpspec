@@ -77,7 +77,7 @@ class Capacitor(Element):
     def impedance(self, f: float) -> complex:
         return 1 / (self._C * 2 * pi * f * 1j)
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict(
             {
                 "C": self._C,

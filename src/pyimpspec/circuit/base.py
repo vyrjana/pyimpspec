@@ -276,7 +276,7 @@ class Element:
                 continue
             self.set_fixed(k, v)
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         """
         Get the current parameters of the element.
 
@@ -568,7 +568,7 @@ class Connection:
         assert min(freq) > 0 and max(freq) < inf
         return array(list(map(self.impedance, freq)))
 
-    def get_parameters(self) -> Dict[int, OrderedDict[str, float]]:
+    def get_parameters(self) -> "Dict[int, OrderedDict[str, float]]":
         """
         Get the current element parameters of all elements nested inside this connection.
         The outer key is the unique identifier assigned to an element.

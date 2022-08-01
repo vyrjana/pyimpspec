@@ -77,7 +77,7 @@ class Inductor(Element):
     def impedance(self, f: float) -> complex:
         return complex(0, self._L * 2 * pi * f)
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict(
             {
                 "L": self._L,

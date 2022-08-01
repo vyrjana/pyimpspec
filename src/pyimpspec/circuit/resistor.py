@@ -77,7 +77,7 @@ class Resistor(Element):
     def impedance(self, f: float) -> complex:
         return complex(self._R, 0)
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict(
             {
                 "R": self._R,

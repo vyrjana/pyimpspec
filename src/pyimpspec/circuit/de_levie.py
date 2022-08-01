@@ -109,7 +109,7 @@ class DeLevieFiniteLength(Element):
             / (1 + self._Y * (2 * pi * f * 1j) ** self._n) ** (1 / 2)
         )
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict(
             {
                 "Ri": self._Ri,

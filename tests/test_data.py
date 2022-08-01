@@ -1,5 +1,19 @@
-# Copyright 2022 pyimpspec developers
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
+# Copyright 2022 pyimpspec developers
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
@@ -407,17 +421,3 @@ class TestFormatParsers(TestCase):
             data: DataSet
             for data in parse_data(path):
                 self.validate(data, control, atol=1e-1)
-
-    # TODO: Implement support for .fods files and then implement tests for the parser.
-    """
-    def test_N_fods(self):
-        control: DataSet = get_control_data()
-        f_ctrl = control.get_frequency()
-        Z_ctrl = control.get_impedance()
-        path: str
-        for path in get_test_files(".fods"):
-            for data in parse_data(path):
-                self.assertEqual(control.get_num_points(), data.get_num_points())
-                self.assertTrue(allclose(f_ctrl, data.get_frequency()))
-                self.assertTrue(allclose(Z_ctrl, data.get_impedance()))
-    """

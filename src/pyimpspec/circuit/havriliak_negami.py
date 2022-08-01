@@ -95,7 +95,7 @@ class HavriliakNegami(Element):
             2 * pi * f * 1j * self._dC
         )
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict(
             {
                 "dC": self._dC,

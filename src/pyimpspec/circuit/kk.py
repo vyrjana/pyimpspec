@@ -83,7 +83,7 @@ class KramersKronigRC(Element):
     def impedance(self, f: float) -> complex:
         return self._R / (1 + 2 * pi * f * self._t * 1j)
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict({"R": self._R, "t": self._t})
 
     def set_parameters(self, parameters: Dict[str, float]):

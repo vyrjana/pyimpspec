@@ -82,7 +82,7 @@ class Warburg(Element):
     def impedance(self, f: float) -> complex:
         return 1 / (self._Y * (2 * pi * f * 1j) ** (1 / 2))
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict(
             {
                 "Y": self._Y,
@@ -165,7 +165,7 @@ class WarburgShort(Element):
             / (self._Y * 2 * pi * f * 1j) ** self._n
         )
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict(
             {
                 "Y": self._Y,
@@ -254,7 +254,7 @@ class WarburgOpen(Element):
             / (self._Y * 2 * pi * f * 1j) ** self._n
         )
 
-    def get_parameters(self) -> OrderedDict[str, float]:
+    def get_parameters(self) -> "OrderedDict[str, float]":
         return OrderedDict(
             {
                 "Y": self._Y,

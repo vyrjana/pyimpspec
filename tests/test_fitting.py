@@ -1,5 +1,19 @@
-# Copyright 2022 pyimpspec developers
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
+# Copyright 2022 pyimpspec developers
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+#
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
@@ -9,6 +23,7 @@ from pyimpspec import (
     DataSet,
     KramersKronigResult,
     FittingResult,
+    FittedParameter,
     fit_circuit_to_data,
     perform_exploratory_tests,
     perform_test,
@@ -300,9 +315,19 @@ class TestFitting(TestCase):
         circuit: Circuit = string_to_circuit("R(RC)(RW)")
         fit: FittingResult = fit_circuit_to_data(circuit, data, max_nfev=1000)
         self.assertEqual(
-            fit.circuit.to_string(1),
-            "[R{R=1.0E+02/0.0E+00}(R{R=2.0E+02/0.0E+00}C{C=8.0E-07/0.0E+00/1.0E+03})(R{R=5.0E+02/0.0E+00}W{Y=4.0E-04/0.0E+00})]",
+            fit.circuit.to_string(0),
+            "[R{R=1E+02/0E+00}(R{R=2E+02/0E+00}C{C=8E-07/0E+00/1E+03})(R{R=5E+02/0E+00}W{Y=4E-04/0E+00})]",
         )
+        param: FittedParameter = fit.parameters["R_0"]["R"]
+        self.assertAlmostEqual(param.value, 1.001E2, places=1)
+        param: FittedParameter = fit.parameters["R_1"]["R"]
+        self.assertAlmostEqual(param.value, 2.008E2, places=1)
+        param: FittedParameter = fit.parameters["C_2"]["C"]
+        self.assertAlmostEqual(param.value, 8.0E-7, places=8)
+        param: FittedParameter = fit.parameters["R_3"]["R"]
+        self.assertAlmostEqual(param.value, 5.029E2, places=1)
+        param: FittedParameter = fit.parameters["W_4"]["Y"]
+        self.assertAlmostEqual(param.value, 4.0E-4, places=5)
 
     def test_02_threading(self):
         circuit: Circuit = string_to_circuit("R(RC)(RW)")

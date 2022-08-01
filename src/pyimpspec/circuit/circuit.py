@@ -18,7 +18,7 @@
 # the LICENSES folder.
 
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union, Type, TypeAlias
+from typing import Dict, List, Optional, Tuple, Union, Type
 from .base import Element, Connection
 from .series import Series
 from .parallel import Parallel
@@ -153,7 +153,7 @@ class Circuit:
             return self._elements.get_elements(flattened=flattened)
         return [self._elements]
 
-    def get_parameters(self) -> Dict[int, OrderedDict[str, float]]:
+    def get_parameters(self) -> "Dict[int, OrderedDict[str, float]]":
         """
         Get a mapping of each circuit element's integer identifier to an OrderedDict representing that element's parameters.
 
@@ -257,13 +257,12 @@ class Circuit:
             working_label = ""
             counter_label = ""
         # Phase 1 - figure out the dimensions of the connections and the positions of elements.
-        Short: TypeAlias = int
-        short_counter: Short = 0
+        short_counter: int = 0
         dimensions: Dict[
-            Union[Series, Parallel, Element, Short], Tuple[float, float]
+            Union[Series, Parallel, Element, int], Tuple[float, float]
         ] = {}
         positions: Dict[
-            Union[Series, Parallel, Element, Short], Tuple[float, float]
+            Union[Series, Parallel, Element, int], Tuple[float, float]
         ] = {}
         num_nested_parallels: int = 0
 
@@ -490,7 +489,7 @@ class Circuit:
                             f"{symbol}=${label}$",
                         )
                     )
-                elif type(element_connection) is Short:
+                elif type(element_connection) is int:
                     start_x = x * (node_width - 1.0) + 1.0
                     start_y = y * node_height
                     end_x = (x + w) * (node_width - 1.0) + 1.0
