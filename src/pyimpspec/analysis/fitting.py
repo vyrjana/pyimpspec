@@ -297,7 +297,7 @@ class FittingResult:
 def _to_lmfit(circuit: Circuit) -> Parameters:
     assert type(circuit) is Circuit
     result: Parameters = Parameters()
-    parameters: Dict[int, OrderedDict[str, float]] = circuit.get_parameters()
+    parameters: "Dict[int, OrderedDict[str, float]]" = circuit.get_parameters()
     ident: int
     params: Dict[str, float]
     for ident, params in parameters.items():

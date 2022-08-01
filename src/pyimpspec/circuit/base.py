@@ -414,7 +414,7 @@ class Element:
         raise Exception("Method has not been implemented!")
 
     def _subs_str_expr(
-        self, string: str, parameters: OrderedDict[str, float], symbols_only: bool
+        self, string: str, parameters: "OrderedDict[str, float]", symbols_only: bool
     ) -> str:
         assert type(string) is str
         assert type(parameters) is OrderedDict
@@ -578,7 +578,7 @@ class Connection:
         -------
         Dict[int, OrderedDict[str, float]]
         """
-        parameters: Dict[int, OrderedDict[str, float]] = {}
+        parameters: "Dict[int, OrderedDict[str, float]]" = {}
         element: Union[Element, "Connection"]
         for element in self._elements:
             if isinstance(element, Connection):

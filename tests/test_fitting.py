@@ -319,15 +319,15 @@ class TestFitting(TestCase):
             "[R{R=1E+02/0E+00}(R{R=2E+02/0E+00}C{C=8E-07/0E+00/1E+03})(R{R=5E+02/0E+00}W{Y=4E-04/0E+00})]",
         )
         param: FittedParameter = fit.parameters["R_0"]["R"]
-        self.assertAlmostEqual(param.value, 1.001E2, places=1)
+        self.assertAlmostEqual(param.value, 1.001E2, delta=1E-1)
         param: FittedParameter = fit.parameters["R_1"]["R"]
-        self.assertAlmostEqual(param.value, 2.008E2, places=1)
+        self.assertAlmostEqual(param.value, 2.008E2, delta=1E-1)
         param: FittedParameter = fit.parameters["C_2"]["C"]
-        self.assertAlmostEqual(param.value, 8.0E-7, places=8)
+        self.assertAlmostEqual(param.value, 8.0E-7, delta=1E-8)
         param: FittedParameter = fit.parameters["R_3"]["R"]
-        self.assertAlmostEqual(param.value, 5.029E2, places=1)
+        self.assertAlmostEqual(param.value, 5.029E2, delta=1E-1)
         param: FittedParameter = fit.parameters["W_4"]["Y"]
-        self.assertAlmostEqual(param.value, 4.0E-4, places=5)
+        self.assertAlmostEqual(param.value, 4.0E-4, delta=1E-5)
 
     def test_02_threading(self):
         circuit: Circuit = string_to_circuit("R(RC)(RW)")
