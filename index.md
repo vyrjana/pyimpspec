@@ -1,7 +1,7 @@
 [![tests](https://github.com/vyrjana/pyimpspec/actions/workflows/test-package.yml/badge.svg)](https://github.com/vyrjana/pyimpspec/actions/workflows/test-package.yml)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyimpspec)
-![GitHub](https://img.shields.io/github/license/vyrjana/pyimpspec)
-![PyPI](https://img.shields.io/pypi/v/pyimpspec)
+[![GitHub](https://img.shields.io/github/license/vyrjana/pyimpspec)](https://www.gnu.org/licenses/gpl-3.0.html)
+[![PyPI](https://img.shields.io/pypi/v/pyimpspec)](https://pypi.org/project/pyimpspec/)
 
 
 pyimpspec is a Python package that implements an application programming interface (API) for working with impedance spectra.
