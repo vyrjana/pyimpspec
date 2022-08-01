@@ -9,9 +9,6 @@ on:
     paths:
     - '**.py'
 
-    paths-ignore:
-    - 'docs/**'
-
   pull_request:
     branches: ["main"]
 
