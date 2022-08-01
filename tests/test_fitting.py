@@ -313,29 +313,29 @@ class TestKramersKronig(TestCase):
 class TestFitting(TestCase):
     def test_01_default(self):
         circuit: Circuit = string_to_circuit("R(RC)(RW)")
-        fit: FittingResult = fit_circuit_to_data(circuit, data, max_nfev=1000)
+        fit: FittingResult = fit_circuit_to_data(circuit, data)
         self.assertEqual(
             fit.circuit.to_string(0),
             "[R{R=1E+02/0E+00}(R{R=2E+02/0E+00}C{C=8E-07/0E+00/1E+03})(R{R=5E+02/0E+00}W{Y=4E-04/0E+00})]",
         )
         param: FittedParameter = fit.parameters["R_0"]["R"]
-        self.assertAlmostEqual(param.value, 1.001E2, delta=1E-1)
+        self.assertAlmostEqual(param.value, 1.00E2, delta=2E0)
         param: FittedParameter = fit.parameters["R_1"]["R"]
-        self.assertAlmostEqual(param.value, 2.008E2, delta=1E-1)
+        self.assertAlmostEqual(param.value, 2.02E2, delta=2E0)
         param: FittedParameter = fit.parameters["C_2"]["C"]
-        self.assertAlmostEqual(param.value, 8.0E-7, delta=1E-8)
+        self.assertAlmostEqual(param.value, 8.00E-7, delta=1E-8)
         param: FittedParameter = fit.parameters["R_3"]["R"]
-        self.assertAlmostEqual(param.value, 5.028E2, delta=2E-1)
+        self.assertAlmostEqual(param.value, 5.03E2, delta=2E0)
         param: FittedParameter = fit.parameters["W_4"]["Y"]
-        self.assertAlmostEqual(param.value, 4.0E-4, delta=1E-5)
+        self.assertAlmostEqual(param.value, 4.00E-4, delta=1E-5)
 
     def test_02_threading(self):
         circuit: Circuit = string_to_circuit("R(RC)(RW)")
         fit_single_thread: FittingResult = fit_circuit_to_data(
-            circuit, data, max_nfev=1000, num_procs=1
+            circuit, data, max_nfev=100, num_procs=1
         )
         fit_multithreaded: FittingResult = fit_circuit_to_data(
-            circuit, data, max_nfev=1000, num_procs=2
+            circuit, data, max_nfev=100, num_procs=2
         )
         self.assertEqual(
             fit_single_thread.circuit.to_string(2),
