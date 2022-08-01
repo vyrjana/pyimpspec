@@ -101,11 +101,12 @@ An extended CDC syntax, which makes it possible to define e.g. initial values, i
 ### Data parsing
 
 Several file formats are supported by pyimpspec and the data within are used to generate a `DataSet` object.
-The file formats include:
-- Files containing the data as character-separated values (CSV).
-- Spreadsheets (`.xls`, `.xlsx`, `.ods`).
-- Ivium data files (`.idf`, `.ids`).
+The supported file formats include, for example:
+- Eco Chemie data files (`.dfr`)
 - Gamry data files (`.dta`).
+- Ivium data files (`.idf`, `.ids`).
+- Spreadsheets (`.xlsx`, `.ods`).
+- Files containing the data as character-separated values (CSV).
 
 Not all CSV files and spreadsheets are necessarily supported as-is but the parsing of those types of files should be quite flexible.
 The parsers expect to find at least a column with frequencies and columns for either the real and imaginary parts of the impedance, or the absolute magnitude and the phase angle/shift.
