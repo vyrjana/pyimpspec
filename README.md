@@ -2,6 +2,11 @@
 
 A package for parsing, validating, analyzing, and simulating impedance spectra.
 
+[![tests](https://github.com/vyrjana/pyimpspec/actions/workflows/test-package.yml/badge.svg)](https://github.com/vyrjana/pyimpspec/actions/workflows/test-package.yml)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyimpspec)
+![GitHub](https://img.shields.io/github/license/vyrjana/pyimpspec)
+![PyPI](https://img.shields.io/pypi/v/pyimpspec)
+
 
 ## Table of contents
 

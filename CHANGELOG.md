@@ -1,3 +1,9 @@
+# 2.0.1
+
+- Added GitHub Actions workflow for testing the package on Linux (Ubuntu), MacOS, and Windows.
+- Fixed issues that prevented using the package with anything but Python 3.10.
+
+
 # 2.0.0
 
 - Added support for parsing the `.i2b` data format.
