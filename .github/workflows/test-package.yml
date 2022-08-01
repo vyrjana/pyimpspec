@@ -1,6 +1,21 @@
-name: Install package and run tests
+name: tests
 
-on: workflow_dispatch
+on:
+  
+  push:
+    branches:
+    - 'main'
+
+    paths:
+    - '**.py'
+
+    paths-ignore:
+    - 'docs/**'
+
+  pull_request:
+    branches: ["main"]
+
+  workflow_dispatch:
 
 jobs:
 
