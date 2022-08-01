@@ -80,12 +80,12 @@ pip install --upgrade pyimpspec
 ```
 
 Supported platforms:
-- Linux
-	- Primary development and testing platform.
-- Windows
-	- Tested on Windows 10 (x86-64).
 
-The package **may** also work on other platforms (e.g. MacOS) depending on whether or not those platforms are supported by pyimpspec's [dependencies](setup.py).
+- Linux
+- Windows
+- MacOS
+
+The package **may** also work on other platforms depending on whether or not those platforms are supported by pyimpspec's [dependencies](setup.py).
 
 
 ## Features
