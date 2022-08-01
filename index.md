@@ -48,8 +48,7 @@ Check out [DearEIS](https://vyrjana.github.io/DearEIS/), which is based on pyimp
 
 - Linux
 - Windows
-
-pyimpspec may also work on other platforms (e.g., MacOS) but this has not yet been confirmed.
+- MacOS
 
 
 ### Step-by-step
