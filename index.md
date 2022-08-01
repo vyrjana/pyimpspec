@@ -1,3 +1,9 @@
+[![tests](https://github.com/vyrjana/pyimpspec/actions/workflows/test-package.yml/badge.svg)](https://github.com/vyrjana/pyimpspec/actions/workflows/test-package.yml)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyimpspec)
+![GitHub](https://img.shields.io/github/license/vyrjana/pyimpspec)
+![PyPI](https://img.shields.io/pypi/v/pyimpspec)
+
+
 pyimpspec is a Python package that implements an application programming interface (API) for working with impedance spectra.
 The target audience is researchers who use electrochemical impedance spectroscopy (EIS) though the program may also be useful in educational settings.
 pyimpspec includes features such as:
