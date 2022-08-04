@@ -22,9 +22,9 @@ from typing import IO, List
 from pyimpspec.data.data_set import DataSet, dataframe_to_dataset, DataFrame
 
 
-def parse_p00(path: str) -> DataSet:
+def parse_mpt(path: str) -> DataSet:
     """
-    Parse a .P00 file containing an impedance spectrum.
+    Parse a BioLogic EC-Lab .mpt file containing an impedance spectrum.
 
     Parameters
     ----------
@@ -41,25 +41,24 @@ def parse_p00(path: str) -> DataSet:
         lines: List[str] = list(
             filter(lambda _: _ != "", map(str.lower, map(str.strip, fp.readlines())))
         )
-    num_points: int = 0
+    assert lines.pop(0) == "ec-lab ascii file"
     while lines:
         line: str = lines.pop(0)
-        if line.startswith("f/hz"):
-            num_points = int(lines.pop(0))
+        if line.startswith("freq/hz"):
             break
     freq: List[float] = []
     real: List[float] = []
     imag: List[float] = []
     while lines:
         columns: List[str] = lines.pop(0).split("\t")
-        assert len(columns) == 6, (
+        assert len(columns) > 3, (
             len(columns),
             columns,
         )
         freq.append(float(columns[0]))
         real.append(float(columns[1]))
         imag.append(-float(columns[2]))
-    assert len(freq) == len(real) == len(imag) == num_points > 0, len(freq)
+    assert len(freq) == len(real) == len(imag) > 0, len(freq)
     return dataframe_to_dataset(
         DataFrame.from_dict(
             {

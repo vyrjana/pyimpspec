@@ -18,13 +18,34 @@
 # the LICENSES folder.
 
 import cmath
-from math import pi
 from collections import OrderedDict
-from os.path import basename, splitext
-from typing import Callable, Dict, List, Optional, Tuple, Union
-from numpy import allclose, angle, array, log10 as log, mean, ndarray, radians
-from pandas import DataFrame
+from math import (
+    isclose,
+    pi,
+)
+from os.path import (
+    basename,
+    splitext,
+)
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 from uuid import uuid4
+from numpy import (
+    allclose,
+    angle,
+    array,
+    log10 as log,
+    mean,
+    ndarray,
+    radians,
+)
+from pandas import DataFrame
 
 
 VERSION: int = 1
@@ -683,6 +704,11 @@ def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
             Z: complex = cmath.rect(mag, phi)
             real.append(Z.real)
             imaginary.append(Z.imag)
+    assert len(frequency) == len(real) == len(imaginary) > 0, (
+        len(frequency),
+        len(real),
+        len(imaginary),
+    )
     return DataSet(
         array(frequency),
         array(list(map(lambda _: complex(*_), zip(real, imaginary)))),

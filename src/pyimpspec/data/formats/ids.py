@@ -74,7 +74,7 @@ def parse_ids(path: str) -> List[DataSet]:
     while lines:
         while lines:
             line: str = lines.pop(0)
-            if line.strip().startswith("Title="):
+            if line.startswith("Title="):
                 break
         if len(lines) == 0:
             break

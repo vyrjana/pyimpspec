@@ -21,12 +21,13 @@ from typing import Callable, Dict, List, Optional, Union
 from pyimpspec.data.data_set import DataSet
 from os.path import exists, splitext, basename
 from .csv import parse_csv
-from .spreadsheet import parse_spreadsheet
-from .ids import parse_ids
-from .dta import parse_dta
 from .dfr import parse_dfr
+from .dta import parse_dta
 from .i2b import parse_i2b
+from .ids import parse_ids
+from .mpt import parse_mpt
 from .p00 import parse_p00
+from .spreadsheet import parse_spreadsheet
 
 
 class UnsupportedFileFormat(Exception):
@@ -42,6 +43,7 @@ def get_parsers() -> Dict[str, Callable]:
         ".i2b": parse_i2b,
         ".idf": parse_ids,
         ".ids": parse_ids,
+        ".mpt": parse_mpt,
         ".ods": parse_spreadsheet,
         ".txt": parse_csv,
         ".xlsx": parse_spreadsheet,

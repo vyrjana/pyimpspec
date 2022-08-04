@@ -1,3 +1,9 @@
+# 2.1.0
+
+- Added support for `.mpt` data format.
+- Refactored code.
+
+
 # 2.0.1
 
 - Added GitHub Actions workflow for testing the package on Linux (Ubuntu), MacOS, and Windows.

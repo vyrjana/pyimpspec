@@ -421,3 +421,13 @@ class TestFormatParsers(TestCase):
             data: DataSet
             for data in parse_data(path):
                 self.validate(data, control, atol=1e-1)
+
+    def test_11_mpt(self):
+        control: DataSet = get_control_data()
+        paths: List[str] = get_test_files(".mpt")
+        self.assertTrue(len(paths) > 0)
+        path: str
+        for path in paths:
+            data: DataSet
+            for data in parse_data(path):
+                self.validate(data, control, atol=1e-1)

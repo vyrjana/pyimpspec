@@ -26,6 +26,7 @@ from .formats import (
     parse_dfr,
     parse_i2b,
     parse_ids,
+    parse_mpt,
     parse_p00,
     parse_spreadsheet,
 )
