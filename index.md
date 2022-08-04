@@ -1,4 +1,5 @@
 [![tests](https://github.com/vyrjana/pyimpspec/actions/workflows/test-package.yml/badge.svg)](https://github.com/vyrjana/pyimpspec/actions/workflows/test-package.yml)
+[![build](https://github.com/vyrjana/pyimpspec/actions/workflows/test-wheel.yml/badge.svg)](https://github.com/vyrjana/pyimpspec/actions/workflows/test-wheel.yml)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyimpspec)
 [![GitHub](https://img.shields.io/github/license/vyrjana/pyimpspec)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![PyPI](https://img.shields.io/pypi/v/pyimpspec)](https://pypi.org/project/pyimpspec/)
@@ -9,12 +10,11 @@ The target audience is researchers who use electrochemical impedance spectroscop
 pyimpspec includes features such as:
 
 - reading experimental data from multiple different file formats such as:
-	- Eco Chemie data files (`.dfr`)
-	- Gamry data files (`.dta`)
-	- Ivium data files (`.idf` and `.ids`)
-	- Microsoft Excel (`.xlsx`)
-	- OpenDocument Spreadsheet (`.ods`)
-	- plain-text files with character-separated values
+	- Eco Chemie: `.dfr`
+	- Gamry: `.dta`
+	- Ivium: `.idf` and `.ids`
+	- Spreadsheets: `.xlsx` and `.ods`
+	- Plain-text character-separated values (CSV)
 - validation of impedance spectra by checking if the data is Kramers-Kronig transformable
 - construction of equivalent circuits by parsing a circuit description code (CDC)
 - equivalent circuit fitting as a means of extracting quantitative data
