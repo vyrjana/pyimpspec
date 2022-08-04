@@ -10,6 +10,7 @@ The target audience is researchers who use electrochemical impedance spectroscop
 pyimpspec includes features such as:
 
 - reading experimental data from multiple different file formats such as:
+	- BioLogic: `.mpt`
 	- Eco Chemie: `.dfr`
 	- Gamry: `.dta`
 	- Ivium: `.idf` and `.ids`
