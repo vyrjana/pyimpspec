@@ -14,6 +14,19 @@ for _, _, files in walk("LICENSES"):
         )
     )
 
+dependencies = [
+    "lmfit>=1.0.3",  # Needed for performing non-linear fitting.
+    "matplotlib>=3.5.2",  # Needed for the plotting module.
+    "numpy>=1.22.4",
+    "odfpy>=1.4.1",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
+    "openpyxl>=3.0.10",  # Needed by pandas for parsing newer Excel files (.xlsx).
+    "pandas>=1.4.2",  # Needed for dealing with various file formats.
+    "sympy>=1.10.1",
+]
+
+with open("requirements.txt", "w") as fp:
+    fp.write("\n".join(dependencies))
+
 setup(
     name="pyimpspec",
     version="2.1.0",
@@ -37,15 +50,7 @@ setup(
     description="A package for parsing, validating, analyzing, and simulating impedance spectra.",
     long_description=open("README.md").read(),
     long_description_content_type="text/markdown",
-    install_requires=[
-        "lmfit>=1.0.3",  # Needed for performing non-linear fitting.
-        "matplotlib>=3.5.2",  # Needed for the plotting module.
-        "numpy>=1.22.4",
-        "odfpy>=1.4.1",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
-        "openpyxl>=3.0.10",  # Needed by pandas for parsing newer Excel files (.xlsx).
-        "pandas>=1.4.2",  # Needed for dealing with various file formats.
-        "sympy>=1.10.1",
-    ],
+    install_requires=dependencies,
     python_requires=">=3.8",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
