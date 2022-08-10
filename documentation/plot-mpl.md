@@ -9,15 +9,15 @@ These functions are for basic visualization of various objects (e.g., `DataSet`,
 
 **Table of Contents**
 
-- [pyimpspec.plot.mpl](#pyimpspec-plot-mpl)
-	- [plot_bode](#pyimpspec-plot-mplplot_bode)
-	- [plot_circuit](#pyimpspec-plot-mplplot_circuit)
-	- [plot_data](#pyimpspec-plot-mplplot_data)
-	- [plot_exploratory_tests](#pyimpspec-plot-mplplot_exploratory_tests)
-	- [plot_fit](#pyimpspec-plot-mplplot_fit)
-	- [plot_mu_xps](#pyimpspec-plot-mplplot_mu_xps)
-	- [plot_nyquist](#pyimpspec-plot-mplplot_nyquist)
-	- [plot_residual](#pyimpspec-plot-mplplot_residual)
+- [pyimpspec.plot.mpl](#pyimpspecplotmpl)
+	- [plot_bode](#pyimpspecplotmplplot_bode)
+	- [plot_circuit](#pyimpspecplotmplplot_circuit)
+	- [plot_data](#pyimpspecplotmplplot_data)
+	- [plot_exploratory_tests](#pyimpspecplotmplplot_exploratory_tests)
+	- [plot_fit](#pyimpspecplotmplplot_fit)
+	- [plot_mu_xps](#pyimpspecplotmplplot_mu_xps)
+	- [plot_nyquist](#pyimpspecplotmplplot_nyquist)
+	- [plot_residual](#pyimpspecplotmplplot_residual)
 
 
 
