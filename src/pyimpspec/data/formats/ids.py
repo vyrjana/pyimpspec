@@ -17,9 +17,25 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from os.path import basename, exists, splitext
-from typing import Dict, IO, List, Tuple
-from pyimpspec.data.data_set import DataSet, dataframe_to_dataset
+from os.path import (
+    basename,
+    exists,
+    splitext,
+)
+from typing import (
+    Dict,
+    IO,
+    List,
+    Tuple,
+)
+from numpy import (
+    integer,
+    issubdtype,
+)
+from pyimpspec.data.data_set import (
+    DataSet,
+    dataframe_to_dataset,
+)
 from pandas import DataFrame
 from string import printable
 
@@ -27,7 +43,7 @@ from string import printable
 def _extract_primary_data(
     num_freq: int, lines: List[str]
 ) -> Tuple[List[float], List[float], List[float]]:
-    assert type(num_freq) is int
+    assert issubdtype(type(num_freq), integer), num_freq
     assert type(lines) is list and all(map(lambda _: type(_) is str, lines))
     assert len(lines) > num_freq
     re: List[float] = []

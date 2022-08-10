@@ -18,8 +18,15 @@
 # the LICENSES folder.
 
 from os.path import exists
-from typing import IO, List
-from pyimpspec.data.data_set import DataSet, dataframe_to_dataset, DataFrame
+from typing import (
+    IO,
+    List,
+)
+from pyimpspec.data.data_set import (
+    DataFrame,
+    DataSet,
+    dataframe_to_dataset,
+)
 
 
 def parse_i2b(path: str) -> DataSet:

@@ -18,16 +18,33 @@
 # the LICENSES folder.
 
 from collections import OrderedDict
-from typing import Dict, List, Optional, Tuple, Union, Type
-from .base import Element, Connection
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
+from .base import (
+    Connection,
+    Element,
+)
 from .series import Series
 from .parallel import Parallel
 from .resistor import Resistor
 from .capacitor import Capacitor
 from .inductor import Inductor
 from .constant_phase_element import ConstantPhaseElement
-from numpy import array, inf, ndarray
-from sympy import Expr, latex
+from numpy import (
+    array,
+    inf,
+    ndarray,
+)
+from sympy import (
+    Expr,
+    latex,
+)
 
 
 ElementParameters = Dict[str, Dict[str, str]]
@@ -261,9 +278,7 @@ class Circuit:
         dimensions: Dict[
             Union[Series, Parallel, Element, int], Tuple[float, float]
         ] = {}
-        positions: Dict[
-            Union[Series, Parallel, Element, int], Tuple[float, float]
-        ] = {}
+        positions: Dict[Union[Series, Parallel, Element, int], Tuple[float, float]] = {}
         num_nested_parallels: int = 0
 
         def short_wire(x: float, y: float) -> Tuple[float, float]:

@@ -19,14 +19,29 @@
 
 from pyimpspec.circuit import Circuit
 from pyimpspec.data import DataSet
-from pyimpspec.analysis import KramersKronigResult, FittingResult
+from pyimpspec.analysis import (
+    KramersKronigResult,
+    FittingResult,
+)
 from pyimpspec.analysis.fitting import _interpolate
 from inspect import signature
 import matplotlib.pyplot as plt
 from matplotlib.figure import Figure
 from matplotlib.axes import Axes
-from numpy import inf, ceil, log10 as log, ndarray
-from typing import List, Optional, Tuple, Union
+from numpy import (
+    ceil,
+    floating,
+    inf,
+    issubdtype,
+    log10 as log,
+    ndarray,
+)
+from typing import (
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
 
 
 # Vibrant color scheme from https://personal.sron.nl/~pault/
@@ -617,7 +632,7 @@ def plot_exploratory_tests(
     assert type(scored_tests) is list and all(
         map(lambda _: type(_) is tuple, scored_tests)
     ), scored_tests
-    assert type(mu_criterion) is float, mu_criterion
+    assert issubdtype(type(mu_criterion), floating), mu_criterion
     assert isinstance(data, DataSet), data
     assert type(title) is str or title is None, title
     assert type(fig) is Figure or fig is None, fig
@@ -684,6 +699,7 @@ def plot_fit(
     title: Optional[str] = None,
     fig: Optional[Figure] = None,
     axes: List[Axes] = [],
+    num_per_decade: int = 100,
 ) -> Tuple[Figure, List[Tuple[Axes]]]:
     """
     Plot a the result of a circuit fit as a Nyquist plot, a Bode plot, and a plot of the residuals.
@@ -705,6 +721,9 @@ def plot_fit(
 
     axes: List[Axes] = []
         A list of matplotlib.axes.Axes instances to use when plotting the data.
+
+    num_per_decade: int = 100
+        The number of points per decade to use when plotting the line for the fit (i.e., it affects how smooth or angular the line looks).
     """
     assert (
         type(fit) is FittingResult
@@ -773,13 +792,20 @@ def plot_fit(
             fig=fig,
             axes=[axes[1], axes[2]],
         )
-    plot_nyquist(fit, color="#CC3311", fig=fig, axis=axes[0])
+    plot_nyquist(
+        fit,
+        color="#CC3311",
+        fig=fig,
+        axis=axes[0],
+        num_per_decade=num_per_decade,
+    )
     plot_bode(
         fit,
         color_mag="#CC3311",
         color_phase="#009988",
         fig=fig,
         axes=[axes[1], axes[2]],
+        num_per_decade=num_per_decade,
     )
     plot_residual(
         fit,

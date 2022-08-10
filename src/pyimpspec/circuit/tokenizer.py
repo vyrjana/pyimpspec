@@ -18,8 +18,20 @@
 # the LICENSES folder.
 
 from dataclasses import dataclass
-from string import ascii_letters, ascii_lowercase, digits, whitespace
-from typing import Any, Dict, List, Optional, Union, Type
+from string import (
+    ascii_letters,
+    ascii_lowercase,
+    digits,
+    whitespace,
+)
+from typing import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Type,
+    Union,
+)
 
 
 class UnexpectedCharacter(Exception):

@@ -29,7 +29,7 @@ with open("requirements.txt", "w") as fp:
 
 setup(
     name="pyimpspec",
-    version="2.1.0",
+    version="2.2.0",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},

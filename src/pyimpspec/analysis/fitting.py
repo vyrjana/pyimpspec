@@ -19,8 +19,20 @@
 
 from collections import OrderedDict
 from dataclasses import dataclass
-from multiprocessing import Pool, cpu_count
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from multiprocessing import (
+    Pool,
+    cpu_count,
+)
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 from traceback import format_exc
 import warnings
 from numpy import (
@@ -29,6 +41,8 @@ from numpy import (
     ceil,
     floor,
     inf,
+    integer,
+    issubdtype,
     log10 as log,
     logspace,
     ndarray,
@@ -36,9 +50,15 @@ from numpy import (
     sum as array_sum,
 )
 from pandas import DataFrame
-from lmfit import minimize, Parameters
+from lmfit import (
+    Parameters,
+    minimize,
+)
 from lmfit.minimizer import MinimizerResult
-from pyimpspec.circuit import Circuit, string_to_circuit
+from pyimpspec.circuit import (
+    Circuit,
+    string_to_circuit,
+)
 from pyimpspec.circuit.base import Element
 from pyimpspec.data import DataSet
 
@@ -82,7 +102,7 @@ class FittedParameter:
 
     @classmethod
     def from_dict(Class, dictionary: dict) -> "FittedParameter":
-        assert type(dictionary) is dict
+        assert type(dictionary) is dict, dictionary
         assert "version" in dictionary
         version: int = dictionary["version"]
         assert version <= VERSION, f"{version=} > {VERSION=}"
@@ -104,8 +124,10 @@ class FittedParameter:
 def _interpolate(
     experimental: Union[List[float], ndarray], num_per_decade: int
 ) -> ndarray:
-    assert type(experimental) is list or type(experimental) is ndarray
-    assert type(num_per_decade) is int and num_per_decade > 0
+    assert type(experimental) is list or type(experimental) is ndarray, experimental
+    assert (
+        issubdtype(type(num_per_decade), integer) and num_per_decade > 0
+    ), num_per_decade
     min_f: float = min(experimental)
     max_f: float = max(experimental)
     log_min_f: int = int(floor(log(min_f)))
@@ -178,13 +200,13 @@ class FittingResult:
         return f"FittingResult ({self.circuit.to_string()}, {hex(id(self))})"
 
     def get_frequency(self, num_per_decade: int = -1) -> ndarray:
-        assert type(num_per_decade) is int
+        assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
             return _interpolate(self.frequency, num_per_decade)
         return self.frequency
 
     def get_impedance(self, num_per_decade: int = -1) -> ndarray:
-        assert type(num_per_decade) is int
+        assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
             return self.circuit.impedances(self.get_frequency(num_per_decade))
         return self.impedance
@@ -204,7 +226,7 @@ class FittingResult:
         -------
         Tuple[ndarray, ndarray]
         """
-        assert type(num_per_decade) is int
+        assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
             Z: ndarray = self.get_impedance(num_per_decade)
             return (
@@ -233,7 +255,7 @@ class FittingResult:
         -------
         Tuple[ndarray, ndarray, ndarray]
         """
-        assert type(num_per_decade) is int
+        assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
             freq: ndarray = self.get_frequency(num_per_decade)
             Z: ndarray = self.circuit.impedances(freq)
@@ -270,7 +292,13 @@ class FittingResult:
         fixed: List[str] = []
         element_label: str
         parameters: Dict[str, FittedParameter]
-        for element_label, parameters in self.parameters.items():
+        element: Element
+        for element in sorted(
+            self.circuit.get_elements(flattened=True),
+            key=lambda _: _.get_identifier(),
+        ):
+            element_label = element.get_label()
+            parameters = self.parameters[element_label]
             parameter_label: str
             parameter: FittedParameter
             for parameter_label, parameter in parameters.items():
@@ -295,7 +323,7 @@ class FittingResult:
 
 
 def _to_lmfit(circuit: Circuit) -> Parameters:
-    assert type(circuit) is Circuit
+    assert type(circuit) is Circuit, circuit
     result: Parameters = Parameters()
     parameters: "Dict[int, OrderedDict[str, float]]" = circuit.get_parameters()
     ident: int
@@ -317,7 +345,7 @@ def _to_lmfit(circuit: Circuit) -> Parameters:
 
 
 def _from_lmfit(parameters: Parameters) -> Dict[int, Dict[str, float]]:
-    assert type(parameters) is Parameters
+    assert type(parameters) is Parameters, parameters
     result: Dict[int, Dict[str, float]] = {}
     key: str
     value: float
@@ -339,10 +367,10 @@ def _residual(
     Z_exp: ndarray,
     weight_func: Callable,
 ) -> ndarray:
-    assert type(params) is Parameters
-    assert type(circuit) is Circuit
-    assert type(freq) is ndarray
-    assert type(Z_exp) is ndarray
+    assert type(params) is Parameters, params
+    assert type(circuit) is Circuit, circuit
+    assert type(freq) is ndarray, freq
+    assert type(Z_exp) is ndarray, Z_exp
     circuit.set_parameters(_from_lmfit(params))
     Z_fit: ndarray = circuit.impedances(freq)
     errors: ndarray = array(
@@ -352,20 +380,20 @@ def _residual(
 
 
 def _unity_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
-    assert type(Z_exp) is ndarray
-    assert type(Z_fit) is ndarray
+    assert type(Z_exp) is ndarray, Z_exp
+    assert type(Z_fit) is ndarray, Z_fit
     return ones_array(shape=(2, len(Z_exp)))
 
 
 def _modulus_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
-    assert type(Z_exp) is ndarray
-    assert type(Z_fit) is ndarray
+    assert type(Z_exp) is ndarray, Z_exp
+    assert type(Z_fit) is ndarray, Z_fit
     return ones_array(shape=(2, len(Z_exp))) / abs(Z_fit)
 
 
 def _proportional_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
-    assert type(Z_exp) is ndarray
-    assert type(Z_fit) is ndarray
+    assert type(Z_exp) is ndarray, Z_exp
+    assert type(Z_fit) is ndarray, Z_fit
     weight: ndarray = ones_array(shape=(2, len(Z_exp)))
     weight[0] = weight[0] / Z_fit.real**2
     weight[1] = weight[1] / Z_fit.imag**2
@@ -373,8 +401,8 @@ def _proportional_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
 
 
 def _boukamp_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
-    assert type(Z_exp) is ndarray
-    assert type(Z_fit) is ndarray
+    assert type(Z_exp) is ndarray, Z_exp
+    assert type(Z_fit) is ndarray, Z_fit
     # See eq. 13 in Boukamp (1995)
     return (Z_exp.real**2 + Z_exp.imag**2) ** -1
 
@@ -417,8 +445,8 @@ _methods: List[str] = [
 def _extract_parameters(
     circuit: Circuit, fit: MinimizerResult
 ) -> Dict[str, Dict[str, FittedParameter]]:
-    assert type(circuit) is Circuit
-    assert type(fit) is MinimizerResult
+    assert type(circuit) is Circuit, circuit
+    assert type(fit) is MinimizerResult, fit
     parameters: Dict[str, Dict[str, FittedParameter]] = {}
     ident: int
     for ident in reversed(circuit.get_parameters()):
@@ -445,8 +473,8 @@ def _extract_parameters(
 
 
 def _calculate_pseudo_chisqr(Z_exp: ndarray, Z_fit: ndarray) -> float:
-    assert type(Z_exp) is ndarray
-    assert type(Z_fit) is ndarray
+    assert type(Z_exp) is ndarray, Z_exp
+    assert type(Z_fit) is ndarray, Z_fit
     # See eq. 14 in Boukamp (1995)
     weight: ndarray = _boukamp_weight(Z_exp, Z_fit)
     return float(
@@ -465,13 +493,13 @@ def _fit_process(args) -> Tuple[str, Optional[MinimizerResult], float, str, str,
     max_nfev: int
     auto: bool
     circuit, freq, Z_exp, method, weight, max_nfev, auto = args
-    assert type(circuit) is Circuit
-    assert type(freq) is ndarray
-    assert type(Z_exp) is ndarray
-    assert type(method) is str
-    assert type(weight) is str
-    assert type(max_nfev) is int
-    assert type(auto) is bool
+    assert type(circuit) is Circuit, circuit
+    assert type(freq) is ndarray, freq
+    assert type(Z_exp) is ndarray, Z_exp
+    assert type(method) is str, method
+    assert type(weight) is str, weight
+    assert issubdtype(type(max_nfev), integer), max_nfev
+    assert type(auto) is bool, auto
     weight_func: Callable = _weight_functions[weight]
     with warnings.catch_warnings():
         if auto:
@@ -586,11 +614,11 @@ def fit_circuit_to_data(
         weight,
     )
     assert weight in _weight_functions or weight == "auto", weight
-    assert type(max_nfev) is int, (
+    assert issubdtype(type(max_nfev), integer), (
         type(max_nfev),
         max_nfev,
     )
-    assert type(num_procs) is int, (
+    assert issubdtype(type(num_procs), integer), (
         type(num_procs),
         num_procs,
     )

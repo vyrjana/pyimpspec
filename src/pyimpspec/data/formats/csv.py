@@ -18,8 +18,14 @@
 # the LICENSES folder.
 
 from os.path import exists
-from pyimpspec.data.data_set import DataSet, dataframe_to_dataset
-from pandas import read_csv, DataFrame
+from pyimpspec.data.data_set import (
+    DataSet,
+    dataframe_to_dataset,
+)
+from pandas import (
+    DataFrame,
+    read_csv,
+)
 
 
 def parse_csv(path: str, **kwargs) -> DataSet:

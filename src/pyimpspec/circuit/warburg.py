@@ -17,10 +17,18 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import Dict, List
+from typing import (
+    Dict,
+    List,
+)
 from collections import OrderedDict
 from math import pi
-from numpy import cosh, inf, sinh, tanh
+from numpy import (
+    cosh,
+    inf,
+    sinh,
+    tanh,
+)
 from .base import Element
 
 

@@ -19,10 +19,7 @@
 
 import cmath
 from collections import OrderedDict
-from math import (
-    isclose,
-    pi,
-)
+from math import pi
 from os.path import (
     basename,
     splitext,
@@ -40,6 +37,8 @@ from numpy import (
     allclose,
     angle,
     array,
+    integer,
+    issubdtype,
     log10 as log,
     mean,
     ndarray,
@@ -120,7 +119,10 @@ class DataSet:
         ), f"{path=} ({label=}): {len(frequency)=}, {len(impedance)=}"
         assert type(mask) is dict
         assert all(
-            map(lambda _: type(_[0]) is int and type(_[1]) is bool, mask.items())
+            map(
+                lambda _: issubdtype(type(_[0]), integer) and type(_[1]) is bool,
+                mask.items(),
+            )
         ), mask
         assert type(path) is str
         assert type(label) is str
@@ -311,14 +313,14 @@ class DataSet:
         """
         assert (
             type(mask) is dict
-            and all(map(lambda _: type(_) is int, mask.keys()))
+            and all(map(lambda _: issubdtype(type(_), integer), mask.keys()))
             and all(map(lambda _: type(_) is bool, mask.values()))
-        )
+        ), mask
         mask = mask.copy()
         i: int
         flag: bool
         for i, flag in mask.items():
-            assert type(i) is int, type(i)
+            assert issubdtype(type(i), integer), type(i)
             assert type(flag) is bool, type(flag)
         for i in list(mask.keys()):
             if i < 0 or i >= self._num_points:

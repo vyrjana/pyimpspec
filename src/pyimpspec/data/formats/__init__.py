@@ -17,9 +17,19 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import Callable, Dict, List, Optional, Union
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Union,
+)
 from pyimpspec.data.data_set import DataSet
-from os.path import exists, splitext, basename
+from os.path import (
+    basename,
+    exists,
+    splitext,
+)
 from .csv import parse_csv
 from .dfr import parse_dfr
 from .dta import parse_dta

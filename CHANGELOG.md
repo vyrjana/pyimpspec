@@ -1,3 +1,9 @@
+# 2.2.0
+
+- Added `num_per_decade` argument to the `pyimpspec.plot.mpl.plot_fit` function.
+- Added sorting of elements to the `to_dataframe` method in the `FittingResult` class.
+
+
 # 2.1.0
 
 - Added support for `.mpt` data format.

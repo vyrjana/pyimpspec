@@ -17,11 +17,21 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import Dict, List, Union
+from typing import (
+    Dict,
+    List,
+    Union,
+)
 from pandas import DataFrame
-from numpy import logspace, ndarray
+from numpy import (
+    logspace,
+    ndarray,
+)
 from pyimpspec.data import DataSet
-from .base import Element, Connection
+from .base import (
+    Connection,
+    Element,
+)
 from .parser import (
     Parser,
     ParsingError,
@@ -35,7 +45,11 @@ from .inductor import Inductor
 from .constant_phase_element import ConstantPhaseElement
 from .gerischer import Gerischer
 from .havriliak_negami import HavriliakNegami
-from .warburg import Warburg, WarburgOpen, WarburgShort
+from .warburg import (
+    Warburg,
+    WarburgOpen,
+    WarburgShort,
+)
 from .de_levie import DeLevieFiniteLength
 
 

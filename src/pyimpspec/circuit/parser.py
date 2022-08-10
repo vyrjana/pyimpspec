@@ -18,8 +18,18 @@
 # the LICENSES folder.
 
 from numpy import inf
-from typing import Dict, List, Union, Type, Tuple, Optional
-from .base import Element, Connection
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
+from .base import (
+    Connection,
+    Element,
+)
 from .parallel import Parallel
 from .series import Series
 from .kk import KramersKronigRC
@@ -29,7 +39,11 @@ from .inductor import Inductor
 from .constant_phase_element import ConstantPhaseElement
 from .gerischer import Gerischer
 from .havriliak_negami import HavriliakNegami
-from .warburg import Warburg, WarburgOpen, WarburgShort
+from .warburg import (
+    Warburg,
+    WarburgOpen,
+    WarburgShort,
+)
 from .de_levie import DeLevieFiniteLength
 from .circuit import Circuit
 from .tokenizer import (

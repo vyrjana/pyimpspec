@@ -19,9 +19,25 @@
 
 from collections import OrderedDict
 from re import sub
-from typing import Dict, List, Tuple, Union, Optional
-from numpy import array, inf, ndarray
-from sympy import Expr, latex, sympify
+from typing import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+)
+from numpy import (
+    array,
+    inf,
+    integer,
+    issubdtype,
+    ndarray,
+)
+from sympy import (
+    Expr,
+    latex,
+    sympify,
+)
 
 
 class Element:
@@ -167,7 +183,7 @@ class Element:
         -------
         str
         """
-        assert type(decimals) is int
+        assert issubdtype(type(decimals), integer), decimals
         if decimals < 0:
             return self.get_symbol()
         parameters: List[str] = []
@@ -621,7 +637,7 @@ class Connection:
         -------
         Optional[Element]
         """
-        assert type(ident) is int
+        assert issubdtype(type(ident), integer), ident
         element: Optional[Union[Element, "Connection"]]
         for element in self._elements:
             if isinstance(element, Connection):

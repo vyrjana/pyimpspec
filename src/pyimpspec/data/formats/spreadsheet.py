@@ -18,8 +18,14 @@
 # the LICENSES folder.
 
 from os.path import exists
-from pyimpspec.data.data_set import DataSet, dataframe_to_dataset
-from pandas import read_excel, DataFrame
+from pyimpspec.data.data_set import (
+    DataSet,
+    dataframe_to_dataset,
+)
+from pandas import (
+    DataFrame,
+    read_excel,
+)
 from typing import List
 
 
