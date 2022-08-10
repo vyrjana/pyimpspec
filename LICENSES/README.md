@@ -48,6 +48,11 @@
 - License: BSD 3-clause
 - Dependency.
 
+# tabulate
+- https://github.com/astanin/python-tabulate
+- License: MIT
+- Dependency via *pandas*
+
 # tol_colors
 - https://personal.sron.nl/~pault/data/tol_colors.py
 - License: BSD 3-clause

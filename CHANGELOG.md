@@ -2,6 +2,7 @@
 
 - Added `num_per_decade` argument to the `pyimpspec.plot.mpl.plot_fit` function.
 - Added sorting of elements to the `to_dataframe` method in the `FittingResult` class.
+- Added `tabulate` package as explicit dependency.
 
 
 # 2.1.0

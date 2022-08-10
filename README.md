@@ -60,6 +60,7 @@ If you encounter issues, then please open an issue on [GitHub](https://github.co
 	- [openpyxl](https://openpyxl.readthedocs.io/en/stable/): reading and writing Excel files
 	- [pandas](https://pandas.pydata.org/): data manipulation and analysis
 	- [sympy](https://www.sympy.org/en/index.html): symbolic computation
+	- [tabulate](https://github.com/astanin/python-tabulate): formatting of Markdown tables
 
 The Python packages (and their dependencies) are installed automatically when pyimpspec is installed using [pip](https://pip.pypa.io/en/stable/).
 

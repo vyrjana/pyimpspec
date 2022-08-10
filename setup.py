@@ -22,6 +22,7 @@ dependencies = [
     "openpyxl>=3.0.10",  # Needed by pandas for parsing newer Excel files (.xlsx).
     "pandas>=1.4.2",  # Needed for dealing with various file formats.
     "sympy>=1.10.1",
+    "tabulate>=0.8.10",  # Required by pandas to generate Markdown tables.
 ]
 
 with open("requirements.txt", "w") as fp:
