@@ -10,6 +10,7 @@ These are used inside of [`Circuit`](https://vyrjana.github.io/pyimpspec/api/cir
 
 - [Connection](#pyimpspecconnection)
 	- [contains](#pyimpspecconnectioncontains)
+	- [get_connections](#pyimpspecconnectionget_connections)
 	- [get_element](#pyimpspecconnectionget_element)
 	- [get_elements](#pyimpspecconnectionget_elements)
 	- [get_label](#pyimpspecconnectionget_label)
@@ -17,6 +18,7 @@ These are used inside of [`Circuit`](https://vyrjana.github.io/pyimpspec/api/cir
 	- [impedance](#pyimpspecconnectionimpedance)
 	- [impedances](#pyimpspecconnectionimpedances)
 	- [set_parameters](#pyimpspecconnectionset_parameters)
+	- [substitute_element](#pyimpspecconnectionsubstitute_element)
 	- [to_latex](#pyimpspecconnectionto_latex)
 	- [to_stack](#pyimpspecconnectionto_stack)
 	- [to_string](#pyimpspecconnectionto_string)
@@ -59,6 +61,25 @@ _Returns_
 bool
 ```
 
+#### **pyimpspec.Connection.get_connections**
+
+Get the connections in this circuit.
+
+```python
+def get_connections(self, flattened: bool = True) -> List[Connection]:
+```
+
+
+_Parameters_
+
+- `flattened`: Whether or not the connections should be returned as a list of all connections or as a list connections that may also contain more connections.
+
+
+_Returns_
+```python
+List[Connection]
+```
+
 #### **pyimpspec.Connection.get_element**
 
 Get a specific element based on its unique identifier.
@@ -80,7 +101,7 @@ Optional[Element]
 
 #### **pyimpspec.Connection.get_elements**
 
-Get a list of elements and connections nested inside this connection.
+Get the elements in this circuit.
 
 ```python
 def get_elements(self, flattened: bool = True) -> List[Union[Element, Connection]]:
@@ -89,7 +110,7 @@ def get_elements(self, flattened: bool = True) -> List[Union[Element, Connection
 
 _Parameters_
 
-- `flattened`: Whether the returned list should only contain elements or a combination of elements and connections.
+- `flattened`: Whether or not the elements should be returned as a list of only elements or as a list of connections containing elements.
 
 
 _Returns_
@@ -177,6 +198,25 @@ _Parameters_
 
 - `parameters`: The outer key is the unique identifier assigned to an element.
 The inner key is the symbol corresponding to an element parameter.
+
+#### **pyimpspec.Connection.substitute_element**
+
+
+```python
+def substitute_element(self, ident: int, element: Element) -> bool:
+```
+
+
+_Parameters_
+
+- `ident`
+- `element`
+
+
+_Returns_
+```python
+bool
+```
 
 #### **pyimpspec.Connection.to_latex**
 

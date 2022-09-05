@@ -55,7 +55,7 @@ _Constructor parameters_
 - `mask`: A mapping of integer indices to boolean values where a value of True means that the data point is to be omitted.
 - `path`: The path to the file that has been parsed to generate this DataSet instance.
 - `label`: The label assigned to this DataSet instance.
-- `uuid`: The universivally unique identifier assigned to this DataSet instance.
+- `uuid`: The universally unique identifier assigned to this DataSet instance.
 If empty, then one will be automatically assigned.
 
 
@@ -122,7 +122,7 @@ DataSet
 
 #### **pyimpspec.DataSet.get_bode_data**
 
-Get the data necessary to plot this DataSet as a Bode plot: the base-10 logarithms of the frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
+Get the data necessary to plot this DataSet as a Bode plot: the frequencies, the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
 
 ```python
 def get_bode_data(self, masked: Optional[bool] = False) -> Tuple[ndarray, ndarray, ndarray]:

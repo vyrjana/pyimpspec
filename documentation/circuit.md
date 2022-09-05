@@ -6,10 +6,12 @@ permalink: /api/circuit/
 
 Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/api/high-level-functions) for the recommended way of parsing a circuit description code (CDC) to generate a `Circuit` object.
 Information about the supported circuit elements can be found [here](https://vyrjana.github.io/pyimpspec/api/elements).
+Alternatively, use the `CircuitBuilder` class to create a circuit.
 
 **Table of Contents**
 
 - [Circuit](#pyimpspeccircuit)
+	- [get_connections](#pyimpspeccircuitget_connections)
 	- [get_element](#pyimpspeccircuitget_element)
 	- [get_elements](#pyimpspeccircuitget_elements)
 	- [get_label](#pyimpspeccircuitget_label)
@@ -18,11 +20,18 @@ Information about the supported circuit elements can be found [here](https://vyr
 	- [impedances](#pyimpspeccircuitimpedances)
 	- [set_label](#pyimpspeccircuitset_label)
 	- [set_parameters](#pyimpspeccircuitset_parameters)
+	- [substitute_element](#pyimpspeccircuitsubstitute_element)
 	- [to_circuitikz](#pyimpspeccircuitto_circuitikz)
 	- [to_latex](#pyimpspeccircuitto_latex)
 	- [to_stack](#pyimpspeccircuitto_stack)
 	- [to_string](#pyimpspeccircuitto_string)
 	- [to_sympy](#pyimpspeccircuitto_sympy)
+- [CircuitBuilder](#pyimpspeccircuitbuilder)
+	- [add](#pyimpspeccircuitbuilderadd)
+	- [parallel](#pyimpspeccircuitbuilderparallel)
+	- [series](#pyimpspeccircuitbuilderseries)
+	- [to_circuit](#pyimpspeccircuitbuilderto_circuit)
+	- [to_string](#pyimpspeccircuitbuilderto_string)
 - [ParsingError](#pyimpspecparsingerror)
 - [UnexpectedCharacter](#pyimpspecunexpectedcharacter)
 
@@ -44,6 +53,25 @@ _Constructor parameters_
 
 
 _Functions and methods_
+
+#### **pyimpspec.Circuit.get_connections**
+
+Get the connections in this circuit.
+
+```python
+def get_connections(self, flattened: bool = True) -> List[Connection]:
+```
+
+
+_Parameters_
+
+- `flattened`: Whether or not the connections should be returned as a list of all connections or as a list connections that may also contain more connections.
+
+
+_Returns_
+```python
+List[Connection]
+```
 
 #### **pyimpspec.Circuit.get_element**
 
@@ -75,7 +103,7 @@ def get_elements(self, flattened: bool = True) -> List[Union[Element, Connection
 
 _Parameters_
 
-- `flattened`: Whether or not the elements should be returned as a list of only elements or as a list of elements and connections.
+- `flattened`: Whether or not the elements should be returned as a list of only elements or as a list of connections containing elements.
 
 
 _Returns_
@@ -175,6 +203,20 @@ _Parameters_
 
 - `parameters`: A mapping of circuit element integer identifiers to an OrderedDict mapping the parameter symbol to the new value.
 
+#### **pyimpspec.Circuit.substitute_element**
+
+Substitute the element with the given integer identifier in the circuit with another element.
+
+```python
+def substitute_element(self, ident: int, element: Element):
+```
+
+
+_Parameters_
+
+- `ident`: The integer identifier corresponding to an element in the circuit.
+- `element`: The new element that will substitute the old element.
+
 #### **pyimpspec.Circuit.to_circuitikz**
 
 Get the LaTeX source needed to draw a circuit diagram for this circuit using the circuitikz package.
@@ -262,6 +304,101 @@ _Parameters_
 _Returns_
 ```python
 Expr
+```
+
+
+
+
+### **pyimpspec.CircuitBuilder**
+
+A class for building circuits using context managers:
+
+with CircuitBuilder() as builder:
+    builder.add(Resistor())
+
+```python
+class CircuitBuilder(object):
+	parallel: bool = False
+```
+
+_Constructor parameters_
+
+- `parallel`
+
+
+_Functions and methods_
+
+#### **pyimpspec.CircuitBuilder.add**
+
+Add an element to the current context (i.e., connection).
+
+```python
+def add(self, element: Element):
+```
+
+
+_Parameters_
+
+- `element`: The element to add to the current series or parallel connection.
+
+#### **pyimpspec.CircuitBuilder.parallel**
+
+Create a parallel connection:
+
+with CircuitBuilder() as builder:
+    with builder.parallel() as parallel:
+        builder.add(Resistor())
+        builder.add(Capacitor())
+
+```python
+def parallel(self):
+```
+
+#### **pyimpspec.CircuitBuilder.series**
+
+Create a series connection:
+
+with CircuitBuilder() as builder:
+    with builder.series() as series:
+        builder.add(Resistor())
+        builder.add(Capacitor())
+
+```python
+def series(self):
+```
+
+#### **pyimpspec.CircuitBuilder.to_circuit**
+
+Generate a circuit.
+
+```python
+def to_circuit(self) -> Circuit:
+```
+
+
+_Returns_
+```python
+Circuit
+```
+
+#### **pyimpspec.CircuitBuilder.to_string**
+
+Generate a circuit description code.
+
+```python
+def to_string(self, decimals: int = -1) -> str:
+```
+
+
+_Parameters_
+
+- `decimals`: The number of decimals to include for the current element parameter values and limits.
+-1 means that the CDC is generated using the basic syntax, which omits element labels, parameter values, and parameter limits.
+
+
+_Returns_
+```python
+str
 ```
 
 

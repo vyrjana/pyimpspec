@@ -416,8 +416,8 @@ def to_string(self, decimals: int = -1) -> str:
 
 _Parameters_
 
-- `decimals`: The number of decimals used when formatting the current value and the limits for the
-element's parameters. -1 corresponds to no values being included in the output.
+- `decimals`: The number of decimals used when formatting the current value and the limits for the element's parameters.
+-1 corresponds to no values being included in the output.
 
 
 _Returns_

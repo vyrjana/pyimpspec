@@ -11,25 +11,94 @@ Check the other pages for information about the objects returned by the function
 **Table of Contents**
 
 - [pyimpspec](#pyimpspec)
-	- [fit_circuit_to_data](#pyimpspecfit_circuit_to_data)
+	- [calculate_drt](#pyimpspeccalculate_drt)
+	- [fit_circuit](#pyimpspecfit_circuit)
 	- [get_elements](#pyimpspecget_elements)
+	- [parse_cdc](#pyimpspecparse_cdc)
 	- [parse_data](#pyimpspecparse_data)
 	- [perform_exploratory_tests](#pyimpspecperform_exploratory_tests)
 	- [perform_test](#pyimpspecperform_test)
-	- [score_test_results](#pyimpspecscore_test_results)
 	- [simulate_spectrum](#pyimpspecsimulate_spectrum)
-	- [string_to_circuit](#pyimpspecstring_to_circuit)
 
 
 
 ## **pyimpspec**
 
-### **pyimpspec.fit_circuit_to_data**
+### **pyimpspec.calculate_drt**
+
+Calculates the distribution of relaxation times (DRT) for a given data set.
+
+```python
+def calculate_drt(data: DataSet, method: str = "tr-nnls", mode: str = "complex", lambda_value: float = -1.0, rbf_type: str = "gaussian", derivative_order: int = 1, rbf_shape: str = "fwhm", shape_coeff: float = 0.5, inductance: bool = False, credible_intervals: bool = False, num_samples: int = 2000, num_attempts: int = 10, maximum_symmetry: float = 0.5, num_procs: int = -1) -> DRTResult:
+```
+
+
+_Parameters_
+
+- `data`: The data set to use in the calculations.
+- `method`: Valid values include:
+- "bht": Bayesian Hilbert Transform
+- "tr-nnls": Tikhonov regularization with non-negative least squares
+- "tr-rbf": Tikhonov regularization with radial basis function discretization
+- `mode`: Which parts of the data are to be included in the calculations.
+Used by the "tr-nnls" and "tr-rbf" methods.
+Valid values include:
+- "complex" ("tr-rbf" method only and the default for that method)
+- "real" (default for the "tr-nnls" method)
+- "imaginary"
+- `lambda_value`: The Tikhonov regularization parameter.
+Used by the "tr-nnls" and "tr-rbf" methods.
+If the method is "tr-nnls" and this value is equal to or below zero, then an attempt will be made to automatically find a suitable value.
+- `rbf_type`: The type of function to use for discretization.
+Used by the "bht" and "tr-rbf" methods.
+Valid values include:
+- "gaussian"
+- "c0-matern"
+- "c2-matern"
+- "c4-matern"
+- "c6-matern"
+- "inverse-quadratic"
+- "inverse-quadric"
+- "cauchy"
+- `derivative_order`: The order of the derivative used during discretization.
+Used by the "bht" and "tr-rbf" methods.
+- `rbf_shape`: The shape control of the radial basis functions.
+Used by the "bht" and "tr-rbf" methods.
+Valid values include:
+- "fwhm": full width at half maximum
+- "factor": shape_coeff is used directly
+- `shape_coeff`: The full width at half maximum (FWHM) coefficient affecting the chosen shape type.
+Used by the "bht" and "tr-rbf" methods.
+- `inductance`: If true, then an inductive element is included in the calculations.
+Used by the "tr-rbf" method.
+- `credible_intervals`: If true, then the credible intervals are also calculated for the DRT results according to Bayesian statistics.
+Used by the "tr-rbf" method.
+- `num_samples`: The number of samples drawn when calculating the Bayesian credible intervals ("tr-rbf" method) or the Jensen-Shannon distance ("bht" method).
+A greater number provides better accuracy but requires more time.
+Used by the "bht" and "tr-rbf" methods.
+- `num_attempts`: The minimum number of attempts to make when trying to find suitable random initial values.
+A greater number should provide better results at the expense of time.
+Used by the "bht" method.
+- `maximum_symmetry`: A maximum limit (between 0.0 and 1.0) for a descriptor of the vertical symmetry of the DRT.
+A high degree of symmetry is common for results where the gamma value oscillates rather than forms distinct peaks.
+A low value for the limit should improve the results but may cause the "bht" method to take longer to finish.
+This limit is only used in the "tr-rbf" method when the regularization parameter (lambda) is not provided.
+Used by the "bht" and "tr-rbf" methods.
+- `num_procs`: The maximum number of processes to use.
+A value below one results in using the total number of CPU cores present.
+
+
+_Returns_
+
+```python
+DRTResult
+```
+### **pyimpspec.fit_circuit**
 
 Fit a circuit to a data set.
 
 ```python
-def fit_circuit_to_data(circuit: Circuit, data: DataSet, method: str = "auto", weight: str = "auto", max_nfev: int = -1, num_procs: int = -1) -> FittingResult:
+def fit_circuit(circuit: Circuit, data: DataSet, method: str = "auto", weight: str = "auto", max_nfev: int = -1, num_procs: int = -1) -> FitResult:
 ```
 
 
@@ -52,21 +121,40 @@ A value less than one equals no limit.
 _Returns_
 
 ```python
-FittingResult
+FitResult
 ```
 ### **pyimpspec.get_elements**
 
 Returns a mapping of element symbols to the element class.
 
 ```python
-def get_elements() -> Dict[str, Element]:
+def get_elements() -> Dict[str, Type[Element]]:
 ```
 
 
 _Returns_
 
 ```python
-Dict[str, Element]
+Dict[str, Type[Element]]
+```
+### **pyimpspec.parse_cdc**
+
+Generate a Circuit instance from a string that contains a circuit description code (CDC).
+
+```python
+def parse_cdc(cdc: str) -> Circuit:
+```
+
+
+_Parameters_
+
+- `cdc`: A circuit description code (CDC) corresponding to an equivalent circuit.
+
+
+_Returns_
+
+```python
+Circuit
 ```
 ### **pyimpspec.parse_data**
 
@@ -95,10 +183,10 @@ List[DataSet]
 ```
 ### **pyimpspec.perform_exploratory_tests**
 
-Performs a batch of linear Kramers-Kronig tests.
+Performs a batch of linear Kramers-Kronig tests, which are then scored and sorted from best to worst before they are returned.
 
 ```python
-def perform_exploratory_tests(data: DataSet, test: str = "complex", num_RCs: List[int] = [], mu_criterion: float = 0.85, add_capacitance: bool = False, add_inductance: bool = False, method: str = "leastsq", max_nfev: int = -1, num_procs: int = -1) -> List[KramersKronigResult]:
+def perform_exploratory_tests(data: DataSet, test: str = "complex", num_RCs: List[int] = [], mu_criterion: float = 0.85, add_capacitance: bool = False, add_inductance: bool = False, method: str = "leastsq", max_nfev: int = -1, num_procs: int = -1) -> List[TestResult]:
 ```
 
 
@@ -119,7 +207,7 @@ An empty list results in all possible numbers of RC elements up to the total num
 _Returns_
 
 ```python
-List[KramersKronigResult]
+List[TestResult]
 ```
 ### **pyimpspec.perform_test**
 
@@ -134,7 +222,7 @@ References:
 - M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 (https://doi.org/10.1016/j.electacta.2014.01.034)
 
 ```python
-def perform_test(data: DataSet, test: str = "complex", num_RC: int = 0, mu_criterion: float = 0.85, add_capacitance: bool = False, add_inductance: bool = False, method: str = "leastsq", max_nfev: int = -1, num_procs: int = -1) -> KramersKronigResult:
+def perform_test(data: DataSet, test: str = "complex", num_RC: int = 0, mu_criterion: float = 0.85, add_capacitance: bool = False, add_inductance: bool = False, method: str = "leastsq", max_nfev: int = -1, num_procs: int = -1) -> TestResult:
 ```
 
 
@@ -144,7 +232,10 @@ _Parameters_
 - `test`: Supported values include "cnls", "complex", "imaginary", and "real". The "cnls" test performs a complex non-linear least squares fit using lmfit.minimize, which usually provides a good fit but is also quite slow.
 The "complex", "imaginary", and "real" tests perform the complex, imaginary, and real tests, respectively, according to Boukamp (1995).
 - `num_RC`: The number of RC elements to use.
+A value greater than or equal to one results in the specific number of RC elements being tested.
 A value less than one results in the use of the procedure described by Schönleber et al. (2014) based on the chosen mu-criterion.
+If the provided value is negative, then the maximum number of RC elements to test is equal to the absolute value of the provided value.
+If the provided value is zero, then the maximum number of RC elements to test is equal to the number of frequencies in the data set.
 - `mu_criterion`: The chosen mu-criterion. See Schönleber et al. (2014) for more information.
 - `add_capacitance`: Add an additional capacitance in series with the rest of the circuit.
 - `add_inductance`: Add an additional inductance in series with the rest of the circuit.
@@ -163,33 +254,7 @@ Applies only to the "cnls" test.
 _Returns_
 
 ```python
-KramersKronigResult
-```
-### **pyimpspec.score_test_results**
-
-Assign scores to test results as an alternative to just using the mu-value generated when using the procedure described by Schönleber et al. (2014).
-The mu-value can in some cases fluctuate wildly at low numbers of RC elements and result in false positives (i.e. the mu-value briefly dips below the mu-criterion only to rises above it again).
-The score is equal to -numpy.inf for results with mu-values greater than or equal to the mu-criterion.
-For results with mu-values below the mu-criterion, the score is calculated based on the pseudo chi-squared value of the result and on the difference between the mu-criterion and the result's mu-value.
-The results and their corresponding scores are returned as a list of tuples.
-The list is sorted from the highest score to the lowest score.
-The result with the highest score should be a good initial guess for a suitable candidate.
-
-```python
-def score_test_results(results: List[KramersKronigResult], mu_criterion: float) -> List[Tuple[float, KramersKronigResult]]:
-```
-
-
-_Parameters_
-
-- `results`: The result to score.
-- `mu_criterion`: The mu_criterion to use.
-
-
-_Returns_
-
-```python
-List[Tuple[float, KramersKronigResult]]
+TestResult
 ```
 ### **pyimpspec.simulate_spectrum**
 
@@ -212,23 +277,4 @@ _Returns_
 
 ```python
 DataSet
-```
-### **pyimpspec.string_to_circuit**
-
-Generate a Circuit instance from a string that contains a circuit description code (CDC).
-
-```python
-def string_to_circuit(cdc: str) -> Circuit:
-```
-
-
-_Parameters_
-
-- `cdc`: A circuit description code (CDC) corresponding to an equivalent circuit.
-
-
-_Returns_
-
-```python
-Circuit
 ```
