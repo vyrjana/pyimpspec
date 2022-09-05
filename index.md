@@ -17,6 +17,7 @@ pyimpspec includes features such as:
 	- Spreadsheets: `.xlsx` and `.ods`
 	- Plain-text character-separated values (CSV)
 - validation of impedance spectra by checking if the data is Kramers-Kronig transformable
+- calculation of the distribution of relaxation times (DRT)
 - construction of equivalent circuits by parsing a circuit description code (CDC)
 - equivalent circuit fitting as a means of extracting quantitative data
 - simulation of impedance spectra
