@@ -37,12 +37,13 @@ from numpy import (
     allclose,
     angle,
     array,
+    flip,
     integer,
     issubdtype,
-    log10 as log,
     mean,
     ndarray,
     radians,
+    bool_,
 )
 from pandas import DataFrame
 
@@ -95,7 +96,7 @@ class DataSet:
         The label assigned to this DataSet instance.
 
     uuid: str = ""
-        The universivally unique identifier assigned to this DataSet instance.
+        The universally unique identifier assigned to this DataSet instance.
         If empty, then one will be automatically assigned.
     """
 
@@ -127,6 +128,17 @@ class DataSet:
         assert type(path) is str
         assert type(label) is str
         assert type(uuid) is str
+        # Sort data points in descending order of frequency.
+        if frequency[-1] > frequency[0]:
+            frequency = flip(frequency)
+            impedance = flip(impedance)
+            if len(mask) > 0:
+                i: int
+                for i in range(0, frequency.size):
+                    j: int = frequency.size - 1 - i
+                    flag: bool = mask.get(i, False)
+                    mask[i] = mask.get(j, False)
+                    mask[j] = flag
         self.uuid: str = uuid or uuid4().hex
         self._path: str = path
         self._label: str = label or splitext(basename(path))[0]
@@ -314,14 +326,14 @@ class DataSet:
         assert (
             type(mask) is dict
             and all(map(lambda _: issubdtype(type(_), integer), mask.keys()))
-            and all(map(lambda _: type(_) is bool, mask.values()))
+            and all(map(lambda _: issubdtype(type(_), bool_), mask.values()))
         ), mask
         mask = mask.copy()
         i: int
         flag: bool
         for i, flag in mask.items():
             assert issubdtype(type(i), integer), type(i)
-            assert type(flag) is bool, type(flag)
+            assert issubdtype(type(flag), bool_), type(flag)
         for i in list(mask.keys()):
             if i < 0 or i >= self._num_points:
                 del mask[i]
@@ -366,7 +378,7 @@ class DataSet:
             [
                 f
                 for i, f in enumerate(self._frequency)
-                if self._mask.get(i, False) is masked
+                if self._mask.get(i, False) == masked
             ]
         )
 
@@ -394,7 +406,7 @@ class DataSet:
             [
                 c
                 for i, c in enumerate(self._impedance)
-                if self._mask.get(i, False) is masked
+                if self._mask.get(i, False) == masked
             ]
         )
 
@@ -510,7 +522,7 @@ class DataSet:
         self, masked: Optional[bool] = False
     ) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot this DataSet as a Bode plot: the base-10 logarithms of the frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
+        Get the data necessary to plot this DataSet as a Bode plot: the frequencies, the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
 
         Parameters
         ----------
@@ -526,8 +538,8 @@ class DataSet:
         f: ndarray = self.get_frequency(masked=masked)
         Z: ndarray = self.get_impedance(masked=masked)
         return (
-            log(f),
-            log(abs(Z)),
+            f,
+            abs(Z),
             -angle(Z, deg=True),
         )
 

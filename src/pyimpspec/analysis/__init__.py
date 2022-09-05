@@ -18,14 +18,18 @@
 # the LICENSES folder.
 
 from .fitting import (
-    fit_circuit_to_data,
-    FittingResult,
     FittedParameter,
     FittingError,
+    FitResult,
+    fit_circuit,
 )
 from .kramers_kronig import (
-    perform_test,
+    TestResult,
     perform_exploratory_tests,
-    KramersKronigResult,
-    score_test_results,
+    perform_test,
+)
+from .drt import (
+    DRTError,
+    DRTResult,
+    calculate_drt,
 )

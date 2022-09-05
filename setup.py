@@ -21,8 +21,10 @@ dependencies = [
     "odfpy>=1.4.1",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
     "openpyxl>=3.0.10",  # Needed by pandas for parsing newer Excel files (.xlsx).
     "pandas>=1.4.2",  # Needed for dealing with various file formats.
-    "sympy>=1.10.1",
+    "sympy>=1.10.1",  # Used to generate expressions for circuits
     "tabulate>=0.8.10",  # Required by pandas to generate Markdown tables.
+    "scipy>=1.9.0",  # Used in the DRT calculations
+    "cvxopt>=1.3.0",  # Used in the DRT calculations
 ]
 
 with open("requirements.txt", "w") as fp:
@@ -30,7 +32,7 @@ with open("requirements.txt", "w") as fp:
 
 setup(
     name="pyimpspec",
-    version="2.2.0",
+    version="3.0.0",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},

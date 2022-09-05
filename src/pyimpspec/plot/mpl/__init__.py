@@ -20,10 +20,17 @@
 from .mpl import (
     plot_bode,
     plot_circuit,
+    plot_complex_impedance,
     plot_data,
+    plot_drt,
     plot_exploratory_tests,
     plot_fit,
+    plot_gamma,
+    plot_imaginary_impedance,
+    plot_impedance_magnitude,
+    plot_impedance_phase,
     plot_mu_xps,
     plot_nyquist,
+    plot_real_impedance,
     plot_residual,
 )

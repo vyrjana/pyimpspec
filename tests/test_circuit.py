@@ -24,14 +24,16 @@ from numpy import array, ndarray, allclose
 from sympy import Expr
 from pyimpspec.circuit import (
     Circuit,
+    CircuitBuilder,
     Element,
     Parallel,
     Parser,
     ParsingError,
+    Capacitor,
     Resistor,
     Series,
     get_elements,
-    string_to_circuit,
+    parse_cdc,
 )
 from pyimpspec.circuit.parser import (
     ConnectionWithoutElements,
@@ -121,7 +123,7 @@ class TestElement(TestCase):
         ]
         symbol: str
         for symbol in symbols:
-            circuit: Circuit = string_to_circuit(symbol)
+            circuit: Circuit = parse_cdc(symbol)
             Z_regular: ndarray = circuit.impedances(freq)
             expr: Expr = circuit.to_sympy(substitute=True)
             Z_sympy: ndarray = array(
@@ -143,13 +145,72 @@ class TestConnection(TestCase):
 
     def test_03_parallel(self):
         parallel: Parallel = Parallel([Resistor(R=250), Resistor(R=500)])
-        self.assertEqual(parallel.impedance(1), 1/(1/250 + 1/500))
+        self.assertEqual(parallel.impedance(1), 1 / (1 / 250 + 1 / 500))
 
 
 # TODO: Create tests for the Circuit class
 class TestCircuit(TestCase):
-    def test_01_constructor(self):
+    def test_01_parse_cdc(self):
         pass
+
+
+class TestCircuitBuilder(TestCase):
+    def test_01_series(self):
+        with CircuitBuilder() as builder:
+            builder.add(Resistor())
+            builder.add(Capacitor())
+        self.assertEqual(builder.to_string(), "[RC]")
+        with self.assertRaises(AssertionError):
+            with CircuitBuilder() as builder:
+                pass
+
+    def test_02_parallel(self):
+        with CircuitBuilder(parallel=True) as builder:
+            builder.add(Resistor())
+            builder.add(Capacitor())
+        self.assertEqual(builder.to_string(), "[(RC)]")
+        with self.assertRaises(AssertionError):
+            with CircuitBuilder(parallel=True) as builder:
+                builder.add(Resistor())
+        with self.assertRaises(AssertionError):
+            with CircuitBuilder(parallel=True) as builder:
+                pass
+
+    def test_03_nested_connections(self):
+        with CircuitBuilder() as builder:
+            builder.add(Resistor())
+            with builder.parallel() as parallel:
+                parallel.add(Capacitor())
+                parallel.add(Resistor())
+        self.assertEqual(builder.to_string(), "[R(CR)]")
+        with CircuitBuilder() as builder:
+            with builder.parallel() as parallel:
+                parallel.add(Capacitor())
+                parallel.add(Resistor())
+            builder.add(Resistor())
+        self.assertEqual(builder.to_string(), "[(CR)R]")
+        with CircuitBuilder() as builder:
+            with builder.parallel() as parallel:
+                with parallel.series() as series:
+                    series.add(Resistor())
+                    series.add(Capacitor())
+                parallel.add(Resistor())
+        self.assertEqual(builder.to_string(), "[([RC]R)]")
+
+    def test_04_parameters_and_labels(self):
+        with CircuitBuilder() as builder:
+            R: Resistor = Resistor(R=83)
+            R.set_lower_limit("R", 20)
+            R.set_upper_limit("R", 96)
+            R.set_label("test")
+            builder.add(R)
+            C: Capacitor = Capacitor(C=4e-3)
+            C.set_fixed("C", True)
+            builder.add(C)
+        self.assertEqual(
+            builder.to_string(1),
+            "[R{R=8.3E+01/2.0E+01/9.6E+01:test}C{C=4.0E-03F}]",
+        )
 
 
 # TODO: Create tests for the Tokenizer class
@@ -159,8 +220,9 @@ class TestTokenizer(TestCase):
 
 
 class TestParser(TestCase):
-    def test_01_valid_cdcs(self):
-        CDCs: List[str] = [
+    @classmethod
+    def setUpClass(cls):
+        cls.valid_cdcs: List[str] = [
             "R",
             "RL",
             "(RL)",
@@ -232,21 +294,7 @@ class TestParser(TestCase):
             "RL(QW)(L[(RR)(RR)L(RR)C])",
             "RL(QW)(L[(RR)(RR)L(RR)])",
         ]
-        parser: Parser = Parser()
-        freq: List[float] = [1e-5, 1, 1e5]
-        cdc: str
-        for cdc in CDCs:
-            circuit: Circuit = parser.process(cdc)
-            Z_regular: ndarray = circuit.impedances(freq)
-            expr: Expr = circuit.to_sympy(substitute=True)
-            Z_sympy: ndarray = array(
-                list(map(lambda _: complex(expr.subs("f", _)), freq))
-            )
-            self.assertTrue(allclose(Z_regular.real, Z_sympy.real))
-            self.assertTrue(allclose(Z_regular.imag, Z_sympy.imag))
-
-    def test_02_invalid_cdcs(self):
-        CDCs: List[Tuple[str, ParsingError]] = [
+        cls.invalid_cdcs: List[Tuple[str, ParsingError]] = [
             (
                 "R[]",
                 ConnectionWithoutElements,
@@ -308,11 +356,31 @@ class TestParser(TestCase):
                 UnexpectedToken,
             ),
         ]
+
+    def test_01_valid_cdcs(self):
+        parser: Parser = Parser()
+        freq: List[float] = [1e-5, 1, 1e5]
+        cdc: str
+        for cdc in self.valid_cdcs:
+            circuit: Circuit = parser.process(cdc)
+            Z_regular: ndarray = circuit.impedances(freq)
+            expr: Expr = circuit.to_sympy(substitute=True)
+            Z_sympy: ndarray = array(
+                list(map(lambda _: complex(expr.subs("f", _)), freq))
+            )
+            self.assertTrue(allclose(Z_regular.real, Z_sympy.real))
+            self.assertTrue(allclose(Z_regular.imag, Z_sympy.imag))
+        for cdc in self.valid_cdcs:
+            parse_cdc(cdc)
+
+    def test_02_invalid_cdcs(self):
         parser: Parser = Parser()
         cdc: str
         error: ParsingError
-        for (cdc, error) in CDCs:
-            self.assertRaises(error, lambda: parser.process(cdc))
+        for (cdc, error) in self.invalid_cdcs:
+            self.assertRaises(error, parser.process, cdc)
+        for (cdc, error) in self.invalid_cdcs:
+            self.assertRaises(error, parse_cdc, cdc)
 
     def test_03_nested_connections(self):
         CDCs: List[Tuple[str, str]] = [

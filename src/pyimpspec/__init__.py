@@ -23,36 +23,37 @@ from pyimpspec.data import (
     parse_data,
 )
 from pyimpspec.circuit import (
-    Capacitor,
     Circuit,
+    CircuitBuilder,
     Connection,
-    ConstantPhaseElement,
+    Parallel,
+    Series,
     Element,
+    Capacitor,
+    ConstantPhaseElement,
+    DeLevieFiniteLength,
     Gerischer,
     HavriliakNegami,
     Inductor,
-    Parallel,
     Resistor,
-    Series,
     Warburg,
     WarburgOpen,
     WarburgShort,
-    DeLevieFiniteLength,
     get_elements,
+    parse_cdc,
     simulate_spectrum,
-    string_to_circuit,
 )
 from pyimpspec.circuit.tokenizer import UnexpectedCharacter
-from pyimpspec.circuit.parser import (
-    ParsingError,
-)
+from pyimpspec.circuit.parser import ParsingError
 from pyimpspec.analysis import (
+    DRTError,
+    DRTResult,
+    FitResult,
     FittedParameter,
     FittingError,
-    FittingResult,
-    KramersKronigResult,
-    fit_circuit_to_data,
+    TestResult,
+    calculate_drt,
+    fit_circuit,
     perform_exploratory_tests,
     perform_test,
-    score_test_results,
 )

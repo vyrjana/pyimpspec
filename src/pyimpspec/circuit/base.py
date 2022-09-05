@@ -176,8 +176,8 @@ class Element:
         Parameters
         ----------
         decimals: int = -1
-            The number of decimals used when formatting the current value and the limits for the
-            element's parameters. -1 corresponds to no values being included in the output.
+            The number of decimals used when formatting the current value and the limits for the element's parameters.
+            -1 corresponds to no values being included in the output.
 
         Returns
         -------
@@ -442,11 +442,10 @@ class Element:
             if symbols_only:
                 if self._label != "":
                     repl = f"{k}_{self._label}"
-                else:
-                    assert (
-                        self._identifier >= 0
-                    ), "Assign an identifier, set a label, or create the element by parsing a circuit description code!"
+                elif self._identifier >= 0:
                     repl = f"{k}_{self._identifier}"
+                else:
+                    repl = f"{k}"
             pattern: str = r"(?<![a-zA-Z])" + k + r"(?![a-zA-Z])"
             string = sub(pattern, repl, string)
         return string
@@ -456,7 +455,7 @@ class Element:
         return sympify(self._str_expr(substitute=substitute))
 
     def to_latex(self) -> str:
-        return latex(self.to_sympy(substitute=False))
+        return f"Z = {latex(self.to_sympy(substitute=False))}"
 
 
 class Connection:
@@ -527,16 +526,41 @@ class Connection:
     def to_string(self, decimals: int = -1) -> str:
         raise Exception("Not yet implemented!")
 
-    def get_elements(
-        self, flattened: bool = True
-    ) -> List[Union[Element, "Connection"]]:
+    def get_connections(self, flattened: bool = True) -> List["Connection"]:
         """
-        Get a list of elements and connections nested inside this connection.
+        Get the connections in this circuit.
 
         Parameters
         ----------
         flattened: bool = True
-            Whether the returned list should only contain elements or a combination of elements and connections.
+            Whether or not the connections should be returned as a list of all connections or as a list connections that may also contain more connections.
+
+        Returns
+        -------
+        List[Connection]
+        """
+        if flattened:
+            connections: List["Connection"] = []
+            for element in self._elements:
+                if isinstance(element, Connection):
+                    connections.extend(
+                        reversed(element.get_connections(flattened=flattened))
+                    )
+            return list(reversed(connections))
+        return list(
+            reversed(filter(lambda _: isinstance(_, Connection), self._elements))
+        )
+
+    def get_elements(
+        self, flattened: bool = True
+    ) -> List[Union[Element, "Connection"]]:
+        """
+        Get the elements in this circuit.
+
+        Parameters
+        ----------
+        flattened: bool = True
+            Whether or not the elements should be returned as a list of only elements or as a list of connections containing elements.
 
         Returns
         -------
@@ -551,6 +575,21 @@ class Connection:
                     elements.append(element)
             return list(reversed(elements))
         return list(reversed(self._elements))
+
+    def substitute_element(self, ident: int, element: Element) -> bool:
+        elem_con: Union[Element, Connection]
+        for elem_con in self.get_elements(flattened=False):
+            if isinstance(elem_con, Element):
+                if elem_con.get_identifier() == ident:
+                    element._assign_identifier(ident)
+                    index: int = self._elements.index(elem_con)
+                    self._elements.pop(index)
+                    self._elements.insert(index, element)
+                    return True
+            else:
+                if elem_con.substitute_element(ident, element) is True:
+                    return True
+        return False
 
     def impedance(self, f: float) -> complex:
         """
@@ -660,4 +699,4 @@ class Connection:
         return sympify(self._str_expr(substitute=substitute))
 
     def to_latex(self) -> str:
-        return latex(self.to_sympy(substitute=False))
+        return f"Z = {latex(self.to_sympy(substitute=False))}"

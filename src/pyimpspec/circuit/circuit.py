@@ -153,6 +153,23 @@ class Circuit:
         assert min(f) > 0 and max(f) < inf, f
         return array(list(map(self.impedance, f)))
 
+    def get_connections(self, flattened: bool = True) -> List[Connection]:
+        """
+        Get the connections in this circuit.
+
+        Parameters
+        ----------
+        flattened: bool = True
+            Whether or not the connections should be returned as a list of all connections or as a list connections that may also contain more connections.
+
+        Returns
+        -------
+        List[Connection]
+        """
+        if flattened is True:
+            return self._elements.get_connections(flattened=flattened)
+        return [self._elements]
+
     def get_elements(self, flattened: bool = True) -> List[Union[Element, Connection]]:
         """
         Get the elements in this circuit.
@@ -160,7 +177,7 @@ class Circuit:
         Parameters
         ----------
         flattened: bool = True
-            Whether or not the elements should be returned as a list of only elements or as a list of elements and connections.
+            Whether or not the elements should be returned as a list of only elements or as a list of connections containing elements.
 
         Returns
         -------
@@ -206,6 +223,22 @@ class Circuit:
         """
         return self._elements.get_element(ident)
 
+    def substitute_element(self, ident: int, element: Element):
+        """
+        Substitute the element with the given integer identifier in the circuit with another element.
+
+        Parameters
+        ----------
+        ident: int
+            The integer identifier corresponding to an element in the circuit.
+
+        element: Element
+            The new element that will substitute the old element.
+        """
+        assert (
+            self._elements.substitute_element(ident, element) is True
+        ), f"Failed to find an element with the identifier '{ident}'!"
+
     def to_sympy(self, substitute: bool = False) -> Expr:
         """
         Get the SymPy expression corresponding to this circuit's impedance.
@@ -231,7 +264,7 @@ class Circuit:
         -------
         str
         """
-        return latex(self.to_sympy(substitute=False))
+        return f"Z = {latex(self.to_sympy(substitute=False))}"
 
     def to_circuitikz(
         self,

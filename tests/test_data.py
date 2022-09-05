@@ -18,12 +18,29 @@
 # the LICENSES folder.
 
 from unittest import TestCase
-from pyimpspec import DataSet, parse_data
+from pyimpspec import (
+    DataSet,
+    parse_data,
+)
 from pyimpspec.data.data_set import VERSION
-from numpy import allclose, array, ndarray, log10 as log
-from typing import Callable, Dict, List, Optional
+from numpy import (
+    allclose,
+    array,
+    ndarray,
+)
+from typing import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+)
 from os import walk
-from os.path import basename, dirname, join, splitext
+from os.path import (
+    basename,
+    dirname,
+    join,
+    splitext,
+)
 
 
 def get_control_data() -> DataSet:
@@ -158,6 +175,7 @@ class TestDataSet(TestCase):
             DataSet(array([]), array([]))
             DataSet([1], [complex(1, -1)])
         data = DataSet(freq, Z, mask, path)
+        self.assertGreater(data.get_frequency()[0], data.get_frequency()[-1])
         self.assertEqual(data.get_path(), path)
         self.assertEqual(data.get_label(), splitext(basename(path))[0])
         self.assertEqual(data.get_num_points(), 18)
@@ -178,17 +196,16 @@ class TestDataSet(TestCase):
             self.assertEqual(len(method(masked=None)), 20)
             self.assertEqual(len(method(masked=True)), 2)
             self.assertEqual(len(method(masked=False)), 18)
-
+        #
         self.assertEqual(len(data.get_nyquist_data()[0]), 18)
         self.assertEqual(len(data.get_nyquist_data(masked=None)[0]), 20)
         self.assertEqual(len(data.get_nyquist_data(masked=True)[0]), 2)
         self.assertEqual(len(data.get_nyquist_data(masked=False)[0]), 18)
-
+        #
         self.assertEqual(len(data.get_bode_data()[0]), 18)
         self.assertEqual(len(data.get_bode_data(masked=None)[0]), 20)
         self.assertEqual(len(data.get_bode_data(masked=True)[0]), 2)
         self.assertEqual(len(data.get_bode_data(masked=False)[0]), 18)
-
         # from_dict
         label: str = "label"
         data = DataSet(freq, Z, mask, path, label)
@@ -223,19 +240,19 @@ class TestDataSet(TestCase):
             self.assertEqual(len(method(masked=None)), 20)
             self.assertEqual(len(method(masked=True)), 2)
             self.assertEqual(len(method(masked=False)), 18)
-
+        #
         self.assertEqual(len(data.get_nyquist_data()[0]), 18)
         self.assertEqual(len(data.get_nyquist_data(masked=None)[0]), 20)
         self.assertEqual(len(data.get_nyquist_data(masked=True)[0]), 2)
         self.assertEqual(len(data.get_nyquist_data(masked=False)[0]), 18)
-
+        #
         self.assertEqual(len(data.get_bode_data()[0]), 18)
         self.assertEqual(len(data.get_bode_data(masked=None)[0]), 20)
         self.assertEqual(len(data.get_bode_data(masked=True)[0]), 2)
         self.assertEqual(len(data.get_bode_data(masked=False)[0]), 18)
 
     def test_02_subtract_impedance(self):
-        freq: ndarray = array(list(range(1, 6)))
+        freq: ndarray = array(list(reversed(range(1, 6))))
         Z: ndarray = array(list(map(lambda _: complex(_, -_), range(1, 6))))
         data: DataSet = DataSet(freq, Z)
         i: int
@@ -268,14 +285,14 @@ class TestDataSet(TestCase):
         self.assertEqual(data.get_imaginary()[0], -1)
         self.assertEqual(data.get_magnitude()[0], abs(complex(1, -1)))
         self.assertEqual(data.get_phase()[0], -45)
-
+        #
         self.assertEqual(len(data.get_nyquist_data()), 2)
         self.assertEqual(data.get_nyquist_data()[0][0], 1)
         self.assertEqual(data.get_nyquist_data()[1][0], 1)
-
+        #
         self.assertEqual(len(data.get_bode_data()), 3)
-        self.assertEqual(data.get_bode_data()[0][0], 0)
-        self.assertEqual(data.get_bode_data()[1][0], log(abs(complex(1, -1))))
+        self.assertEqual(data.get_bode_data()[0][0], 1)
+        self.assertEqual(data.get_bode_data()[1][0], abs(complex(1, -1)))
         self.assertEqual(data.get_bode_data()[2][0], 45)
 
     def test_06_to_dict(self):
@@ -292,7 +309,7 @@ class TestDataSet(TestCase):
         self.assertTrue("real" in dictionary, True)
         self.assertTrue("imaginary" in dictionary, True)
         self.assertTrue("mask" in dictionary, True)
-
+        #
         self.assertEqual(type(dictionary["version"]), int)
         self.assertEqual(type(dictionary["path"]), str)
         self.assertEqual(type(dictionary["label"]), str)
@@ -300,7 +317,7 @@ class TestDataSet(TestCase):
         self.assertEqual(type(dictionary["real"]), list)
         self.assertEqual(type(dictionary["imaginary"]), list)
         self.assertEqual(type(dictionary["mask"]), dict)
-
+        #
         self.assertEqual(dictionary["version"], VERSION)
         self.assertEqual(dictionary["path"], path)
         self.assertEqual(dictionary["label"], label)
@@ -321,8 +338,12 @@ class TestDataSet(TestCase):
 class TestFormatParsers(TestCase):
     def validate(self, data: DataSet, control: DataSet, atol: float = 1e-8):
         self.assertEqual(control.get_num_points(), data.get_num_points())
-        self.assertTrue(allclose(control.get_frequency(), data.get_frequency(), atol=atol))
-        self.assertTrue(allclose(control.get_impedance(), data.get_impedance(), atol=atol))
+        self.assertTrue(
+            allclose(control.get_frequency(), data.get_frequency(), atol=atol)
+        )
+        self.assertTrue(
+            allclose(control.get_impedance(), data.get_impedance(), atol=atol)
+        )
 
     def test_01_csv(self):
         control: DataSet = get_control_data()

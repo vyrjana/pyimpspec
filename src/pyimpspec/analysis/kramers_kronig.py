@@ -63,14 +63,15 @@ from pyimpspec.analysis.fitting import (
     _calculate_residuals,
     FittingError,
 )
-from pyimpspec.circuit import string_to_circuit
+from pyimpspec.circuit import parse_cdc
 from pyimpspec.circuit.base import Connection
 from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.data import DataSet
+import pyimpspec.progress as progress
 
 
 @dataclass(frozen=True)
-class KramersKronigResult:
+class TestResult:
     """
     An object representing the results of a linear Kramers-Kronig test applied to a data set.
 
@@ -111,7 +112,7 @@ class KramersKronigResult:
     imaginary_residual: ndarray
 
     def __repr__(self) -> str:
-        return f"KramersKronigResult (num_RC={self.num_RC}, {hex(id(self))})"
+        return f"TestResult (num_RC={self.num_RC}, {hex(id(self))})"
 
     def get_frequency(self, num_per_decade: int = -1) -> ndarray:
         assert issubdtype(type(num_per_decade), integer), num_per_decade
@@ -127,7 +128,7 @@ class KramersKronigResult:
 
     def get_nyquist_data(self, num_per_decade: int = -1) -> Tuple[ndarray, ndarray]:
         """
-        Get the data necessary to plot this KramersKronigResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.
+        Get the data necessary to plot this TestResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.
 
         Parameters
         ----------
@@ -153,7 +154,7 @@ class KramersKronigResult:
         self, num_per_decade: int = -1
     ) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot this KramersKronigResult as a Bode plot: the base-10 logarithms of the frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
+        Get the data necessary to plot this TestResult as a Bode plot: the frequencies, the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
 
         Parameters
         ----------
@@ -168,28 +169,49 @@ class KramersKronigResult:
             freq: ndarray = self.get_frequency(num_per_decade)
             Z: ndarray = self.circuit.impedances(freq)
             return (
-                log(freq),
-                log(abs(Z)),
+                freq,
+                abs(Z),
                 -angle(Z, deg=True),
             )
         return (
-            log(self.frequency),
-            log(abs(self.impedance)),
+            self.frequency,
+            abs(self.impedance),
             -angle(self.impedance, deg=True),
         )
 
     def get_residual_data(self) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot the relative residuals for this KramersKronigResult: the base-10 logarithms of the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.
+        Get the data necessary to plot the relative residuals for this TestResult: the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.
 
         Returns
         -------
         Tuple[ndarray, ndarray, ndarray]
         """
         return (
-            log(self.frequency),
+            self.frequency,
             self.real_residual * 100,
             self.imaginary_residual * 100,
+        )
+
+    def calculate_score(self, mu_criterion: float) -> float:
+        """
+        Calculate a score based on the provided mu-criterion and the statistics of the result.
+        A result with a mu-value greater than or equal to the mu-criterion will get a score of -numpy.inf.
+
+        Parameters
+        ----------
+        mu_criterion: float
+            The mu-criterion to apply.
+            See perform_test for details.
+
+        Returns
+        -------
+        float
+        """
+        return (
+            -inf
+            if self.mu >= mu_criterion
+            else -log(self.pseudo_chisqr) / (abs(mu_criterion - self.mu) ** 0.75)
         )
 
 
@@ -308,7 +330,7 @@ def _complex_residual(
     )
 
 
-def _cnls_test(arguments: tuple) -> Tuple[int, float, Circuit, float]:
+def _cnls_test(args: tuple) -> Tuple[int, float, Circuit, float]:
     freq: ndarray
     Z_exp: ndarray
     weight: ndarray
@@ -326,7 +348,7 @@ def _cnls_test(arguments: tuple) -> Tuple[int, float, Circuit, float]:
         add_inductance,
         method,
         max_nfev,
-    ) = arguments
+    ) = args
     assert type(freq) is ndarray, freq
     assert type(Z_exp) is ndarray, Z_exp
     assert type(weight) is ndarray, weight
@@ -509,7 +531,7 @@ def _generate_circuit(
         cdc.append("C{C=1e-6}")
     if add_inductance is True:
         cdc.append("L{L=1e-3}")
-    circuit: Circuit = string_to_circuit("".join(cdc))
+    circuit: Circuit = parse_cdc("".join(cdc))
     if cnls is True:
         for element in circuit.get_elements():
             for parameter in element.get_parameters():
@@ -619,14 +641,14 @@ def _complex_test(
     )
 
 
-def _test_wrapper(arguments: tuple) -> Tuple[int, float, Circuit, float]:
+def _test_wrapper(args: tuple) -> Tuple[int, float, Circuit, float]:
     test: str
     freq: ndarray
     Z_exp: ndarray
     weight: ndarray
     num_RC: int
     add_capacitance: bool
-    test, freq, Z_exp, weight, num_RC, add_capacitance = arguments
+    test, freq, Z_exp, weight, num_RC, add_capacitance = args
     assert type(test) is str, test
     assert type(freq) is ndarray, freq
     assert type(Z_exp) is ndarray, Z_exp
@@ -675,7 +697,7 @@ def perform_test(
     method: str = "leastsq",
     max_nfev: int = -1,
     num_procs: int = -1,
-) -> KramersKronigResult:
+) -> TestResult:
     """
     Performs a linear Kramers-Kronig test as described by Boukamp (1995).
     The results can be used to check the validity of an impedance spectrum before performing equivalent circuit fitting.
@@ -698,7 +720,10 @@ def perform_test(
 
     num_RC: int = 0
         The number of RC elements to use.
+        A value greater than or equal to one results in the specific number of RC elements being tested.
         A value less than one results in the use of the procedure described by Schönleber et al. (2014) based on the chosen mu-criterion.
+        If the provided value is negative, then the maximum number of RC elements to test is equal to the absolute value of the provided value.
+        If the provided value is zero, then the maximum number of RC elements to test is equal to the number of frequencies in the data set.
 
     mu_criterion: float = 0.85
         The chosen mu-criterion. See Schönleber et al. (2014) for more information.
@@ -727,7 +752,7 @@ def perform_test(
 
     Returns
     -------
-    KramersKronigResult
+    TestResult
     """
     assert isinstance(data, DataSet), (
         type(data),
@@ -778,14 +803,16 @@ def perform_test(
     mu: float
     circuit: Optional[Circuit] = None
     Xps: float  # pseudo chi-squared
-    arguments: list
     func: Callable
-    results: filter
-    fits: List[Tuple[int, float, Circuit, float]]
+    fits: List[Tuple[int, float, Circuit, float]] = []
+    progress_message: str = "Preparing arguments"
+    progress.update_every_N_percent(0, message=progress_message)
+    i: int
+    num_RCs: List[int]
     if test == "cnls":
         if num_RC > 0:
             # Perform the test with a specific number of RC elements
-            arguments = [
+            args = [
                 (
                     freq,
                     Z_exp,
@@ -797,20 +824,25 @@ def perform_test(
                     max_nfev,
                 )
             ]
+            progress_message = "Performing test"
+            progress.update_every_N_percent(0, message=progress_message)
             try:
                 if num_procs > 1:
+                    # To prevent the GUI thread of DearEIS from locking up
                     with Pool(1) as pool:
-                        fits = pool.map(_cnls_test, arguments)
+                        fits = pool.map(_cnls_test, args)
                 else:
-                    fits = list(map(_cnls_test, arguments))
+                    fits = list(map(_cnls_test, args))
             except Exception:
                 raise FittingError(format_exc())
+            progress.update_every_N_percent(1, message=progress_message)
             num_RC, mu, circuit, Xps = fits[0]
         else:
             num_RC = abs(num_RC) or len(freq)
+            num_RCs = list(range(1, num_RC + 1))
             # Find an appropriate number of RC elements based on the calculated mu-value and the
             # provided threshold value. Use multiple parallel processes if possible.
-            arguments = [
+            args = (
                 (
                     freq,
                     Z_exp,
@@ -822,26 +854,40 @@ def perform_test(
                     method,
                     max_nfev,
                 )
-                for num_RC in range(1, num_RC + 1)
-            ]
+                for num_RC in num_RCs
+            )
+            progress_message = "Performing test(s)"
+            progress.update_every_N_percent(0, message=progress_message)
             try:
                 if num_procs > 1:
                     with Pool(
-                        num_procs, initializer=_pool_init, initargs=(Value("i", -1),)
+                        num_procs,
+                        initializer=_pool_init,
+                        initargs=(Value("i", -1),),
                     ) as pool:
-                        results = filter(
-                            lambda _: _[2] is not None,
-                            pool.map(_cnls_mu_process, arguments, chunksize=1),
-                        )
+                        for i, res in enumerate(
+                            pool.imap_unordered(_cnls_mu_process, args)
+                        ):
+                            progress.update_every_N_percent(
+                                i + 1,
+                                total=len(num_RCs),
+                                message=progress_message,
+                            )
+                            if res[2] is not None:
+                                fits.append(res)
                 else:
                     _pool_init(Value("i", -1))
-                    results = filter(
-                        lambda _: _[2] is not None,
-                        list(map(_cnls_mu_process, arguments)),
-                    )
+                    for i, res in enumerate(map(_cnls_mu_process, args)):
+                        progress.update_every_N_percent(
+                            i + 1,
+                            total=len(num_RCs),
+                            message=progress_message,
+                        )
+                        if res[2] is not None:
+                            fits.append(res)
             except Exception:
                 raise FittingError(format_exc())
-            for (num_RC, mu, circuit, Xps) in sorted(results, key=lambda _: _[0]):
+            for (num_RC, mu, circuit, Xps) in sorted(fits, key=lambda _: _[0]):
                 if mu < mu_criterion:
                     break
     else:
@@ -852,13 +898,12 @@ def perform_test(
         ]
         if test not in supported_tests:
             raise FittingError(f"Unsupported test: '{test}'")
-        num_RCs: List[int]
         if num_RC > 0:
             num_RCs = [num_RC]
         else:
             num_RC = abs(num_RC) or len(freq)
             num_RCs = list(range(1, num_RC + 1))
-        arguments = [
+        args = (
             (
                 test,
                 freq,
@@ -868,9 +913,17 @@ def perform_test(
                 add_capacitance,
             )
             for num_RC in num_RCs
-        ]
+        )
+        progress_message = "Performing test(s)"
+        progress.update_every_N_percent(0, message=progress_message)
         try:
-            fits = list(map(_test_wrapper, arguments))
+            for i, res in enumerate(map(_test_wrapper, args)):
+                progress.update_every_N_percent(
+                    i + 1,
+                    total=len(num_RCs),
+                    message=progress_message,
+                )
+                fits.append(res)
         except Exception:
             raise FittingError(format_exc())
         if len(fits) == 1:
@@ -882,7 +935,7 @@ def perform_test(
     # ========== Result ==========
     assert circuit is not None
     Z_fit: ndarray = circuit.impedances(freq)
-    return KramersKronigResult(
+    return TestResult(
         circuit,
         num_RC,
         mu,
@@ -905,9 +958,9 @@ def perform_exploratory_tests(
     method: str = "leastsq",
     max_nfev: int = -1,
     num_procs: int = -1,
-) -> List[KramersKronigResult]:
+) -> List[TestResult]:
     """
-    Performs a batch of linear Kramers-Kronig tests.
+    Performs a batch of linear Kramers-Kronig tests, which are then scored and sorted from best to worst before they are returned.
 
     Parameters
     ----------
@@ -941,7 +994,7 @@ def perform_exploratory_tests(
 
     Returns
     -------
-    List[KramersKronigResult]
+    List[TestResult]
     """
     assert isinstance(data, DataSet), (
         type(data),
@@ -986,7 +1039,7 @@ def perform_exploratory_tests(
         type(num_procs),
         num_procs,
     )
-    results: List[KramersKronigResult] = []
+    results: List[TestResult] = []
     if num_procs < 1:
         num_procs = cpu_count()
     freq: ndarray = data.get_frequency()
@@ -997,10 +1050,11 @@ def perform_exploratory_tests(
     params: Parameters
     num_RC: int
     func: Callable
-    arguments: list
+    progress_message: str = "Preparing arguments"
+    progress.update_every_N_percent(0, message=progress_message)
     if test == "cnls":
         func = _cnls_test
-        arguments = [
+        args = (
             (
                 freq,
                 Z_exp,
@@ -1012,7 +1066,7 @@ def perform_exploratory_tests(
                 max_nfev,
             )
             for num_RC in num_RCs
-        ]
+        )
     else:
         supported_tests: List[str] = [
             "complex",
@@ -1022,7 +1076,7 @@ def perform_exploratory_tests(
         if test not in supported_tests:
             raise FittingError(f"Unsupported test: '{test}'")
         func = _test_wrapper
-        arguments = [
+        args = (
             (
                 test,
                 freq,
@@ -1032,14 +1086,28 @@ def perform_exploratory_tests(
                 add_capacitance,
             )
             for num_RC in num_RCs
-        ]
-    fits: List[Tuple[int, float, Circuit, float]]
+        )
+    fits: List[Tuple[int, float, Circuit, float]] = []
+    progress_message = "Performing test(s)"
+    progress.update_every_N_percent(0, message=progress_message)
     try:
         if test == "cnls" and num_procs > 1:
             with Pool(num_procs) as pool:
-                fits = pool.map(func, arguments)
+                for i, res in enumerate(pool.imap_unordered(func, args)):
+                    progress.update_every_N_percent(
+                        i + 1,
+                        total=len(num_RCs),
+                        message=progress_message,
+                    )
+                    fits.append(res)
         else:
-            fits = list(map(func, arguments))
+            for i, res in enumerate(map(func, args)):
+                progress.update_every_N_percent(
+                    i + 1,
+                    total=len(num_RCs),
+                    message=progress_message,
+                )
+                fits.append(res)
     except Exception:
         raise FittingError(format_exc())
     mu: float
@@ -1048,7 +1116,7 @@ def perform_exploratory_tests(
     for (num_RC, mu, circuit, Xps) in fits:
         Z_fit: ndarray = circuit.impedances(freq)
         results.append(
-            KramersKronigResult(
+            TestResult(
                 circuit,
                 num_RC,
                 mu,
@@ -1060,56 +1128,8 @@ def perform_exploratory_tests(
                 *_calculate_residuals(Z_exp, Z_fit),
             )
         )
+    results.sort(
+        key=lambda _: _.calculate_score(mu_criterion),
+        reverse=True,
+    )
     return results
-
-
-def score_test_results(
-    results: List[KramersKronigResult], mu_criterion: float
-) -> List[Tuple[float, KramersKronigResult]]:
-    """
-    Assign scores to test results as an alternative to just using the mu-value generated when using the procedure described by Schönleber et al. (2014).
-    The mu-value can in some cases fluctuate wildly at low numbers of RC elements and result in false positives (i.e. the mu-value briefly dips below the mu-criterion only to rises above it again).
-    The score is equal to -numpy.inf for results with mu-values greater than or equal to the mu-criterion.
-    For results with mu-values below the mu-criterion, the score is calculated based on the pseudo chi-squared value of the result and on the difference between the mu-criterion and the result's mu-value.
-    The results and their corresponding scores are returned as a list of tuples.
-    The list is sorted from the highest score to the lowest score.
-    The result with the highest score should be a good initial guess for a suitable candidate.
-
-    Parameters
-    ----------
-    results: List[KramersKronigResult]
-        The result to score.
-
-    mu_criterion: float
-        The mu_criterion to use.
-
-    Returns
-    -------
-    List[Tuple[float, KramersKronigResult]]
-    """
-    assert type(results) is list, (
-        type(results),
-        results,
-    )
-    assert all(map(lambda _: type(_) is KramersKronigResult, results)), results
-    assert issubdtype(type(mu_criterion), floating), (
-        type(mu_criterion),
-        mu_criterion,
-    )
-    assert mu_criterion >= 0.0 and mu_criterion <= 1.0, mu_criterion
-    scored_results: List[Tuple[float, KramersKronigResult]] = []
-    result: KramersKronigResult
-    for result in results:
-        score: float = (
-            -inf
-            if result.mu >= mu_criterion
-            else -log(result.pseudo_chisqr) / (abs(mu_criterion - result.mu) ** 0.75)
-        )
-        scored_results.append(
-            (
-                score,
-                result,
-            )
-        )
-    scored_results.sort(key=lambda _: _[0], reverse=True)
-    return scored_results

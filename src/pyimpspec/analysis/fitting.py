@@ -57,10 +57,14 @@ from lmfit import (
 from lmfit.minimizer import MinimizerResult
 from pyimpspec.circuit import (
     Circuit,
-    string_to_circuit,
+    parse_cdc,
 )
-from pyimpspec.circuit.base import Element
+from pyimpspec.circuit.base import (
+    Element,
+    Connection,
+)
 from pyimpspec.data import DataSet
+import pyimpspec.progress as progress
 
 
 class FittingError(Exception):
@@ -120,6 +124,9 @@ class FittedParameter:
             "fixed": self.fixed,
         }
 
+    def get_relative_error(self) -> float:
+        return (self.stderr or 0.0) / self.value
+
 
 def _interpolate(
     experimental: Union[List[float], ndarray], num_per_decade: int
@@ -148,7 +155,7 @@ def _interpolate(
 
 
 @dataclass(frozen=True)
-class FittingResult:
+class FitResult:
     """
     An object representing the results of fitting a circuit to a data set.
 
@@ -197,7 +204,7 @@ class FittingResult:
     weight: str
 
     def __repr__(self) -> str:
-        return f"FittingResult ({self.circuit.to_string()}, {hex(id(self))})"
+        return f"FitResult ({self.circuit.to_string()}, {hex(id(self))})"
 
     def get_frequency(self, num_per_decade: int = -1) -> ndarray:
         assert issubdtype(type(num_per_decade), integer), num_per_decade
@@ -213,7 +220,7 @@ class FittingResult:
 
     def get_nyquist_data(self, num_per_decade: int = -1) -> Tuple[ndarray, ndarray]:
         """
-        Get the data necessary to plot this FittingResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.
+        Get the data necessary to plot this FitResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.
 
         Parameters
         ----------
@@ -242,7 +249,7 @@ class FittingResult:
         self, num_per_decade: int = -1
     ) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot this FittingResult as a Bode plot: the base-10 logarithms of the frequencies, the base-10 logarithms of the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
+        Get the data necessary to plot this FitResult as a Bode plot: the frequencies, the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
 
         Parameters
         ----------
@@ -260,26 +267,26 @@ class FittingResult:
             freq: ndarray = self.get_frequency(num_per_decade)
             Z: ndarray = self.circuit.impedances(freq)
             return (
-                log(freq),
-                log(abs(Z)),
+                freq,
+                abs(Z),
                 -angle(Z, deg=True),
             )
         return (
-            log(self.frequency),
-            log(abs(self.impedance)),
+            self.frequency,
+            abs(self.impedance),
             -angle(self.impedance, deg=True),
         )
 
     def get_residual_data(self) -> Tuple[ndarray, ndarray, ndarray]:
         """
-        Get the data necessary to plot the relative residuals for this FittingResult: the base-10 logarithms of the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.
+        Get the data necessary to plot the relative residuals for this FitResult: the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.
 
         Returns
         -------
         Tuple[ndarray, ndarray, ndarray]
         """
         return (
-            log(self.frequency),
+            self.frequency,
             self.real_residual * 100,
             self.imaginary_residual * 100,
         )
@@ -292,9 +299,11 @@ class FittingResult:
         fixed: List[str] = []
         element_label: str
         parameters: Dict[str, FittedParameter]
-        element: Element
+        elements: List[Element]
+        elements = self.circuit.get_elements(flattened=True)  # type: ignore
+        element: Union[Element, Connection]
         for element in sorted(
-            self.circuit.get_elements(flattened=True),
+            elements,
             key=lambda _: _.get_identifier(),
         ):
             element_label = element.get_label()
@@ -554,14 +563,14 @@ def _calculate_residuals(Z_exp: ndarray, Z_fit: ndarray) -> Tuple[ndarray, ndarr
     )
 
 
-def fit_circuit_to_data(
+def fit_circuit(
     circuit: Circuit,
     data: DataSet,
     method: str = "auto",
     weight: str = "auto",
     max_nfev: int = -1,
     num_procs: int = -1,
-) -> FittingResult:
+) -> FitResult:
     """
     Fit a circuit to a data set.
 
@@ -593,7 +602,7 @@ def fit_circuit_to_data(
 
     Returns
     -------
-    FittingResult
+    FitResult
     """
     assert type(circuit) is Circuit, (
         type(circuit),
@@ -628,31 +637,41 @@ def fit_circuit_to_data(
     cdc: str = circuit.to_string(12)
     freq: ndarray = data.get_frequency()
     Z_exp: ndarray = data.get_impedance()
-    arguments: List[Tuple[Circuit, ndarray, ndarray, str, str, int, bool]] = []
     fits: List[Tuple[str, Optional[MinimizerResult], float, str, str, str]] = []
     methods: List[str] = [method] if method != "auto" else _methods
     weights: List[str] = (
         [weight] if weight != "auto" else list(_weight_functions.keys())
     )
+    i: int = 0
+    method_weight_combos: List[Tuple[str, str]] = []
     for method in methods:
         for weight in weights:
-            arguments.append(
-                (
-                    string_to_circuit(cdc),
-                    freq,
-                    Z_exp,
-                    method,
-                    weight,
-                    max_nfev,
-                    True,
-                )
-            )
+            method_weight_combos.append((method, weight,))
+    args = (
+        (
+            parse_cdc(cdc),
+            freq,
+            Z_exp,
+            method,
+            weight,
+            max_nfev,
+            True,
+        ) for (method, weight) in method_weight_combos
+    )
+    progress_message = "Performing fit(s)"
+    progress.update_every_N_percent(0, message=progress_message)
     try:
         if num_procs > 1:
             with Pool(num_procs) as pool:
-                fits = pool.map(_fit_process, arguments)
+                for i, res in enumerate(pool.imap_unordered(_fit_process, args)):
+                    progress.update_every_N_percent(
+                        i + 1,
+                        total=len(method_weight_combos),
+                        message=progress_message,
+                    )
+                    fits.append(res)
         else:
-            fits = list(map(_fit_process, arguments))
+            fits = list(map(_fit_process, args))
         fits.sort(
             key=lambda _: log(_[1].chisqr) + log(_[2]) if _[1] is not None else inf
         )
@@ -665,9 +684,9 @@ def fit_circuit_to_data(
     if fit is None:
         raise FittingError(error_msg)
     # Return results
-    circuit = string_to_circuit(cdc)
+    circuit = parse_cdc(cdc)
     Z_fit: ndarray = circuit.impedances(freq)
-    return FittingResult(
+    return FitResult(
         circuit,
         _extract_parameters(circuit, fit),
         Xps,

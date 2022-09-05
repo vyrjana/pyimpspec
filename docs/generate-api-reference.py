@@ -88,6 +88,7 @@ Check out [this Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main
     - [Base element]({root_url}/base-element)
     - [Connections]({root_url}/connections)
 - [Fitting]({root_url}/fitting)
+- [Distribution of relaxation times]({root_url}/drt)
 - Plotting
   - [matplotlib]({root_url}/plot-mpl)
 """,
@@ -106,29 +107,36 @@ The functions presented here are the recommended way of reading data, creating c
 Check the other pages for information about the objects returned by the functions presented here.
             """,
             objects_to_ignore=[
-                pyimpspec.Capacitor,
-                pyimpspec.Circuit,
-                pyimpspec.Connection,
-                pyimpspec.ConstantPhaseElement,
+                # Data sets and results
                 pyimpspec.DataSet,
-                pyimpspec.DeLevieFiniteLength,
-                pyimpspec.Element,
+                pyimpspec.TestResult,
+                pyimpspec.FitResult,
                 pyimpspec.FittedParameter,
                 pyimpspec.FittingError,
-                pyimpspec.FittingResult,
+                pyimpspec.DRTResult,
+                pyimpspec.DRTError,
+                # Circuits and connections
+                pyimpspec.Circuit,
+                pyimpspec.CircuitBuilder,
+                pyimpspec.Connection,
+                pyimpspec.Parallel,
+                pyimpspec.Series,
+                # Circuit elements
+                pyimpspec.Element,
+                pyimpspec.Capacitor,
+                pyimpspec.ConstantPhaseElement,
+                pyimpspec.DeLevieFiniteLength,
                 pyimpspec.Gerischer,
                 pyimpspec.HavriliakNegami,
                 pyimpspec.Inductor,
-                pyimpspec.KramersKronigResult,
-                pyimpspec.Parallel,
-                pyimpspec.ParsingError,
                 pyimpspec.Resistor,
-                pyimpspec.Series,
-                pyimpspec.UnexpectedCharacter,
-                pyimpspec.UnsupportedFileFormat,
                 pyimpspec.Warburg,
                 pyimpspec.WarburgOpen,
                 pyimpspec.WarburgShort,
+                # Exceptions
+                pyimpspec.ParsingError,
+                pyimpspec.UnexpectedCharacter,
+                pyimpspec.UnsupportedFileFormat,
             ],
         ),
     )
@@ -153,12 +161,12 @@ Check the page for [high-level functions]({root_url}/high-level-functions) for t
         join(root_folder, "kramers-kronig.md"),
         jekyll_header("Kramers-Kronig testing", "kramers-kronig")
         + f"""
-Check the page for [high-level functions]({root_url}/high-level-functions) for the recommended ways to perform a Kramers-Kronig test to generate a `KramersKronigResult` object.
+Check the page for [high-level functions]({root_url}/high-level-functions) for the recommended ways to perform a Kramers-Kronig test to generate a `TestResult` object.
 
 """
         + process_classes(
             classes_to_document=[
-                pyimpspec.KramersKronigResult,
+                pyimpspec.TestResult,
             ],
             module_name="pyimpspec",
         ),
@@ -168,14 +176,30 @@ Check the page for [high-level functions]({root_url}/high-level-functions) for t
         join(root_folder, "fitting.md"),
         jekyll_header("fitting", "fitting")
         + f"""
-Check the page for [high-level functions]({root_url}/high-level-functions) for the recommended way to perform an equivalent circuit fit to generate a `FittingResult` object.
+Check the page for [high-level functions]({root_url}/high-level-functions) for the recommended way to perform an equivalent circuit fit to generate a `FitResult` object.
 
 """
         + process_classes(
             classes_to_document=[
-                pyimpspec.FittingResult,
+                pyimpspec.FitResult,
                 pyimpspec.FittedParameter,
                 pyimpspec.FittingError,
+            ],
+            module_name="pyimpspec",
+        ),
+    )
+    # DRT results
+    write_file(
+        join(root_folder, "drt.md"),
+        jekyll_header("drt", "drt")
+        + f"""
+Check the page for [high-level functions]({root_url}/high-level-functions) for the recommended way to calculate the distribution of relaxation times to generate a `DRTResult` object.
+
+"""
+        + process_classes(
+            classes_to_document=[
+                pyimpspec.DRTResult,
+                pyimpspec.DRTError,
             ],
             module_name="pyimpspec",
         ),
@@ -187,11 +211,13 @@ Check the page for [high-level functions]({root_url}/high-level-functions) for t
         + f"""
 Check the page for [high-level functions]({root_url}/high-level-functions) for the recommended way of parsing a circuit description code (CDC) to generate a `Circuit` object.
 Information about the supported circuit elements can be found [here]({root_url}/elements).
+Alternatively, use the `CircuitBuilder` class to create a circuit.
 
 """
         + process_classes(
             classes_to_document=[
                 pyimpspec.Circuit,
+                pyimpspec.CircuitBuilder,
                 pyimpspec.ParsingError,
                 pyimpspec.UnexpectedCharacter,
             ],
@@ -280,7 +306,7 @@ Check the page for the [base element class]({root_url}/base-element) for informa
                 pyimpspec.plot.mpl,
             ],
             description="""
-These functions are for basic visualization of various objects (e.g., `DataSet`, `KramersKronigResult`, and `FittingResult`) using the [matplotlib](https://matplotlib.org/) package.
+These functions are for basic visualization of various objects (e.g., `DataSet`, `TestResult`, and `FitResult`) using the [matplotlib](https://matplotlib.org/) package.
             """,
         ),
     )

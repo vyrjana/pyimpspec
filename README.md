@@ -18,6 +18,7 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 	- [Data parsing](#data-parsing)
 	- [Kramers-Kronig tests](#kramers-kronig-tests)
 	- [Equivalent circuit fitting](#equivalent-circuit-fitting)
+	- [Distribution of relaxation times](#distribution-of-relaxation-times)
 	- [Plotting](#plotting)
 - [Contributing](#contributing)
 - [License](#license)
@@ -53,12 +54,14 @@ If you encounter issues, then please open an issue on [GitHub](https://github.co
 
 - [Python](https://www.python.org)
 - The following Python packages
+	- [cvxopt](https://github.com/cvxopt/cvxopt): convex optimization
 	- [lmfit](https://lmfit.github.io/lmfit-py/): non-linear least squares minimization
 	- [matplotlib](https://matplotlib.org/): visualization
 	- [numpy](https://numpy.org/): numerical computation
 	- [odfpy](https://github.com/eea/odfpy): reading and writing OpenDocument files
 	- [openpyxl](https://openpyxl.readthedocs.io/en/stable/): reading and writing Excel files
 	- [pandas](https://pandas.pydata.org/): data manipulation and analysis
+	- [scipy](https://github.com/scipy/scipy): numerical computation
 	- [sympy](https://www.sympy.org/en/index.html): symbolic computation
 	- [tabulate](https://github.com/astanin/python-tabulate): formatting of Markdown tables
 
@@ -123,14 +126,15 @@ The contents of the `DataSet` can also be transformed into a `pandas.DataFrame` 
 
 ### Kramers-Kronig tests
 
-The three tests (i.e. complex, real, and imaginary) described in _"A linear Kramers-Kronig transform test for immittance data validation"_ by Bernard A. Boukamp (_Journal of the Electrochemical Society_, **1995**, 142, 6, pp. 1885-1894, DOI: 10.1149/1.2044210) are implemented in pyimpspec.
-A variant of the complex test that uses CNLS to perform the fitting is also included.
+Implementations of the three variants of the linear Kramers-Kronig tests (see [DOI:10.1149/1.2044210](https://doi.org/10.1149/1.2044210)) are included.
+A variant of the complex test that uses CNLS fitting is also included.
+An implementation of the procedure for finding a suitable number of RC elements to avoid under- and overfitting (see [DOI:10.1016/j.electacta.2014.01.034](https://doi.org/10.1016/j.electacta.2014.01.034)) is also included.
+A variant on this procedure is also included to help avoid false negatives that may occasionally occur.
 
-The procedure described in _"A method for improving the robustness of linear Kramers-Kronig validity tests"_ by Michael Schönleber, Dino Klotz, and Ellen Ivers-Tiffée (_Electrochimica Acta_, **2014**, 131, pp. 20-27, DOI: 10.1016/j.electacta.2014.01.034) is also implemented in pyimpspec.
+The relevant functions return `TestResult` objects that include:
 
-The relevant functions return `KramersKronigResult` objects that include:
 - The fitted `Circuit` object that is generated as part of the test.
-- The corresponding pseudo chi-squared and the µ values.
+- The corresponding pseudo chi-squared and µ-values.
 - The frequencies of the data points that were tested.
 - The complex impedances produced by the fitted circuit at each of the tested frequencies.
 - The residuals of the real and imaginary parts of the impedances.
@@ -138,20 +142,40 @@ The relevant functions return `KramersKronigResult` objects that include:
 
 ### Equivalent circuit fitting
 
-Fitting equivalent circuits to impedance spectra is easy with pyimpspec and generates a `FittingResult` object.
-The `FittingResult` object includes:
+The `Circuit` objects can be fitted to impedance spectra to obtain fitted values for the various parameters included in circuit elements such as resistors, capacitors, constant phase elements, and Warburg elements.
+The `FitResult` object produced by this process includes:
+
 - The fitted `Circuit` object.
-- Information about all of the parameters (e.g. final fitted value, estimated error, and whether or not the parameter had a fixed value during fitting).
+- Information about the parameters (e.g., final fitted value, estimated error, and whether or not the parameter had a fixed value during fitting).
 - The frequencies that were used during the fitting.
 - The complex impedances produced by the fitted circuit at each of the frequencies.
 - The residuals of the real and imaginary parts of the impedances.
 - The `MinimizerResult` object returned by lmfit.
 
 
+### Distribution of relaxation times
+
+A few implementations for calculating the distribution of relaxation times are included:
+
+- Tikhonov regularization and non-negative least squares (see [DOI:10.1039/D0CP02094J](https://doi.org/10.1039/D0CP02094J)).
+- Tikhonov regularization and either radial basis functions or piecewise linear discretization (see [DOI:10.1016/j.electacta.2015.09.097](https://doi.org/10.1016/j.electacta.2015.09.097)).
+	An optional feature supported by this method is the calculation of the Bayesian credible intervals (see [DOI:10.1016/j.electacta.2015.03.123](https://doi.org/10.1016/j.electacta.2015.03.123) and [DOI:10.1016/j.electacta.2017.07.050](https://doi.org/10.1016/j.electacta.2017.07.050)).
+- The Bayesian Hilbert transform (BHT) method (see [DOI:10.1016/j.electacta.2020.136864](https://doi.org/10.1016/j.electacta.2020.136864)).
+	The results for this method include scores that can be used for assessing the quality of an impedance spectrum.
+
+The results are contained in a `DRTResult` object that includes:
+
+- The time constant and gamma values.
+- The frequency values used in the process.
+- The impedance values of the modeled response.
+- The residuals of the real and imaginary parts of the impedances.
+
+
 ### Plotting
 
-pyimpspec includes functions for visualizing `Circuit`, `DataSet`, `KramersKronigResult`, and `FittingResult` objects.
+pyimpspec includes functions for visualizing `Circuit`, `DataSet`, `TestResult`, `DRTResult`, and `FitResult` objects.
 The only backend that is currently supported is matplotlib.
+The functions offer some room for customization of the figures, but they are primarily intended for quick visualization.
 
 
 ## Changelog
