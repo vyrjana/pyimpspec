@@ -61,11 +61,25 @@ If you encounter issues, then please open an issue on [GitHub](https://github.co
 	- [odfpy](https://github.com/eea/odfpy): reading and writing OpenDocument files
 	- [openpyxl](https://openpyxl.readthedocs.io/en/stable/): reading and writing Excel files
 	- [pandas](https://pandas.pydata.org/): data manipulation and analysis
+	- [schemdraw](https://bitbucket.org/cdelker/schemdraw): circuit diagrams
 	- [scipy](https://github.com/scipy/scipy): numerical computation
 	- [sympy](https://www.sympy.org/en/index.html): symbolic computation
 	- [tabulate](https://github.com/astanin/python-tabulate): formatting of Markdown tables
 
-The Python packages (and their dependencies) are installed automatically when pyimpspec is installed using [pip](https://pip.pypa.io/en/stable/).
+These Python packages (and their dependencies) are installed automatically when pyimpspec is installed using [pip](https://pip.pypa.io/en/stable/).
+
+The following Python packages can be installed as optional dependencies for additional functionality:
+
+- [cvxpy](https://github.com/cvxpy/cvxpy): convex optimization
+	- **IMPORTANT!** Windows and MacOS users must follow the steps described in [the CVXPY documentation](https://www.cvxpy.org/install/index.html) before installing this optional dependency!
+
+
+If you wish to make use of these, then they must be specified explicitly when installing pyimpspec:
+
+```
+pip install pyimpspec[cvxpy]
+```
+
 
 ### Installing
 

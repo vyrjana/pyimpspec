@@ -83,6 +83,16 @@ from cvxopt import (
     matrix,
     solvers as cvxopt_solvers,
 )
+
+try:
+    from cvxpy import (
+        Minimize,
+        Problem,
+        Variable,
+        quad_form,
+    )
+except ImportError:
+    pass
 from pyimpspec.data import DataSet
 from pyimpspec.analysis.fitting import _calculate_residuals
 from .result import (
@@ -166,7 +176,6 @@ def _generate_truncated_multivariate_gaussians(
     assert (F @ initial_X + g).any() >= 0, "Inconsistent initial condition!"
     # Dimension of mean vector; each sample must be of this dimension
     d: int = initial_X.shape[0]
-    bounce_count: int = 0  # TODO: Never really used, only incremented
     near_zero: float = 1e-12
     # Squared Euclidean norm of constraint matrix columns
     F2: ndarray = array_sum(square(F), axis=1)
@@ -240,7 +249,6 @@ def _generate_truncated_multivariate_gaussians(
             # Update new velocity
             qj = F[j, :] @ V / F2[j]
             V0 = V - 2 * qj * Ft[:, j]
-            bounce_count += 1
         if (F @ X + g).all() > 0:
             Xs[:, i - 1] = X
             last_X = X
@@ -767,20 +775,37 @@ def _solve_qp(
     A: Optional[ndarray] = None,
     b: Optional[ndarray] = None,
 ) -> ndarray:
-    # cvxopt
-    args: List[matrix] = [matrix(H), matrix(c)]
-    if G is not None:
-        assert h is not None
-        args.extend([matrix(G), matrix(h)])
-    if A is not None:
-        assert b is not None
-        args.extend([matrix(A), matrix(b)])
-    cvxopt_solvers.options["abstol"] = 1e-15
-    cvxopt_solvers.options["reltol"] = 1e-15
-    solution: dict = cvxopt_solvers.qp(*args)
-    if "optimal" not in solution["status"]:
-        raise DRTError("Failed to find optimal solution!")
-    return array(solution["x"]).reshape((H.shape[1],))
+    try:
+        # cvxpy (optional dependency)
+        N_out: int = c.shape[0]
+        x: Variable = Variable(shape=N_out, value=ones(N_out))
+        l: ndarray = zeros(N_out)
+        prob: Problem = Problem(Minimize((1 / 2) * quad_form(x, H) + c @ x), [x >= l])
+        prob.solve(
+            # verbose=True,
+            eps_abs=1e-10,
+            eps_rel=1e-10,
+            sigma=1.00e-08,
+            max_iter=200000,
+            eps_prim_inf=1e-5,
+            eps_dual_inf=1e-5,
+        )
+        return x.value
+    except Exception:
+        # cvxopt
+        args: List[matrix] = [matrix(H), matrix(c)]
+        if G is not None:
+            assert h is not None
+            args.extend([matrix(G), matrix(h)])
+        if A is not None:
+            assert b is not None
+            args.extend([matrix(A), matrix(b)])
+        cvxopt_solvers.options["abstol"] = 1e-15
+        cvxopt_solvers.options["reltol"] = 1e-15
+        solution: dict = cvxopt_solvers.qp(*args)
+        if "optimal" not in solution["status"]:
+            raise DRTError("Failed to find optimal solution!")
+        return array(solution["x"]).reshape((H.shape[1],))
 
 
 def _rbf_gamma_functions(func: Callable) -> Callable:

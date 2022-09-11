@@ -160,6 +160,10 @@ class TestCircuitBuilder(TestCase):
             builder.add(Resistor())
             builder.add(Capacitor())
         self.assertEqual(builder.to_string(), "[RC]")
+        with CircuitBuilder() as builder:
+            builder += Resistor()
+            builder += Capacitor()
+        self.assertEqual(builder.to_string(), "[RC]")
         with self.assertRaises(AssertionError):
             with CircuitBuilder() as builder:
                 pass
@@ -169,9 +173,16 @@ class TestCircuitBuilder(TestCase):
             builder.add(Resistor())
             builder.add(Capacitor())
         self.assertEqual(builder.to_string(), "[(RC)]")
+        with CircuitBuilder(parallel=True) as builder:
+            builder += Resistor()
+            builder += Capacitor()
+        self.assertEqual(builder.to_string(), "[(RC)]")
         with self.assertRaises(AssertionError):
             with CircuitBuilder(parallel=True) as builder:
                 builder.add(Resistor())
+        with self.assertRaises(AssertionError):
+            with CircuitBuilder(parallel=True) as builder:
+                builder += Resistor()
         with self.assertRaises(AssertionError):
             with CircuitBuilder(parallel=True) as builder:
                 pass
@@ -184,10 +195,22 @@ class TestCircuitBuilder(TestCase):
                 parallel.add(Resistor())
         self.assertEqual(builder.to_string(), "[R(CR)]")
         with CircuitBuilder() as builder:
+            builder += Resistor()
+            with builder.parallel() as parallel:
+                parallel += Capacitor()
+                parallel += Resistor()
+        self.assertEqual(builder.to_string(), "[R(CR)]")
+        with CircuitBuilder() as builder:
             with builder.parallel() as parallel:
                 parallel.add(Capacitor())
                 parallel.add(Resistor())
             builder.add(Resistor())
+        self.assertEqual(builder.to_string(), "[(CR)R]")
+        with CircuitBuilder() as builder:
+            with builder.parallel() as parallel:
+                parallel += Capacitor()
+                parallel += Resistor()
+            builder += Resistor()
         self.assertEqual(builder.to_string(), "[(CR)R]")
         with CircuitBuilder() as builder:
             with builder.parallel() as parallel:
@@ -196,8 +219,16 @@ class TestCircuitBuilder(TestCase):
                     series.add(Capacitor())
                 parallel.add(Resistor())
         self.assertEqual(builder.to_string(), "[([RC]R)]")
+        with CircuitBuilder() as builder:
+            with builder.parallel() as parallel:
+                with parallel.series() as series:
+                    series += Resistor()
+                    series += Capacitor()
+                parallel += Resistor()
+        self.assertEqual(builder.to_string(), "[([RC]R)]")
 
     def test_04_parameters_and_labels(self):
+        cdc: str = "[R{R=8.3E+01/2.0E+01/9.6E+01:test}C{C=4.0E-03F}]"
         with CircuitBuilder() as builder:
             R: Resistor = Resistor(R=83)
             R.set_lower_limit("R", 20)
@@ -209,7 +240,22 @@ class TestCircuitBuilder(TestCase):
             builder.add(C)
         self.assertEqual(
             builder.to_string(1),
-            "[R{R=8.3E+01/2.0E+01/9.6E+01:test}C{C=4.0E-03F}]",
+            cdc
+        )
+        with CircuitBuilder() as builder:
+            builder += (
+                Resistor(R=83)
+                .set_lower_limit("R", 20)
+                .set_upper_limit("R", 96)
+                .set_label("test")
+            )
+            builder += (
+                Capacitor(C=4e-3)
+                .set_fixed("C", True)
+            )
+        self.assertEqual(
+            builder.to_string(1),
+            cdc
         )
 
 

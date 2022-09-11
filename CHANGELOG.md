@@ -1,3 +1,16 @@
+# 3.1.0
+
+- Added `Circuit.to_drawing` method for drawing circuit diagrams using the `schemdraw` package.
+- Added `schemdraw` as an explicit dependency.
+- Added support for using the `cvxpy` package as an optional solver in DRT calculations (TR-RBF method only).
+- Added `cvxpy` as an optional dependency.
+- Added `CircuitBuilder.__iadd__` method so that the `+=` operator can be used instead of the `CircuitBuilder.add` method.
+- Updated `Element.set_label`, `Element.set_fixed`, `Element.set_lower_limit`, and `Element.set_upper_limit` methods to return the element so that the calls can be chained (e.g., `Resistor(R=50).set_label("ct").set_fixed("R", True)`).
+- Updated the default terminal labels used in circuit diagrams.
+- Updated how the title is generated in the `mpl.plot_fit` function.
+- Updated minimum versions for dependencies.
+
+
 # 3.0.0
 
 **Breaking changes in the API!**

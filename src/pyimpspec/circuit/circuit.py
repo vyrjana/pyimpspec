@@ -41,6 +41,8 @@ from numpy import (
     inf,
     ndarray,
 )
+from schemdraw import Drawing
+import schemdraw.elements as elm
 from sympy import (
     Expr,
     latex,
@@ -266,11 +268,153 @@ class Circuit:
         """
         return f"Z = {latex(self.to_sympy(substitute=False))}"
 
+    def to_drawing(
+        self,
+        node_height: float = 1.5,
+        working_label: str = "WE",
+        counter_label: str = "CE+RE",
+        hide_labels: bool = False,
+    ) -> Drawing:
+        """
+        Get a schemdraw.Drawing object to draw a circuit diagram using the matplotlib backend.
+
+        Parameters
+        ----------
+        node_height: float = 1.5
+            The height of each node.
+
+        working_label: str = "WE"
+            The label assigned to the terminal representing the working and working sense electrodes.
+
+        counter_label: str = "CE+RE"
+            The label assigned to the terminal representing the counter and reference electrodes.
+
+        hide_labels: bool = False
+            Whether or not to hide element and terminal labels.
+
+        Returns
+        -------
+        Drawing
+        """
+        lookup: Dict[Type[Element], elm.Element] = {
+            Resistor: elm.ResistorIEEE,
+            Capacitor: elm.Capacitor,
+            ConstantPhaseElement: elm.CPE,
+            Inductor: elm.Inductor2,
+        }
+
+        def draw_element(elem: Element, drawing: Drawing):
+            element: elm.Element = lookup.get(type(elem), elm.ResistorIEC)()
+            symbol: str = elem.get_symbol()
+            if not hide_labels:
+                label: str = elem.get_label()[len(symbol) + 1 :]
+                element.label(f"${symbol}_" + r"{\rm " + f"{label}}}$")
+            drawing.add(element.right())
+
+        def get_width(
+            element_connection: Union[Element, Connection],
+        ) -> int:
+            widths: List[int] = []
+            if isinstance(element_connection, Element):
+                widths.append(2)
+            elif type(element_connection) is Series:
+                for elem_con in element_connection.get_elements(flattened=False):
+                    widths.append(
+                        get_width(elem_con) + (1 if type(elem_con) is Parallel else 0)
+                    )
+                widths = [sum(widths)]
+            elif type(element_connection) is Parallel:
+                for elem_con in element_connection.get_elements(flattened=False):
+                    widths.append(get_width(elem_con))
+            assert len(widths) > 0
+            return max(widths)
+
+        def get_height(element_connection: Union[Element, Connection]) -> int:
+            heights: List[int] = []
+            if isinstance(element_connection, Element):
+                heights.append(node_height)
+            elif type(element_connection) is Series:
+                for elem_con in element_connection.get_elements(flattened=False):
+                    heights.append(get_height(elem_con))
+            elif type(element_connection) is Parallel:
+                for elem_con in element_connection.get_elements(flattened=False):
+                    heights.append(get_height(elem_con))
+                heights = [sum(heights)]
+            assert len(heights) > 0
+            return max(heights)
+
+        def draw_parallel(parallel: Parallel, drawing: Drawing):
+            elements_connections: List[Union[Element, Connection]]
+            elements_connections = parallel.get_elements(flattened=False)
+            heights: List[int] = list(map(get_height, elements_connections))
+            i: int
+            height: int
+            for i, height in enumerate(heights):
+                if i < len(elements_connections) - 1:
+                    drawing.push()
+                    drawing.add(elm.Line(l=height).down())
+            total_width: int = get_width(parallel)
+            elem_con: Union[Element, Connection]
+            for (i, elem_con) in reversed(list(enumerate(elements_connections))):
+                width: int = get_width(elem_con)
+                padding: int = total_width - width
+                if isinstance(elem_con, Connection):
+                    if type(elem_con) is Series:
+                        draw_series(elem_con, drawing)
+                    elif type(elem_con) is Parallel:
+                        draw_parallel(elem_con, drawing)
+                    else:
+                        raise Exception("Unsupported connection: {type(elem_con)=}")
+                else:
+                    draw_element(elem_con, drawing)
+                    if padding > 0:
+                        padding += 1
+                if padding > 0:
+                    drawing.add(elm.Line(l=padding))
+                if i > 0:
+                    drawing.add(elm.Line(l=heights[i - 1]).up())
+                    drawing.pop()
+
+        def draw_series(series: Series, drawing: Drawing):
+            i: int
+            elem_con: Union[Element, Connection]
+            for i, elem_con in enumerate(series.get_elements(flattened=False)):
+                if isinstance(elem_con, Connection):
+                    if type(elem_con) is Series:
+                        draw_series(elem_con, drawing)
+                    elif type(elem_con) is Parallel:
+                        if i == 0:
+                            drawing.add(elm.Line(l=1).right())
+                        draw_parallel(elem_con, drawing)
+                        if i > 0:
+                            drawing.add(elm.Line(l=1))
+                    else:
+                        raise Exception("Unsupported connection: {type(elem_con)=}")
+                else:
+                    draw_element(elem_con, drawing)
+
+        drawing: Drawing = Drawing()
+        we_dot: elm.Dot = elm.Dot(open=True)
+        if not hide_labels:
+            we_dot.label(working_label)
+        drawing.add(we_dot)
+        connection: Connection
+        for connection in self.get_connections(flattened=False):
+            if type(connection) is Series:
+                draw_series(connection, drawing)
+            elif type(connection) is Parallel:
+                draw_parallel(connection, drawing)
+        ce_dot: elm.Dot = elm.Dot(open=True)
+        if not hide_labels:
+            ce_dot.label(counter_label)
+        drawing.add(ce_dot)
+        return drawing
+
     def to_circuitikz(
         self,
         node_width: float = 3.0,
         node_height: float = 1.5,
-        working_label: str = "WE+WS",
+        working_label: str = "WE",
         counter_label: str = "CE+RE",
         hide_labels: bool = False,
     ) -> str:
@@ -285,7 +429,7 @@ class Circuit:
         node_height: float = 1.5
             The height of each node.
 
-        working_label: str = "WE+WS"
+        working_label: str = "WE"
             The label assigned to the terminal representing the working and working sense electrodes.
 
         counter_label: str = "CE+RE"

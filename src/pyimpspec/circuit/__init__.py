@@ -101,10 +101,12 @@ def parse_cdc(cdc: str) -> Circuit:
 
 class CircuitBuilder:
     """
-    A class for building circuits using context managers:
+    A class for building circuits using context managers
 
-    with CircuitBuilder() as builder:
-        builder.add(Resistor())
+    Parameters
+    ----------
+    parallel: bool = False
+        Whether or not this context/connection is a parallel connection.
     """
 
     def __init__(self, parallel: bool = False):
@@ -127,29 +129,33 @@ class CircuitBuilder:
     def __str__(self) -> str:
         return self.to_string()
 
-    def series(self):
+    def series(self) -> "CircuitBuilder":
         """
-        Create a series connection:
+        Create a series connection.
 
-        with CircuitBuilder() as builder:
-            with builder.series() as series:
-                builder.add(Resistor())
-                builder.add(Capacitor())
+        Returns
+        -------
+        CircuitBuilder
         """
-        self._elements.append(CircuitBuilder(parallel=False))
-        return self._elements[-1]
+        series: "CircuitBuilder" = CircuitBuilder(parallel=False)
+        self._elements.append(series)
+        return series
 
-    def parallel(self):
+    def parallel(self) -> "CircuitBuilder":
         """
-        Create a parallel connection:
+        Create a parallel connection.
 
-        with CircuitBuilder() as builder:
-            with builder.parallel() as parallel:
-                builder.add(Resistor())
-                builder.add(Capacitor())
+        Returns
+        -------
+        CircuitBuilder
         """
-        self._elements.append(CircuitBuilder(parallel=True))
-        return self._elements[-1]
+        parallel: "CircuitBuilder" = CircuitBuilder(parallel=True)
+        self._elements.append(parallel)
+        return parallel
+
+    def __iadd__(self, element: Element) -> "CircuitBuilder":
+        self.add(element)
+        return self
 
     def add(self, element: Element):
         """
@@ -184,12 +190,19 @@ class CircuitBuilder:
             The number of decimals to include for the current element parameter values and limits.
             -1 means that the CDC is generated using the basic syntax, which omits element labels, parameter values, and parameter limits.
 
+        Returns
+        -------
+        str
         """
         return self.to_circuit().to_string(decimals=decimals)
 
     def to_circuit(self) -> Circuit:
         """
         Generate a circuit.
+
+        Returns
+        -------
+        Circuit
         """
         return parse_cdc(self._to_string())
 

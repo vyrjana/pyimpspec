@@ -146,7 +146,7 @@ class Element:
             return self.get_default_label()
         return f"{self.get_symbol()}_{self._label}"
 
-    def set_label(self, label: str):
+    def set_label(self, label: str) -> "Element":
         """
         Set the label assigned to a specific instance of the element.
 
@@ -157,6 +157,7 @@ class Element:
         """
         assert type(label) is str, f"{label=}"
         self._label = label.strip()
+        return self
 
     @staticmethod
     def get_symbol() -> str:
@@ -336,7 +337,7 @@ class Element:
         assert type(key) is str and key.strip() != ""
         return self._fixed_parameters[key]
 
-    def set_fixed(self, key: str, value: bool):
+    def set_fixed(self, key: str, value: bool) -> "Element":
         """
         Set whether or not an element parameter should have a fixed value when fitting a circuit
         to a data set.
@@ -353,6 +354,7 @@ class Element:
         assert key in self._fixed_parameters, f"{key=}"
         assert type(value) is bool, f"{value=}"
         self._fixed_parameters[key] = value
+        return self
 
     def get_lower_limit(self, key: str) -> float:
         """
@@ -372,7 +374,7 @@ class Element:
         assert type(key) is str and key.strip() != ""
         return self._lower_limits[key]
 
-    def set_lower_limit(self, key: str, value: float):
+    def set_lower_limit(self, key: str, value: float) -> "Element":
         """
         Set the upper limit for the value of an element parameter when fitting a circuit to a data
         set.
@@ -389,6 +391,7 @@ class Element:
         assert type(key) is str and key.strip() != ""
         assert key in self._lower_limits, f"{key=}"
         self._lower_limits[key] = float(value)
+        return self
 
     def get_upper_limit(self, key: str) -> float:
         """
@@ -408,7 +411,7 @@ class Element:
         assert type(key) is str and key.strip() != ""
         return self._upper_limits[key]
 
-    def set_upper_limit(self, key: str, value: float):
+    def set_upper_limit(self, key: str, value: float) -> "Element":
         """
         Set the upper limit for the value of an element parameter when fitting a circuit to a data
         set.
@@ -425,6 +428,7 @@ class Element:
         assert type(key) is str and key.strip() != ""
         assert key in self._upper_limits, f"{key=}"
         self._upper_limits[key] = float(value)
+        return self
 
     def _str_expr(self, substitute: bool = False) -> str:
         raise Exception("Method has not been implemented!")

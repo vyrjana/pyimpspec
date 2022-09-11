@@ -1568,7 +1568,7 @@ def plot_fit(
             tmp["bottom"].twinx(),
         ]
         if title is None:
-            if hasattr(fit, "circuit") and hasattr(fit, "num_RC"):
+            if isinstance(fit, TestResult):
                 title = (
                     fit.circuit.get_label()
                     .replace("K", r"$\rm (RC)_" + f"{{{str(fit.num_RC)}}}$", 1)  # type: ignore
@@ -1576,13 +1576,6 @@ def plot_fit(
                 )
                 if data is not None:
                     title = f"{data.get_label()}\n{title}"
-                if hasattr(fit, "get_label"):
-                    title += f" {fit.get_label()}"  # type: ignore
-            elif hasattr(fit, "circuit"):
-                if data is not None:
-                    title = f"{data.get_label()}\n{fit.circuit.get_label()}"  # type: ignore
-                else:
-                    title = fit.get_label()  # type: ignore
             elif hasattr(fit, "get_label") and callable(fit.get_label):
                 if data is not None:
                     title = f"{data.get_label()}\n{fit.get_label()}"  # type: ignore
