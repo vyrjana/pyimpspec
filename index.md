@@ -45,6 +45,8 @@ Check out [DearEIS](https://vyrjana.github.io/DearEIS/), which is based on pyimp
 
 - [Python (version 3.8 or later)](https://www.python.org/)
 
+Check the GitHub repository for more information about the required and optional dependencies.
+
 
 ### Supported platforms
 

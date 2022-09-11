@@ -4,9 +4,46 @@ title: API - circuit
 permalink: /api/circuit/
 ---
 
-Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/api/high-level-functions) for the recommended way of parsing a circuit description code (CDC) to generate a `Circuit` object.
+Circuits can be generated in one of two ways:
+- by parsing a circuit description code (CDC)
+- by using the `CircuitBuilder` class
+
+The basic syntax for CDCs is fairly straighforward:
+
+```python
+# A resistor connected in series with a resistor and a capacitor connected in parallel
+circuit: deareis.Circuit = deareis.parse_cdc("[R(RC)]")
+```
+
+An extended syntax, which allows for defining initial values, lower/upper limits, and labels, is also supported:
+
+```python
+circuit: deareis.Circuit = deareis.parse_cdc("[R{R=50:sol}(R{R=250f:ct}C{C=1.5e-6/1e-6/2e-6:dl})]")
+```
+
+Alternatively, the `CircuitBuilder` class can be used:
+
+```python
+with deareis.CircuitBuilder() as builder:
+    builder += (
+        deareis.Resistor(R=50)
+        .set_label("sol")
+    )
+    with builder.parallel() as parallel:
+        parallel += (
+            deareis.Resistor(R=250)
+            .set_fixed("R", True)
+        )
+        parallel += (
+            deareis.Capacitor(C=1.5e-6)
+            .set_label("dl")
+            .set_lower_limit("C", 1e-6)
+            .set_upper_limit("C", 2e-6)
+        )
+circuit: deareis.Circuit = builder.to_circuit()
+```
+
 Information about the supported circuit elements can be found [here](https://vyrjana.github.io/pyimpspec/api/elements).
-Alternatively, use the `CircuitBuilder` class to create a circuit.
 
 **Table of Contents**
 
@@ -22,6 +59,7 @@ Alternatively, use the `CircuitBuilder` class to create a circuit.
 	- [set_parameters](#pyimpspeccircuitset_parameters)
 	- [substitute_element](#pyimpspeccircuitsubstitute_element)
 	- [to_circuitikz](#pyimpspeccircuitto_circuitikz)
+	- [to_drawing](#pyimpspeccircuitto_drawing)
 	- [to_latex](#pyimpspeccircuitto_latex)
 	- [to_stack](#pyimpspeccircuitto_stack)
 	- [to_string](#pyimpspeccircuitto_string)
@@ -222,7 +260,7 @@ _Parameters_
 Get the LaTeX source needed to draw a circuit diagram for this circuit using the circuitikz package.
 
 ```python
-def to_circuitikz(self, node_width: float = 3.0, node_height: float = 1.5, working_label: str = "WE+WS", counter_label: str = "CE+RE", hide_labels: bool = False) -> str:
+def to_circuitikz(self, node_width: float = 3.0, node_height: float = 1.5, working_label: str = "WE", counter_label: str = "CE+RE", hide_labels: bool = False) -> str:
 ```
 
 
@@ -238,6 +276,28 @@ _Parameters_
 _Returns_
 ```python
 str
+```
+
+#### **pyimpspec.Circuit.to_drawing**
+
+Get a schemdraw.Drawing object to draw a circuit diagram using the matplotlib backend.
+
+```python
+def to_drawing(self, node_height: float = 1.5, working_label: str = "WE", counter_label: str = "CE+RE", hide_labels: bool = False) -> Drawing:
+```
+
+
+_Parameters_
+
+- `node_height`: The height of each node.
+- `working_label`: The label assigned to the terminal representing the working and working sense electrodes.
+- `counter_label`: The label assigned to the terminal representing the counter and reference electrodes.
+- `hide_labels`: Whether or not to hide element and terminal labels.
+
+
+_Returns_
+```python
+Drawing
 ```
 
 #### **pyimpspec.Circuit.to_latex**
@@ -311,10 +371,7 @@ Expr
 
 ### **pyimpspec.CircuitBuilder**
 
-A class for building circuits using context managers:
-
-with CircuitBuilder() as builder:
-    builder.add(Resistor())
+A class for building circuits using context managers
 
 ```python
 class CircuitBuilder(object):
@@ -323,7 +380,7 @@ class CircuitBuilder(object):
 
 _Constructor parameters_
 
-- `parallel`
+- `parallel`: Whether or not this context/connection is a parallel connection.
 
 
 _Functions and methods_
@@ -343,28 +400,30 @@ _Parameters_
 
 #### **pyimpspec.CircuitBuilder.parallel**
 
-Create a parallel connection:
-
-with CircuitBuilder() as builder:
-    with builder.parallel() as parallel:
-        builder.add(Resistor())
-        builder.add(Capacitor())
+Create a parallel connection.
 
 ```python
-def parallel(self):
+def parallel(self) -> CircuitBuilder:
+```
+
+
+_Returns_
+```python
+CircuitBuilder
 ```
 
 #### **pyimpspec.CircuitBuilder.series**
 
-Create a series connection:
-
-with CircuitBuilder() as builder:
-    with builder.series() as series:
-        builder.add(Resistor())
-        builder.add(Capacitor())
+Create a series connection.
 
 ```python
-def series(self):
+def series(self) -> CircuitBuilder:
+```
+
+
+_Returns_
+```python
+CircuitBuilder
 ```
 
 #### **pyimpspec.CircuitBuilder.to_circuit**
