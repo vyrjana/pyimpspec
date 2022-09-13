@@ -83,12 +83,12 @@ Check out [this Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main
 - [High-level functions]({root_url}/high-level-functions)
 - [Data set]({root_url}/data-set)
 - [Kramers-Kronig testing]({root_url}/kramers-kronig)
+- [Distribution of relaxation times]({root_url}/drt)
 - [Circuit]({root_url}/circuit)
     - [Elements]({root_url}/elements)
     - [Base element]({root_url}/base-element)
     - [Connections]({root_url}/connections)
 - [Fitting]({root_url}/fitting)
-- [Distribution of relaxation times]({root_url}/drt)
 - Plotting
   - [matplotlib]({root_url}/plot-mpl)
 """,
