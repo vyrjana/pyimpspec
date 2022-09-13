@@ -60,7 +60,7 @@ def calculate_score(self, mu_criterion: float) -> float:
 _Parameters_
 
 - `mu_criterion`: The mu-criterion to apply.
-See perform_test for details.
+See `perform_test` for details.
 
 
 _Returns_

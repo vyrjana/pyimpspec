@@ -28,6 +28,14 @@ Check the other pages for information about the objects returned by the function
 
 Calculates the distribution of relaxation times (DRT) for a given data set.
 
+References:
+
+- Kulikovsky, A., 2020, Phys. Chem. Chem. Phys., 22, 19131-19138 (https://doi.org/10.1039/D0CP02094J)
+- Wan, T. H., Saccoccio, M., Chen, C., and Ciucci, F., 2015, Electrochim. Acta, 184, 483-499 (https://doi.org/10.1016/j.electacta.2015.09.097).
+- Ciucci, F. and Chen, C., 2015, Electrochim. Acta, 167, 439-454 (https://doi.org/10.1016/j.electacta.2015.03.123)
+- Effat, M. B. and Ciucci, F., 2017, Electrochim. Acta, 247, 1117-1129 (https://doi.org/10.1016/j.electacta.2017.07.050)
+- Liu, J., Wan, T. H., and Ciucci, F., 2020, Electrochim. Acta, 357, 136864 (https://doi.org/10.1016/j.electacta.2020.136864)
+
 ```python
 def calculate_drt(data: DataSet, method: str = "tr-nnls", mode: str = "complex", lambda_value: float = -1.0, rbf_type: str = "gaussian", derivative_order: int = 1, rbf_shape: str = "fwhm", shape_coeff: float = 0.5, inductance: bool = False, credible_intervals: bool = False, num_samples: int = 2000, num_attempts: int = 10, maximum_symmetry: float = 0.5, num_procs: int = -1) -> DRTResult:
 ```
@@ -37,36 +45,36 @@ _Parameters_
 
 - `data`: The data set to use in the calculations.
 - `method`: Valid values include:
-- "bht": Bayesian Hilbert Transform
-- "tr-nnls": Tikhonov regularization with non-negative least squares
-- "tr-rbf": Tikhonov regularization with radial basis function discretization
+    - "bht": Bayesian Hilbert Transform
+    - "tr-nnls": Tikhonov regularization with non-negative least squares
+    - "tr-rbf": Tikhonov regularization with radial basis function discretization
 - `mode`: Which parts of the data are to be included in the calculations.
 Used by the "tr-nnls" and "tr-rbf" methods.
 Valid values include:
-- "complex" ("tr-rbf" method only and the default for that method)
-- "real" (default for the "tr-nnls" method)
-- "imaginary"
+    - "complex" ("tr-rbf" method only and the default for that method)
+    - "real" (default for the "tr-nnls" method)
+    - "imaginary"
 - `lambda_value`: The Tikhonov regularization parameter.
 Used by the "tr-nnls" and "tr-rbf" methods.
 If the method is "tr-nnls" and this value is equal to or below zero, then an attempt will be made to automatically find a suitable value.
 - `rbf_type`: The type of function to use for discretization.
 Used by the "bht" and "tr-rbf" methods.
 Valid values include:
-- "gaussian"
-- "c0-matern"
-- "c2-matern"
-- "c4-matern"
-- "c6-matern"
-- "inverse-quadratic"
-- "inverse-quadric"
-- "cauchy"
+    - "gaussian"
+    - "c0-matern"
+    - "c2-matern"
+    - "c4-matern"
+    - "c6-matern"
+    - "inverse-quadratic"
+    - "inverse-quadric"
+    - "cauchy"
 - `derivative_order`: The order of the derivative used during discretization.
 Used by the "bht" and "tr-rbf" methods.
 - `rbf_shape`: The shape control of the radial basis functions.
 Used by the "bht" and "tr-rbf" methods.
 Valid values include:
-- "fwhm": full width at half maximum
-- "factor": shape_coeff is used directly
+    - "fwhm": full width half maximum
+    - "factor": `shape_coeff` is used directly
 - `shape_coeff`: The full width at half maximum (FWHM) coefficient affecting the chosen shape type.
 Used by the "bht" and "tr-rbf" methods.
 - `inductance`: If true, then an inductive element is included in the calculations.
@@ -193,15 +201,15 @@ def perform_exploratory_tests(data: DataSet, test: str = "complex", num_RCs: Lis
 _Parameters_
 
 - `data`: The data set to be tested.
-- `test`: See perform_test for details.
+- `test`: See `perform_test` for details.
 - `num_RCs`: A list of integers representing the various number of RC elements to test.
 An empty list results in all possible numbers of RC elements up to the total number of frequencies being tested.
-- `mu_criterion`: See perform_test for details.
-- `add_capacitance`: See perform_test for details.
-- `add_inductance`: See perform_test for details.
-- `method`: See perform_test for details.
-- `max_nfev`: See perform_test for details.
-- `num_procs`: See perform_test for details.
+- `mu_criterion`: See `perform_test` for details.
+- `add_capacitance`: See `perform_test` for details.
+- `add_inductance`: See `perform_test` for details.
+- `method`: See `perform_test` for details.
+- `max_nfev`: See `perform_test` for details.
+- `num_procs`: See `perform_test` for details.
 
 
 _Returns_
@@ -247,7 +255,7 @@ Methods that do not require providing bounds for all parameters or a function to
 A value less than one equals no limit.
 Applies only to the "cnls" test.
 - `num_procs`: The maximum number of parallel processes to use when performing a test.
-A value less than one results in using the number of cores returned by multiprocessing.cpu_count.
+A value less than one results in using the number of cores returned by `multiprocessing.cpu_count`.
 Applies only to the "cnls" test.
 
 
