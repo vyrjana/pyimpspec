@@ -23,6 +23,7 @@ pyimpspec includes features such as:
 - simulation of impedance spectra
 - basic visualization of impedance spectra using, e.g., Bode and Nyquist plots
 
+Check out [this Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main/examples/examples.ipynb) for examples of how to use the API.
 Check out [DearEIS](https://vyrjana.github.io/DearEIS/), which is based on pyimpspec, if you would prefer to use a program with a graphical user interface (GUI).
 
 
