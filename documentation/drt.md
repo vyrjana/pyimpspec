@@ -30,15 +30,7 @@ Check the page for [high-level functions](https://vyrjana.github.io/pyimpspec/ap
 
 ```python
 class DRTError(Exception):
-	args
-	kwargs
 ```
-
-_Constructor parameters_
-
-- `args`
-- `kwargs`
-
 
 
 

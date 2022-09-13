@@ -456,14 +456,6 @@ dict
 
 ```python
 class UnsupportedFileFormat(Exception):
-	args
-	kwargs
 ```
-
-_Constructor parameters_
-
-- `args`
-- `kwargs`
-
 
 
