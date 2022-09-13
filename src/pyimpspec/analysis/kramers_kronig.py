@@ -202,7 +202,7 @@ class TestResult:
         ----------
         mu_criterion: float
             The mu-criterion to apply.
-            See perform_test for details.
+            See `perform_test` for details.
 
         Returns
         -------
@@ -747,7 +747,7 @@ def perform_test(
 
     num_procs: int = -1
         The maximum number of parallel processes to use when performing a test.
-        A value less than one results in using the number of cores returned by multiprocessing.cpu_count.
+        A value less than one results in using the number of cores returned by `multiprocessing.cpu_count`.
         Applies only to the "cnls" test.
 
     Returns
@@ -968,29 +968,29 @@ def perform_exploratory_tests(
         The data set to be tested.
 
     test: str = "complex"
-        See perform_test for details.
+        See `perform_test` for details.
 
     num_RCs: List[int] = []
         A list of integers representing the various number of RC elements to test.
         An empty list results in all possible numbers of RC elements up to the total number of frequencies being tested.
 
     mu_criterion: float = 0.85
-        See perform_test for details.
+        See `perform_test` for details.
 
     add_capacitance: bool = False
-        See perform_test for details.
+        See `perform_test` for details.
 
     add_inductance: bool = False
-        See perform_test for details.
+        See `perform_test` for details.
 
     method: str = "leastsq"
-        See perform_test for details.
+        See `perform_test` for details.
 
     max_nfev: int = -1
-        See perform_test for details.
+        See `perform_test` for details.
 
     num_procs: int = -1
-        See perform_test for details.
+        See `perform_test` for details.
 
     Returns
     -------
