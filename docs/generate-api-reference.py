@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-from os import getcwd, makedirs
-from os.path import exists, join
+from os import makedirs
+from os.path import dirname, exists, join
 from typing import IO
 from api_documenter import (
     process,
@@ -27,9 +27,10 @@ permalink: /api/{link}/
 
 
 if __name__ == "__main__":
+    output_dir: str = dirname(__file__)
     # PDF
     write_file(
-        join(getcwd(), "API.md"),
+        join(output_dir, "API.md"),
         r"""---
 header-includes:
     \usepackage{geometry}
@@ -63,7 +64,7 @@ header-includes:
         ),
     )
     # Jekyll
-    root_folder: str = join(getcwd(), "documentation")
+    root_folder: str = join(output_dir, "documentation")
     if not exists(root_folder):
         makedirs(root_folder)
     root_url: str = "https://vyrjana.github.io/pyimpspec/api"

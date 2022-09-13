@@ -43,7 +43,7 @@ data_files = [
 
 setup(
     name="pyimpspec",
-    version="3.1.0",
+    version="3.1.1",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},

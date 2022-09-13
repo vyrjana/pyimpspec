@@ -1,3 +1,8 @@
+# 3.1.1
+
+- Updated API documentation.
+
+
 # 3.1.0
 
 - Added `Circuit.to_drawing` method for drawing circuit diagrams using the `schemdraw` package.
