@@ -1,3 +1,9 @@
+# 3.1.2
+
+- Added the 3-sigma CI series to the legends of DRT plots.
+- Updated the order that the mean and 3-sigma CI series are plotted in DRT plots.
+
+
 # 3.1.1
 
 - Updated API documentation.

@@ -1707,24 +1707,28 @@ def plot_gamma(
         x, y1, y2, y3 = drt.get_drt_credible_intervals()
         if y1.any() and y2.any() and y3.any():
             mean_label: Optional[str] = None
+            ci_label: Optional[str] = None
             if label.strip() != "":
                 if label != "":
                     mean_label = f"{label}, mean"
+                    ci_label = f"{label}, " + r"$3\sigma$ CI"
                 else:
                     mean_label = "mean"
-            axis.plot(
-                x,
-                y1,
-                color=color,
-                linestyle="--",
-                label=mean_label,
-            )
+                    ci_label = r"$3\sigma$ CI"
             axis.fill_between(
                 x,
                 y2,
                 y3,
                 color=color,
                 alpha=bounds_alpha,
+                label=ci_label,
+            )
+            axis.plot(
+                x,
+                y1,
+                color=color,
+                linestyle="--",
+                label=mean_label,
             )
     x, y1 = drt.get_drt_data()
     _, y2 = drt.get_drt_data(imaginary=True)
