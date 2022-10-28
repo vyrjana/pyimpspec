@@ -72,6 +72,8 @@ The following Python packages can be installed as optional dependencies for addi
 
 - [cvxpy](https://github.com/cvxpy/cvxpy): convex optimization
 	- **IMPORTANT!** Windows and MacOS users must follow the steps described in [the CVXPY documentation](https://www.cvxpy.org/install/index.html) before installing this optional dependency!
+- [kvxopt](https://github.com/sanurielf/kvxopt): convex optimization
+	- This fork of cvxopt may support additional platforms (e.g., Apple Silicon hardware like M1).
 
 
 If you wish to make use of these, then they must be specified explicitly when installing pyimpspec:

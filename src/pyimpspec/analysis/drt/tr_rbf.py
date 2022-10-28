@@ -79,10 +79,25 @@ from scipy.linalg import (
 from scipy.optimize import (
     fsolve,
 )
-from cvxopt import (
-    matrix,
-    solvers as cvxopt_solvers,
-)
+
+IMPORTED_CONVEX_OPTIMIZER: bool = False
+try:
+    from kvxopt import (
+        matrix,
+        solvers as cvxopt_solvers,
+    )
+
+    IMPORTED_CONVEX_OPTIMIZER = True
+except ImportError:
+    try:
+        from cvxopt import (
+            matrix,
+            solvers as cvxopt_solvers,
+        )
+
+        IMPORTED_CONVEX_OPTIMIZER = True
+    except ImportError:
+        pass
 
 try:
     from cvxpy import (
@@ -91,8 +106,11 @@ try:
         Variable,
         quad_form,
     )
+
+    IMPORTED_CONVEX_OPTIMIZER = True
 except ImportError:
     pass
+
 from pyimpspec.data import DataSet
 from pyimpspec.analysis.fitting import _calculate_residuals
 from .result import (
@@ -1180,6 +1198,9 @@ def _calculate_drt_tr_rbf(
     maximum_symmetry: float = 0.3,
     num_procs: int = -1,
 ) -> DRTResult:
+    assert (
+        IMPORTED_CONVEX_OPTIMIZER is True
+    ), "Failed to import any convex optimizers! At least one of the following packages is required: cvxopt, cvxpy, or kvxopt."
     assert type(mode) is str and mode in MODES, f"Valid mode values: {', '.join(MODES)}"
     assert issubdtype(type(lambda_value), floating), lambda_value
     assert (

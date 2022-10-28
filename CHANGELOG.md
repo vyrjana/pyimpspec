@@ -1,3 +1,9 @@
+# 3.1.3
+
+- Added support for `kvxopt` as an optional dependency as a drop-in replacement for `cvxopt`.
+- Updated how import errors related to the convex optimizers required by the TR-RBF method (DRT analysis) are handled, which should allow the rest of pyimpspec to function even if no convex optimizers can be imported successfully.
+
+
 # 3.1.2
 
 - Added the 3-sigma CI series to the legends of DRT plots.

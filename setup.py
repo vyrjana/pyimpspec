@@ -30,6 +30,7 @@ dependencies = [
 
 optional_dependencies = {
     "cvxpy": "cvxpy>=1.2.1",  # Used in the DRT calculations (TR-RBF method)
+    "kvxopt": "kvxopt>=1.3.0",  # Fork of cvxopt that may provide wheels for additional platforms
 }
 
 with open("requirements.txt", "w") as fp:
@@ -43,7 +44,7 @@ data_files = [
 
 setup(
     name="pyimpspec",
-    version="3.1.2",
+    version="3.1.3",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},

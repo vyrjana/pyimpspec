@@ -28,6 +28,11 @@
 - License: MIT
 - Copied code to implement linear Kramers-Kronig tests using matrix solvers.
 
+# kvxopt
+- https://github.com/sanurielf/kvxopt
+- License: GPLv3 or later
+- Optional dependency. Fork of cvxopt that may provide wheels for additional platforms.
+
 # lmfit
 - https://github.com/lmfit/lmfit-py
 - License: BSD 3-clause
