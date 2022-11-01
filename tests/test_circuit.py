@@ -19,19 +19,40 @@
 
 from unittest import TestCase
 from collections import OrderedDict
-from typing import Dict, List, Tuple, Type
-from numpy import array, ndarray, allclose
+from typing import (
+    Dict,
+    List,
+    Tuple,
+    Type,
+    Union,
+)
+from numpy import (
+    array,
+    ndarray,
+    allclose,
+)
 from sympy import Expr
 from pyimpspec.circuit import (
     Circuit,
     CircuitBuilder,
-    Element,
-    Parallel,
     Parser,
     ParsingError,
-    Capacitor,
-    Resistor,
+    Connection,
+    Parallel,
     Series,
+    Element,
+    Capacitor,
+    ConstantPhaseElement,
+    DeLevieFiniteLength,
+    Gerischer,
+    HavriliakNegami,
+    HavriliakNegamiAlternative,
+    Inductor,
+    ModifiedInductor,
+    Resistor,
+    Warburg,
+    WarburgOpen,
+    WarburgShort,
     get_elements,
     parse_cdc,
 )
@@ -53,68 +74,108 @@ from pyimpspec.circuit.parser import (
 
 class TestElement(TestCase):
     def test_01_base_methods(self):
-        description: str
+        symbol: str
         Class: Type[Element]
-        for description, Class in get_elements().items():
-            # def __init__(self, keys: List[str]):
+        for symbol, Class in get_elements().items():
+            message: str = f"Element: {symbol}"
             element: Element = Class()
-            self.assertNotEqual(element.get_extended_description(), "")
-            self.assertNotEqual(element.get_description(), "")
+            self.assertNotEqual(
+                element.get_extended_description(),
+                "",
+                msg=message,
+            )
+            self.assertNotEqual(element.get_description(), "", msg=message)
+            self.assertTrue(
+                element.get_description().startswith(symbol),
+                msg=message,
+            )
 
             defaults: Dict[str, float] = element.get_defaults()
-            self.assertTrue(len(defaults) > 0)
+            self.assertTrue(len(defaults) > 0, msg=message)
             for k, v in defaults.items():
-                self.assertIsInstance(k, str)
-                self.assertIsInstance(v, float)
+                self.assertIsInstance(k, str, msg=message)
+                self.assertIsInstance(v, float, msg=message)
 
             default_fixed: Dict[str, bool] = element.get_default_fixed()
-            self.assertIsInstance(default_fixed, dict)
+            self.assertIsInstance(default_fixed, dict, msg=message)
             for k, v in default_fixed.items():
-                self.assertIsInstance(k, str)
-                self.assertIsInstance(v, bool)
+                self.assertIsInstance(k, str, msg=message)
+                self.assertIsInstance(v, bool, msg=message)
 
             default_lower_limits: Dict[str, float] = element.get_default_lower_limits()
-            self.assertIsInstance(default_fixed, dict)
+            self.assertIsInstance(default_fixed, dict, msg=message)
             for k, v in default_lower_limits.items():
-                self.assertIsInstance(k, str)
-                self.assertIsInstance(v, float)
+                self.assertIsInstance(k, str, msg=message)
+                self.assertIsInstance(v, float, msg=message)
 
             default_upper_limits: Dict[str, float] = element.get_default_upper_limits()
-            self.assertIsInstance(default_fixed, dict)
+            self.assertIsInstance(default_fixed, dict, msg=message)
             for k, v in default_upper_limits.items():
-                self.assertIsInstance(k, str)
-                self.assertIsInstance(v, float)
+                self.assertIsInstance(k, str, msg=message)
+                self.assertIsInstance(v, float, msg=message)
 
-            self.assertNotEqual(element.get_default_label(), "")
+            self.assertNotEqual(element.get_default_label(), "", msg=message)
             self.assertTrue(
-                element.get_default_label().startswith(element.get_symbol())
+                element.get_default_label().startswith(element.get_symbol()),
+                msg=message,
             )
-            self.assertTrue(element.get_label().startswith(element.get_symbol()))
-            self.assertTrue(description.startswith(element.get_symbol()))
-            self.assertEqual(element.get_label(), element.get_default_label())
-            self.assertEqual(element.get_label(), element.get_symbol())
-            self.assertEqual(element.get_default_label(), element.get_symbol())
+            self.assertTrue(
+                element.get_label().startswith(element.get_symbol()),
+                msg=message,
+            )
+            self.assertEqual(symbol, element.get_symbol(), msg=message)
+            self.assertEqual(
+                element.get_label(),
+                element.get_default_label(),
+                msg=message,
+            )
+            self.assertEqual(
+                element.get_label(),
+                element.get_symbol(),
+                msg=message,
+            )
+            self.assertEqual(
+                element.get_default_label(),
+                element.get_symbol(),
+                msg=message,
+            )
 
-            with self.assertRaises(AssertionError):
+            with self.assertRaises(AssertionError, msg=message):
                 element._assign_identifier("5")
                 element._assign_identifier(-4)
-            self.assertEqual(element.get_identifier(), -1)
+            self.assertEqual(element.get_identifier(), -1, msg=message)
             element._assign_identifier(8)
-            self.assertEqual(element.get_identifier(), 8)
-            self.assertEqual(element.get_label(), element.get_symbol() + "_8")
-            self.assertEqual(element.get_default_label(), element.get_symbol() + "_8")
+            self.assertEqual(element.get_identifier(), 8, msg=message)
+            self.assertEqual(
+                element.get_label(),
+                element.get_symbol() + "_8",
+                msg=message,
+            )
+            self.assertEqual(
+                element.get_default_label(),
+                element.get_symbol() + "_8",
+                msg=message,
+            )
 
-            with self.assertRaises(AssertionError):
+            with self.assertRaises(AssertionError, msg=message):
                 element.set_label(26)
             element.set_label("test")
-            self.assertEqual(element.get_default_label(), element.get_symbol() + "_8")
-            self.assertEqual(element.get_label(), element.get_symbol() + "_test")
-            self.assertIn(":test}", element.to_string(1))
+            self.assertEqual(
+                element.get_default_label(),
+                element.get_symbol() + "_8",
+                msg=message,
+            )
+            self.assertEqual(
+                element.get_label(),
+                element.get_symbol() + "_test",
+                msg=message,
+            )
+            self.assertIn(":test}", element.to_string(1), msg=message)
             parameters: OrderedDict[str, float] = element.get_parameters()
-            self.assertIsInstance(parameters, OrderedDict)
+            self.assertIsInstance(parameters, OrderedDict, msg=message)
             for k, v in parameters.items():
-                self.assertIsInstance(k, str)
-                self.assertIsInstance(v, float)
+                self.assertIsInstance(k, str, msg=message)
+                self.assertIsInstance(v, float, msg=message)
 
     def test_02_sympy(self):
         freq: List[float] = [1e-5, 1, 1e5]
@@ -123,14 +184,36 @@ class TestElement(TestCase):
         ]
         symbol: str
         for symbol in symbols:
+            message: str = f"Element: {symbol}"
             circuit: Circuit = parse_cdc(symbol)
             Z_regular: ndarray = circuit.impedances(freq)
             expr: Expr = circuit.to_sympy(substitute=True)
             Z_sympy: ndarray = array(
                 list(map(lambda _: complex(expr.subs("f", _)), freq))
             )
-            self.assertTrue(allclose(Z_regular.real, Z_sympy.real))
-            self.assertTrue(allclose(Z_regular.imag, Z_sympy.imag))
+            self.assertTrue(
+                allclose(Z_regular.real, Z_sympy.real),
+                msg=message,
+            )
+            self.assertTrue(
+                allclose(Z_regular.imag, Z_sympy.imag),
+                msg=message,
+            )
+
+    def test_03_get_elements(self):
+        elements: Dict[str, Type[Element]] = get_elements()
+        self.assertEqual(elements["R"], Resistor)
+        self.assertEqual(elements["C"], Capacitor)
+        self.assertEqual(elements["L"], Inductor)
+        self.assertEqual(elements["La"], ModifiedInductor)
+        self.assertEqual(elements["Q"], ConstantPhaseElement)
+        self.assertEqual(elements["W"], Warburg)
+        self.assertEqual(elements["Ws"], WarburgShort)
+        self.assertEqual(elements["Wo"], WarburgOpen)
+        self.assertEqual(elements["Ls"], DeLevieFiniteLength)
+        self.assertEqual(elements["G"], Gerischer)
+        self.assertEqual(elements["H"], HavriliakNegami)
+        self.assertEqual(elements["Ha"], HavriliakNegamiAlternative)
 
 
 # TODO: Create tests for the base Connection class
@@ -151,7 +234,67 @@ class TestConnection(TestCase):
 # TODO: Create tests for the Circuit class
 class TestCircuit(TestCase):
     def test_01_parse_cdc(self):
-        pass
+        for symbol, Class in get_elements().items():
+            circuit: Circuit = parse_cdc(symbol)
+            elements: List[Union[Element, Connection]] = circuit.get_elements()
+            self.assertEqual(len(elements), 1)
+            self.assertEqual(type(elements[0]), Class)
+            self.assertEqual(circuit.to_string(), f"[{symbol}]")
+
+    def test_02_series(self):
+        circuit: Circuit = parse_cdc("R{R=250}R{R=500}")
+        self.assertEqual(circuit.impedance(1), 250 + 500)
+
+    def test_03_parallel(self):
+        circuit: Circuit = parse_cdc("(R{R=250}R{R=500})")
+        self.assertEqual(circuit.impedance(1), 1 / (1 / 250 + 1 / 500))
+
+    def test_04_elements(self):
+        circuit: Circuit = parse_cdc("(RCQ)")
+        elements: List[Union[Element, Connection]] = circuit.get_elements(
+            flattened=False
+        )
+        self.assertEqual(type(elements), list)
+        self.assertEqual(len(elements), 1)
+        self.assertEqual(type(elements[0]), Series)
+        elements = circuit.get_elements()
+        self.assertEqual(type(elements), list)
+        self.assertEqual(len(elements), 3)
+        self.assertEqual(type(elements[0]), Resistor)
+        self.assertEqual(type(elements[1]), Capacitor)
+        self.assertEqual(type(elements[2]), ConstantPhaseElement)
+        circuit = parse_cdc("R(RC)(RW)")
+        elements = circuit.get_elements(flattened=False)
+        self.assertEqual(type(elements), list)
+        self.assertEqual(len(elements), 1)
+        self.assertEqual(type(elements[0]), Series)
+        elements = elements[0].get_elements(flattened=False)
+        self.assertEqual(type(elements), list)
+        self.assertEqual(len(elements), 3)
+        self.assertEqual(type(elements[0]), Resistor)
+        self.assertEqual(type(elements[1]), Parallel)
+        self.assertEqual(type(elements[2]), Parallel)
+        elements = circuit.get_elements()
+        self.assertEqual(type(elements), list)
+        self.assertEqual(len(elements), 5)
+        self.assertEqual(type(elements[0]), Resistor)
+        self.assertEqual(type(elements[1]), Resistor)
+        self.assertEqual(type(elements[2]), Capacitor)
+        self.assertEqual(type(elements[3]), Resistor)
+        self.assertEqual(type(elements[4]), Warburg)
+        self.assertEqual(type(circuit.get_element(0)), Resistor)
+        self.assertEqual(type(circuit.get_element(4)), Warburg)
+        self.assertEqual(circuit.get_element(4), elements[4])
+
+    def test_05_connections(self):
+        circuit: Circuit = parse_cdc("(RCQ)")
+        connections: List[Connection] = circuit.get_connections(flattened=False)
+        self.assertEqual(len(connections), 1)
+        circuit = parse_cdc("R(RC)(RW)")
+        connections = circuit.get_connections(flattened=False)
+        self.assertEqual(len(connections), 1)
+        connections = circuit.get_connections()
+        self.assertEqual(len(connections), 3)
 
 
 class TestCircuitBuilder(TestCase):
@@ -238,10 +381,7 @@ class TestCircuitBuilder(TestCase):
             C: Capacitor = Capacitor(C=4e-3)
             C.set_fixed("C", True)
             builder.add(C)
-        self.assertEqual(
-            builder.to_string(1),
-            cdc
-        )
+        self.assertEqual(builder.to_string(1), cdc)
         with CircuitBuilder() as builder:
             builder += (
                 Resistor(R=83)
@@ -249,14 +389,8 @@ class TestCircuitBuilder(TestCase):
                 .set_upper_limit("R", 96)
                 .set_label("test")
             )
-            builder += (
-                Capacitor(C=4e-3)
-                .set_fixed("C", True)
-            )
-        self.assertEqual(
-            builder.to_string(1),
-            cdc
-        )
+            builder += Capacitor(C=4e-3).set_fixed("C", True)
+        self.assertEqual(builder.to_string(1), cdc)
 
 
 # TODO: Create tests for the Tokenizer class

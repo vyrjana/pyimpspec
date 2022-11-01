@@ -1,14 +1,25 @@
 #!/usr/bin/env python3
 from os import makedirs
-from os.path import dirname, exists, join
+from os.path import (
+    dirname,
+    exists,
+    join,
+)
 from typing import IO
+import pyimpspec
+import pyimpspec.plot.mpl
+
+# Import github.com/vyrjana/python-api-documenter, which has been added as a submodule
+import sys
+
+submodule_path: str = join(dirname(__file__), "api_documenter", "src")
+assert exists(submodule_path), submodule_path
+sys.path.append(submodule_path)
 from api_documenter import (
     process,
     process_classes,
     process_functions,
-)  # github.com/vyrjana/python-api-documenter
-import pyimpspec
-import pyimpspec.plot.mpl
+)
 
 
 def write_file(path: str, content: str):
@@ -51,7 +62,9 @@ header-includes:
                 pyimpspec.ConstantPhaseElement,
                 pyimpspec.Gerischer,
                 pyimpspec.HavriliakNegami,
+                pyimpspec.HavriliakNegamiAlternative,
                 pyimpspec.Inductor,
+                pyimpspec.ModifiedInductor,
                 pyimpspec.Parallel,
                 pyimpspec.Resistor,
                 pyimpspec.Series,
@@ -129,7 +142,9 @@ Check the other pages for information about the objects returned by the function
                 pyimpspec.DeLevieFiniteLength,
                 pyimpspec.Gerischer,
                 pyimpspec.HavriliakNegami,
+                pyimpspec.HavriliakNegamiAlternative,
                 pyimpspec.Inductor,
+                pyimpspec.ModifiedInductor,
                 pyimpspec.Resistor,
                 pyimpspec.Warburg,
                 pyimpspec.WarburgOpen,
@@ -311,7 +326,9 @@ Check the page for the [base element class]({root_url}/base-element) for informa
                 pyimpspec.ConstantPhaseElement,
                 pyimpspec.Gerischer,
                 pyimpspec.HavriliakNegami,
+                pyimpspec.HavriliakNegamiAlternative,
                 pyimpspec.Inductor,
+                pyimpspec.ModifiedInductor,
                 pyimpspec.Resistor,
                 pyimpspec.Warburg,
                 pyimpspec.WarburgOpen,
@@ -324,7 +341,9 @@ Check the page for the [base element class]({root_url}/base-element) for informa
                 pyimpspec.ConstantPhaseElement,
                 pyimpspec.Gerischer,
                 pyimpspec.HavriliakNegami,
+                pyimpspec.HavriliakNegamiAlternative,
                 pyimpspec.Inductor,
+                pyimpspec.ModifiedInductor,
                 pyimpspec.Resistor,
                 pyimpspec.Warburg,
                 pyimpspec.WarburgOpen,

@@ -34,7 +34,10 @@ from .series import Series
 from .parallel import Parallel
 from .resistor import Resistor
 from .capacitor import Capacitor
-from .inductor import Inductor
+from .inductor import (
+    Inductor,
+    ModifiedInductor,
+)
 from .constant_phase_element import ConstantPhaseElement
 from numpy import (
     array,
@@ -169,7 +172,11 @@ class Circuit:
         List[Connection]
         """
         if flattened is True:
-            return self._elements.get_connections(flattened=flattened)
+            connections: List[Connection] = self._elements.get_connections(
+                flattened=flattened
+            )
+            connections.insert(0, self._elements)
+            return connections
         return [self._elements]
 
     def get_elements(self, flattened: bool = True) -> List[Union[Element, Connection]]:
@@ -301,7 +308,9 @@ class Circuit:
             Capacitor: elm.Capacitor,
             ConstantPhaseElement: elm.CPE,
             Inductor: elm.Inductor2,
+            ModifiedInductor: elm.Inductor2,
         }
+        unit_width: float = 2.0
 
         def draw_element(elem: Element, drawing: Drawing):
             element: elm.Element = lookup.get(type(elem), elm.ResistorIEC)()
@@ -313,35 +322,43 @@ class Circuit:
 
         def get_width(
             element_connection: Union[Element, Connection],
-        ) -> int:
-            widths: List[int] = []
+        ) -> float:
             if isinstance(element_connection, Element):
-                widths.append(2)
-            elif type(element_connection) is Series:
+                return unit_width
+            widths: List[float] = []
+            if isinstance(element_connection, Series):
                 for elem_con in element_connection.get_elements(flattened=False):
                     widths.append(
-                        get_width(elem_con) + (1 if type(elem_con) is Parallel else 0)
+                        get_width(elem_con)
+                        # Spacing around a parallel connection nested within a series connection
+                        + (1.0 if isinstance(elem_con, Parallel) else 0.0)
                     )
-                widths = [sum(widths)]
-            elif type(element_connection) is Parallel:
+                assert len(widths) > 0
+                return sum(widths)
+            elif isinstance(element_connection, Parallel):
                 for elem_con in element_connection.get_elements(flattened=False):
                     widths.append(get_width(elem_con))
-            assert len(widths) > 0
-            return max(widths)
+                assert len(widths) > 0
+                return max(widths)
+            else:
+                raise Exception("Unsupported type: {type(element_connection)}")
 
-        def get_height(element_connection: Union[Element, Connection]) -> int:
-            heights: List[int] = []
+        def get_height(element_connection: Union[Element, Connection]) -> float:
             if isinstance(element_connection, Element):
-                heights.append(node_height)
-            elif type(element_connection) is Series:
+                return node_height
+            heights: List[float] = []
+            if isinstance(element_connection, Series):
                 for elem_con in element_connection.get_elements(flattened=False):
                     heights.append(get_height(elem_con))
-            elif type(element_connection) is Parallel:
+                assert len(heights) > 0
+                return max(heights)
+            elif isinstance(element_connection, Parallel):
                 for elem_con in element_connection.get_elements(flattened=False):
                     heights.append(get_height(elem_con))
-                heights = [sum(heights)]
-            assert len(heights) > 0
-            return max(heights)
+                assert len(heights) > 0
+                return sum(heights)
+            else:
+                raise Exception("Unsupported type: {type(element_connection)}")
 
         def draw_parallel(parallel: Parallel, drawing: Drawing):
             elements_connections: List[Union[Element, Connection]]
@@ -353,57 +370,57 @@ class Circuit:
                 if i < len(elements_connections) - 1:
                     drawing.push()
                     drawing.add(elm.Line(l=height).down())
-            total_width: int = get_width(parallel)
+            total_width: float = get_width(parallel)
             elem_con: Union[Element, Connection]
             for (i, elem_con) in reversed(list(enumerate(elements_connections))):
-                width: int = get_width(elem_con)
-                padding: int = total_width - width
-                if isinstance(elem_con, Connection):
-                    if type(elem_con) is Series:
-                        draw_series(elem_con, drawing)
-                    elif type(elem_con) is Parallel:
-                        draw_parallel(elem_con, drawing)
-                    else:
-                        raise Exception("Unsupported connection: {type(elem_con)=}")
-                else:
+                width: float = get_width(elem_con)
+                assert width <= total_width, type(elem_con)
+                padding: float = total_width - width
+                if isinstance(elem_con, Element):
                     draw_element(elem_con, drawing)
-                    if padding > 0:
-                        padding += 1
+                elif isinstance(elem_con, Series):
+                    draw_series(elem_con, drawing)
+                elif isinstance(elem_con, Parallel):
+                    draw_parallel(elem_con, drawing)
+                else:
+                    raise Exception("Unsupported type: {type(elem_con)=}")
                 if padding > 0:
-                    drawing.add(elm.Line(l=padding))
+                    drawing.add(elm.Line(l=padding).right())
                 if i > 0:
                     drawing.add(elm.Line(l=heights[i - 1]).up())
                     drawing.pop()
 
-        def draw_series(series: Series, drawing: Drawing):
+        def draw_series(series: Series, drawing: Drawing, outermost: bool = False):
+            elements: List[Union[Element, Connection]] = series.get_elements(flattened=False)
             i: int
             elem_con: Union[Element, Connection]
-            for i, elem_con in enumerate(series.get_elements(flattened=False)):
-                if isinstance(elem_con, Connection):
-                    if type(elem_con) is Series:
-                        draw_series(elem_con, drawing)
-                    elif type(elem_con) is Parallel:
-                        if i == 0:
-                            drawing.add(elm.Line(l=1).right())
-                        draw_parallel(elem_con, drawing)
-                        if i > 0:
-                            drawing.add(elm.Line(l=1))
-                    else:
-                        raise Exception("Unsupported connection: {type(elem_con)=}")
-                else:
+            for i, elem_con in enumerate(elements):
+                if isinstance(elem_con, Element):
                     draw_element(elem_con, drawing)
+                elif isinstance(elem_con, Series):
+                    draw_series(elem_con, drawing)
+                elif isinstance(elem_con, Parallel):
+                    if not outermost:
+                        drawing.add(elm.Line(l=0.5).right())
+                    draw_parallel(elem_con, drawing)
+                    if not outermost or (i < len(elements) - 1 and isinstance(elements[i + 1], Parallel)):
+                        drawing.add(elm.Line(l=0.5).right())
+                else:
+                    raise Exception("Unsupported type: {type(elem_con)}")
 
         drawing: Drawing = Drawing()
+        drawing.config(unit=unit_width)
         we_dot: elm.Dot = elm.Dot(open=True)
         if not hide_labels:
             we_dot.label(working_label)
         drawing.add(we_dot)
-        connection: Connection
-        for connection in self.get_connections(flattened=False):
-            if type(connection) is Series:
-                draw_series(connection, drawing)
-            elif type(connection) is Parallel:
-                draw_parallel(connection, drawing)
+        drawing.add(elm.Line(l=1.0).right())
+        connections: [Connection] = self.get_connections(flattened=False)
+        assert type(connections) is list
+        assert len(connections) == 1, connections
+        assert isinstance(connections[0], Series), type(connections[0])
+        draw_series(connections[0], drawing, outermost=True)
+        drawing.add(elm.Line(l=1.0).right())
         ce_dot: elm.Dot = elm.Dot(open=True)
         if not hide_labels:
             ce_dot.label(counter_label)
@@ -586,6 +603,7 @@ class Circuit:
             Resistor: "R",
             Capacitor: "capacitor",
             Inductor: "L",
+            ModifiedInductor: "L",
             ConstantPhaseElement: "cpe",
         }
 

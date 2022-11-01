@@ -86,7 +86,7 @@ pip install pyimpspec[cvxpy]
 ### Installing
 
 The latest version of pyimpspec requires a **recent version of Python (3.8+)** and the most straightforward way to install pyimpspec is by using [pip](https://pip.pypa.io/en/stable/):
-Make sure that Python and pip are installed first and then type the following command into a terminal of your choice (e.g. PowerShell in Windows).
+Make sure that Python and pip are installed first and then type the following command into a terminal of your choice (e.g., PowerShell in Windows).
 
 ```
 pip install pyimpspec
@@ -115,7 +115,7 @@ The package **may** also work on other platforms depending on whether or not tho
 
 pyimpspec supports the creation of `Circuit` objects, which can be used to simulate impedance spectra or to extract information from experimental data by means of complex non-linear least squares (CNLS) fitting.
 The recommended way to create circuits is by letting pyimpspec parse a circuit description code (CDC).
-An extended CDC syntax, which makes it possible to define e.g. initial values, is also supported.
+An extended CDC syntax, which makes it possible to define, e.g., initial values, is also supported.
 `Circuit` objects also have additional features such as generation of LaTeX source for drawing circuit diagrams (requires `\usepackage{circuitikz}` in the header of the LaTeX document).
 
 
@@ -131,12 +131,22 @@ The supported file formats include, for example:
 - Spreadsheets: `.xlsx` and `.ods`
 - Plain-text character-separated values (CSV)
 
-Not all CSV files and spreadsheets are necessarily supported as-is but the parsing of those types of files should be quite flexible.
-The parsers expect to find at least a column with frequencies and columns for either the real and imaginary parts of the impedance, or the absolute magnitude and the phase angle/shift.
-The sign of the imaginary part of the impedance and/or the phase angle/shift may be negative, but then that has to be indicated in the column header with a `-` prefix.
 Additional file formats may be supported in the future.
 
-`DataSet` objects can also be turned into `dict` objects as well as created from them, which is convenient for serialization (e.g. using Javascript Object Notation).
+Not all CSV files and spreadsheets are necessarily supported as-is but the parsing of those types of files should be quite flexible.
+The parsers expect to find at least a column with frequencies (Hz) and columns for either the real and imaginary parts of the impedance (ohm), or the absolute magnitude (Hz) and the phase angle/shift (°).
+The supported column headers are:
+
+- frequency: `frequency`, `freq`, or `f`
+- real: `z'`, `z_re`, `zre`, `real`, or `re`
+- imaginary: `z"`, `z''`, `z_im`, `zim`, `imaginary`, `imag`, or `im`
+- magnitude: `|z|`, `z`, `magnitude`, `modulus`, `mag`, or `mod`
+- phase: `phase`, `phz`, or `phi`
+
+The identification of column headers is case insensitive (i.e., `Zre` and `zre` are considered to be the same).
+The sign of the imaginary part of the impedance and/or the phase angle/shift may be negative, but then that has to be indicated in the column header with a `-` prefix (e.g., `-Zim`).
+
+`DataSet` objects can also be turned into `dict` objects as well as created from them, which is convenient for serialization (e.g., using Javascript Object Notation).
 The contents of the `DataSet` can also be transformed into a `pandas.DataFrame` object, which in turn can be used to output the data in a variety of formats (CSV, Markdown, LaTeX, etc.).
 
 
@@ -178,8 +188,9 @@ A few implementations for calculating the distribution of relaxation times are i
 	An optional feature supported by this method is the calculation of the Bayesian credible intervals (see [DOI:10.1016/j.electacta.2015.03.123](https://doi.org/10.1016/j.electacta.2015.03.123) and [DOI:10.1016/j.electacta.2017.07.050](https://doi.org/10.1016/j.electacta.2017.07.050)).
 - The Bayesian Hilbert transform (BHT) method (see [DOI:10.1016/j.electacta.2020.136864](https://doi.org/10.1016/j.electacta.2020.136864)).
 	The results for this method include scores that can be used for assessing the quality of an impedance spectrum.
+- The m(RQ)fit (or multi-(RQ) CNLS-fit) method, which makes use of a specific type of fitted equivalent circuits (see [DOI:10.1016/j.electacta.2014.12.059](https://doi.org/10.1016/j.electacta.2014.12.059) and [DOI:10.1016/j.ssi.2016.10.009](https://doi.org/10.1016/j.ssi.2016.10.009)).
 
-The results are contained in a `DRTResult` object that includes:
+The results are contained in a `DRTResult` object that includes at least the following:
 
 - The time constant and gamma values.
 - The frequency values used in the process.
@@ -202,10 +213,21 @@ See [CHANGELOG.md](CHANGELOG.md) for details.
 ## Contributing
 
 If you wish to contribute to the further development of pyimpspec, then there are several options available to you depending on your ability and the amount of time that you can spare.
+
 If you find bugs, wish some feature was added, or find the documentation to be lacking, then please open an issue on [GitHub](https://github.com/vyrjana/pyimpspec/issues).
-If you wish to contribute code, then clone the repository, create a new branch based on either the main branch or the most recent development branch, and submit your changes as a pull request.
+
+If you wish to contribute code, then start by cloning the repository:
+
+`git clone --recurse-submodules https://github.com/vyrjana/pyimpspec.git`
+
+The development dependencies can be installed from within the repository directory:
+
+`pip install -r ./dev-requirements.txt`
+
+Create a new branch based on either the `main` branch or the most recent development branch (e.g., `dev-*`), and submit your changes as a pull request.
+
 Code contributions should, if it is applicable, also include unit tests, which should be implemented in files placed in the `tests` folder found in the root of the repository along with any assets required by the tests.
-It should be possible to run the tests by executing the `run_tests.sh` script, which uses the test discovery built into the `unittest` module that is included with Python.
+It should be possible to run the tests by executing the `run_tests.sh` script, which uses the test discovery process built into the `unittest` module that is included with Python.
 
 See [CONTRIBUTORS](CONTRIBUTORS) for a list of people who have contributed to the pyimpspec project.
 

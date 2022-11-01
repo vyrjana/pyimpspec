@@ -309,6 +309,7 @@ class Element:
             }
         )
 
+    # TODO: Switch over to or add **kwargs?
     def set_parameters(self, parameters: Dict[str, float]):
         """
         Set new values for the parameters of the element.
@@ -550,6 +551,7 @@ class Connection:
                     connections.extend(
                         reversed(element.get_connections(flattened=flattened))
                     )
+                    connections.append(element)
             return list(reversed(connections))
         return list(
             reversed(filter(lambda _: isinstance(_, Connection), self._elements))

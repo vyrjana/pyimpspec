@@ -32,10 +32,13 @@ from numpy.random import (
     seed,
 )
 from pyimpspec import (
+    Circuit,
     DRTError,
     DRTResult,
     DataSet,
     calculate_drt,
+    fit_circuit,
+    parse_cdc,
     parse_data,
 )
 from pyimpspec.analysis.drt import _METHODS as METHODS
@@ -77,6 +80,7 @@ class TestDRT(TestCase):
         cls._method_results: Dict[str, DRTResult] = {}
         cls._f_exp: ndarray = DATA.get_frequency()
         cls._Z_exp: ndarray = DATA.get_impedance()
+        cls._circuit: Circuit = fit_circuit(parse_cdc("R(RQ)(RQ)"), DATA).circuit
 
     def test_01_data(self):
         self.assertRaises(AssertionError, calculate_drt, {})
@@ -86,7 +90,10 @@ class TestDRT(TestCase):
         self.assertRaises(AssertionError, wrapper, method="crivens")
         method: str
         for method in METHODS:
-            drt: DRTResult = wrapper(method=method)
+            drt: DRTResult = wrapper(
+                method=method,
+                circuit=self._circuit if method == "m(RQ)fit" else None,
+            )
             self._method_results[method] = drt
 
     def test_03_result_label(self):
@@ -94,7 +101,10 @@ class TestDRT(TestCase):
         drt: DRTResult
         for method, drt in self._method_results.items():
             self.assertTrue(drt.get_label().strip() != "")
-            self.assertTrue(method.upper() in drt.get_label())
+            if method == "m(RQ)fit":
+                self.assertEqual(drt.get_label(), "R-2(RQ)")
+            else:
+                self.assertTrue(method.upper() in drt.get_label())
 
     def test_04_result_get_frequency(self):
         method: str
@@ -459,3 +469,110 @@ class TestDRT(TestCase):
                 num_attempts=1,
                 maximum_symmetry=1.0,
             )
+
+    def test_18_method_mRQfit(self):
+        # TODO: Implement
+        wrapper: Callable = drt_func
+        method: str = "m(RQ)fit"
+        self.assertRaises(
+            AssertionError,
+            wrapper,
+            method=method,
+            circuit=5,
+        )
+        self.assertRaises(
+            AssertionError,
+            wrapper,
+            method=method,
+            circuit=self._circuit.to_string(),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("L"),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("R"),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("RR"),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("R(RQ)R"),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("R([RC]C)"),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("R(C(R[RC]))"),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("R(RL)"),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("R(CL)"),
+        )
+        self.assertRaises(
+            DRTError,
+            wrapper,
+            method=method,
+            circuit=parse_cdc("R(RCQ)"),
+        )
+        self.assertRaises(
+            AssertionError,
+            wrapper,
+            method=method,
+            circuit=self._circuit,
+            W=0,
+        )
+        self.assertRaises(
+            AssertionError,
+            wrapper,
+            method=method,
+            circuit=self._circuit,
+            W="crivens",
+        )
+        self.assertRaises(
+            AssertionError,
+            wrapper,
+            method=method,
+            circuit=self._circuit,
+            num_per_decade=1.6,
+        )
+        self.assertRaises(
+            AssertionError,
+            wrapper,
+            method=method,
+            circuit=self._circuit,
+            num_per_decade="crivens",
+        )
+        wrapper(
+            method=method,
+            circuit=self._circuit,
+        )
+        wrapper(
+            method=method,
+            circuit=parse_cdc(self._circuit.to_string()),
+        )

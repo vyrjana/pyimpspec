@@ -45,6 +45,7 @@ from numpy import (
     issubdtype,
     log10 as log,
     logspace,
+    nan,
     ndarray,
     ones as ones_array,
     sum as array_sum,
@@ -470,7 +471,8 @@ def _extract_parameters(
             par = fit.params[name]
             stderr: Optional[float] = par.stderr if hasattr(par, "stderr") else None
             parameters[label][name[: name.find("_")]] = FittedParameter(
-                par.value, stderr
+                par.value,
+                stderr if stderr != nan else None,
             )
         # Remaining parameters are fixed
         value: float
@@ -514,7 +516,7 @@ def _fit_process(args) -> Tuple[str, Optional[MinimizerResult], float, str, str,
         if auto:
             warnings.filterwarnings("error")
         try:
-            fit = minimize(
+            fit: MinimizerResult = minimize(
                 _residual,
                 _to_lmfit(circuit),
                 method,

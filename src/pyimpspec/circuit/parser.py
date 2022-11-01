@@ -35,10 +35,16 @@ from .series import Series
 from .kk import KramersKronigRC
 from .resistor import Resistor
 from .capacitor import Capacitor
-from .inductor import Inductor
+from .inductor import (
+    Inductor,
+    ModifiedInductor,
+)
 from .constant_phase_element import ConstantPhaseElement
 from .gerischer import Gerischer
-from .havriliak_negami import HavriliakNegami
+from .havriliak_negami import (
+    HavriliakNegami,
+    HavriliakNegamiAlternative,
+)
 from .warburg import (
     Warburg,
     WarburgOpen,
@@ -175,9 +181,11 @@ class Parser:
                 Resistor,
                 Capacitor,
                 Inductor,
+                ModifiedInductor,
                 ConstantPhaseElement,
                 Gerischer,
                 HavriliakNegami,
+                HavriliakNegamiAlternative,
                 Warburg,
                 WarburgOpen,
                 WarburgShort,

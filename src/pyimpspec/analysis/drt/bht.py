@@ -18,6 +18,7 @@
 # the LICENSES folder.
 
 # This module implements the Bayesian Hilbert transform method
+# 10.1016/j.electacta.2020.136864
 # pyDRTtools commit: 65ea54d9332a0c6594de852f0242a88e20ec4427
 
 from contextlib import redirect_stdout

@@ -24,7 +24,7 @@ tar --list -f ./dist/*.tar.gz | grep "LICENSE$"
 # Check if the other licenses were included
 dist="$(tar --list -f ./dist/*.tar.gz | grep "LICENSE-.*\.txt" | sort)"
 repo="$(ls LICENSES | grep "LICENSE-.*.txt" | sort)"
-python -c "from sys import argv; from os.path import basename; dist = list(map(basename, argv[1].split('\n'))); repo = list(map(basename, argv[2].split('\n'))); assert dist == repo; list(map(print, dist))" "$dist" "$repo"
+python -c "from sys import argv; from os.path import basename; dist = list(map(basename, argv[1].split('\n'))); repo = list(map(basename, argv[2].split('\n'))); assert dist == repo, 'Incorrect set of bundled licenses!'; list(map(print, dist))" "$dist" "$repo"
 
 # Validate the source and wheel distributions
 echo
@@ -34,7 +34,7 @@ unzip -Z1 ./dist/*.whl | grep "LICENSE$"
 # Check if the other licenses were included
 dist="$(unzip -Z1 ./dist/*.whl | grep "LICENSE-.*\.txt" | sort)"
 repo="$(ls LICENSES | grep "LICENSE-.*.txt" | sort)"
-python -c "from sys import argv; from os.path import basename; dist = list(map(basename, argv[1].split('\n'))); repo = list(map(basename, argv[2].split('\n'))); assert dist == repo; list(map(print, dist))" "$dist" "$repo"
+python -c "from sys import argv; from os.path import basename; dist = list(map(basename, argv[1].split('\n'))); repo = list(map(basename, argv[2].split('\n'))); assert dist == repo, 'Incorrect set of bundled licenses!'; list(map(print, dist))" "$dist" "$repo"
 
 # Update documentation
 echo

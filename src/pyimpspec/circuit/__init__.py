@@ -42,16 +42,38 @@ from .parallel import Parallel
 from .series import Series
 from .resistor import Resistor
 from .capacitor import Capacitor
-from .inductor import Inductor
+from .inductor import (
+    Inductor,
+    ModifiedInductor,
+)
 from .constant_phase_element import ConstantPhaseElement
 from .gerischer import Gerischer
-from .havriliak_negami import HavriliakNegami
+from .havriliak_negami import (
+    HavriliakNegami,
+    HavriliakNegamiAlternative,
+)
 from .warburg import (
     Warburg,
     WarburgOpen,
     WarburgShort,
 )
 from .de_levie import DeLevieFiniteLength
+
+
+_ELEMENTS: List[Type[Element]] = [
+    Resistor,
+    Capacitor,
+    Inductor,
+    ModifiedInductor,
+    ConstantPhaseElement,
+    Warburg,
+    WarburgShort,
+    WarburgOpen,
+    DeLevieFiniteLength,
+    Gerischer,
+    HavriliakNegami,
+    HavriliakNegamiAlternative,
+]
 
 
 def get_elements() -> Dict[str, Type[Element]]:
@@ -62,24 +84,17 @@ def get_elements() -> Dict[str, Type[Element]]:
     -------
     Dict[str, Type[Element]]
     """
-    return {
+    elements: Dict[str, Type[Element]] = {
         _.get_symbol(): _
         for _ in sorted(
-            [
-                Resistor,
-                Capacitor,
-                Inductor,
-                ConstantPhaseElement,
-                Warburg,
-                WarburgShort,
-                WarburgOpen,
-                DeLevieFiniteLength,
-                Gerischer,
-                HavriliakNegami,
-            ],
+            _ELEMENTS,
             key=lambda _: _.get_symbol(),
         )
     }
+    assert len(elements) == len(
+        _ELEMENTS
+    ), "Two or more circuit elements have non-unique symbols!"
+    return elements
 
 
 def parse_cdc(cdc: str) -> Circuit:

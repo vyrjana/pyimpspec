@@ -18,6 +18,7 @@
 # the LICENSES folder.
 
 # This module uses Tikhonov regularization and either radial basis function or piecewise linear discretization
+# 10.1016/j.electacta.2015.09.097
 # pyDRTtools commit: 65ea54d9332a0c6594de852f0242a88e20ec4427
 
 from multiprocessing import (
@@ -1259,6 +1260,7 @@ def _calculate_drt_tr_rbf(
     progress.update_every_N_percent(0, total=3, message=progress_message)
     A_re: ndarray
     A_im: ndarray
+    i: int
     with Pool(2 if num_procs > 1 else 1) as pool:
         for i, res in enumerate(
             pool.imap(
@@ -1323,7 +1325,6 @@ def _calculate_drt_tr_rbf(
         ] = []
         progress_message = "Calculating DRT"
         progress.update_every_N_percent(0, message=progress_message)
-        i: int
         for i, res in enumerate(pool.imap_unordered(_lambda_process, args)):
             progress.update_every_N_percent(
                 i + 1,

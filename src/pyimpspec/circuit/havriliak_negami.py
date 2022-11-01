@@ -79,9 +79,9 @@ class HavriliakNegami(Element):
     def get_default_lower_limits() -> Dict[str, float]:
         return {
             "dC": 0.0,
-            "t": -inf,
-            "a": -inf,
-            "b": -inf,
+            "t": 0.0,
+            "a": 0.0,
+            "b": 0.0,
         }
 
     @staticmethod
@@ -89,8 +89,8 @@ class HavriliakNegami(Element):
         return {
             "dC": inf,
             "t": inf,
-            "a": inf,
-            "b": inf,
+            "a": 1.0,
+            "b": 1.0,
         }
 
     def impedance(self, f: float) -> complex:
@@ -120,4 +120,98 @@ class HavriliakNegami(Element):
 
     def _str_expr(self, substitute: bool = False) -> str:
         string: str = "(((1 + (I*2*pi*f*t)^a)^b) / (I*2*pi*f*dC))"
+        return self._subs_str_expr(string, self.get_parameters(), not substitute)
+
+
+class HavriliakNegamiAlternative(Element):
+    """
+    Havriliak-Negami relaxation (alternative form)
+
+        Symbol: Ha
+
+        Z = R / ((1 + (I*2*pi*f*t)^b)^g)
+
+        Variables
+        ---------
+        R: float = 1 (ohm)
+        t: float = 1.0 (s)
+        b: float = 0.7
+        g: float = 0.8
+    """
+
+    def __init__(self, **kwargs):
+        keys: List[str] = list(self.get_defaults().keys())
+        super().__init__(keys=keys)
+        self.reset_parameters(keys)
+        self.set_parameters(kwargs)
+
+    @staticmethod
+    def get_symbol() -> str:
+        return "Ha"
+
+    @staticmethod
+    def get_description() -> str:
+        return "Ha: Havriliak-Negami (alternative)"
+
+    @staticmethod
+    def get_defaults() -> Dict[str, float]:
+        return {
+            "R": 1.0,
+            "t": 1.0,
+            "b": 0.7,
+            "g": 0.8,
+        }
+
+    @staticmethod
+    def get_default_fixed() -> Dict[str, bool]:
+        return {
+            "R": False,
+            "t": False,
+            "b": False,
+            "g": False,
+        }
+
+    @staticmethod
+    def get_default_lower_limits() -> Dict[str, float]:
+        return {
+            "R": 0.0,
+            "t": 0.0,
+            "b": 0.0,
+            "g": 0.0,
+        }
+
+    @staticmethod
+    def get_default_upper_limits() -> Dict[str, float]:
+        return {
+            "R": inf,
+            "t": inf,
+            "b": 1.0,
+            "g": 1.0,
+        }
+
+    def impedance(self, f: float) -> complex:
+        return self._R / ((1 + (2 * pi * f * 1j * self._t) ** self._b) ** self._g)
+
+    def get_parameters(self) -> "OrderedDict[str, float]":
+        return OrderedDict(
+            {
+                "R": self._R,
+                "t": self._t,
+                "b": self._b,
+                "g": self._g,
+            }
+        )
+
+    def set_parameters(self, parameters: Dict[str, float]):
+        if "R" in parameters:
+            self._R = float(parameters["R"])
+        if "t" in parameters:
+            self._t = float(parameters["t"])
+        if "b" in parameters:
+            self._b = float(parameters["b"])
+        if "g" in parameters:
+            self._g = float(parameters["g"])
+
+    def _str_expr(self, substitute: bool = False) -> str:
+        string: str = "R/((1+(I*2*pi*f*t)^b)^g)"
         return self._subs_str_expr(string, self.get_parameters(), not substitute)

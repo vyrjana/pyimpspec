@@ -18,6 +18,7 @@
 # the LICENSES folder.
 
 # This module uses Tikhonov regularization and non-negative least squares
+# 10.1016/j.ssi.2016.10.009
 # DRT-python-code commit: 9663ed8b331f521a9fcdb0b58fb2b34693df938c
 
 from typing import (
@@ -110,16 +111,13 @@ def _calculate_drt_tr_nnls(
     delta_ln_tau[0] = 0.5 * (ln_tau[1] - ln_tau[0])
     delta_ln_tau[-1] = 0.5 * (ln_tau[-1] - ln_tau[-2])
     progress.update_every_N_percent(1, total=num_matrices, message=progress_message)
-    # Subtract the high-frequency resistance, which will be added back later,
-    # and then normalize the impedances.
+    # Normalize the impedances by:
+    # - subtracting the high-frequency resistance
+    # - dividing by the polarization resistance
     R_inf: float = Z[0].real
-    Z -= R_inf
-    R_pol: float = Z[-1].real - Z[0].real
-    Z_norm: ndarray = array(
-        list(map(lambda _: complex(_.real / R_pol, _.imag / R_pol), Z))
-    )
-    # Added back so that the residuals and chi-square calculations will be correct.
-    Z += R_inf
+    Z_norm: ndarray = Z - R_inf
+    R_pol: float = Z_norm[-1].real - Z_norm[0].real
+    Z_norm /= R_pol
     # Prepare matrices and vectors
     I: ndarray = identity(omega.size, dtype=int64)
     progress.update_every_N_percent(2, total=num_matrices, message=progress_message)

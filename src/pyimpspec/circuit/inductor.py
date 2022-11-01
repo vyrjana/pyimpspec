@@ -94,3 +94,81 @@ class Inductor(Element):
     def _str_expr(self, substitute: bool = False) -> str:
         string: str = "I*2*pi*f*L"
         return self._subs_str_expr(string, self.get_parameters(), not substitute)
+
+
+class ModifiedInductor(Element):
+    """
+    Modified inductor
+
+        Symbol: La
+
+        Z = L*(j*2*pi*f)^n
+
+        Variables
+        ---------
+        L: float = 1E-6 (H*s^(n-1))
+        n: float = 0.95
+    """
+
+    def __init__(self, **kwargs):
+        keys: List[str] = list(self.get_defaults().keys())
+        super().__init__(keys=keys)
+        self.reset_parameters(keys)
+        self.set_parameters(kwargs)
+
+    @staticmethod
+    def get_symbol() -> str:
+        return "La"
+
+    @staticmethod
+    def get_description() -> str:
+        return "La: Modified inductor"
+
+    @staticmethod
+    def get_defaults() -> Dict[str, float]:
+        return {
+            "L": 1e-6,
+            "n": 0.95,
+        }
+
+    @staticmethod
+    def get_default_fixed() -> Dict[str, bool]:
+        return {
+            "L": False,
+            "n": False,
+        }
+
+    @staticmethod
+    def get_default_lower_limits() -> Dict[str, float]:
+        return {
+            "L": 0.0,
+            "n": 0.0,
+        }
+
+    @staticmethod
+    def get_default_upper_limits() -> Dict[str, float]:
+        return {
+            "L": 1e3,
+            "n": 1.0,
+        }
+
+    def impedance(self, f: float) -> complex:
+        return self._L * (2 * pi * f * 1j) ** self._n
+
+    def get_parameters(self) -> "OrderedDict[str, float]":
+        return OrderedDict(
+            {
+                "L": self._L,
+                "n": self._n,
+            }
+        )
+
+    def set_parameters(self, parameters: Dict[str, float]):
+        if "L" in parameters:
+            self._L = float(parameters["L"])
+        if "n" in parameters:
+            self._n = float(parameters["n"])
+
+    def _str_expr(self, substitute: bool = False) -> str:
+        string: str = "L * (I*2*pi*f)^n"
+        return self._subs_str_expr(string, self.get_parameters(), not substitute)

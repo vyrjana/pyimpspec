@@ -68,7 +68,7 @@ class Capacitor(Element):
     @staticmethod
     def get_default_lower_limits() -> Dict[str, float]:
         return {
-            "C": 0.0,
+            "C": 1e-24,
         }
 
     @staticmethod

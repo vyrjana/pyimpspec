@@ -338,7 +338,7 @@ class TestFitting(TestCase):
         fit: FitResult = fit_circuit(circuit, DATA)
         self.assertEqual(
             fit.circuit.to_string(0),
-            "[R{R=1E+02/0E+00}(R{R=2E+02/0E+00}C{C=8E-07/0E+00/1E+03})(R{R=5E+02/0E+00}W{Y=4E-04/0E+00})]",
+            "[R{R=1E+02/0E+00}(R{R=2E+02/0E+00}C{C=8E-07/1E-24/1E+03})(R{R=5E+02/0E+00}W{Y=4E-04/0E+00})]",
         )
         param: FittedParameter = fit.parameters["R_0"]["R"]
         self.assertAlmostEqual(param.value, 1.00e2, delta=2e0)

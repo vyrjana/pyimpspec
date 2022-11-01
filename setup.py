@@ -15,7 +15,7 @@ for _, _, files in walk("LICENSES"):
     )
 
 dependencies = [
-    "cvxopt>=1.3.0",  # Used in the DRT calculations
+    "cvxopt>=1.3.0",  # Used in the DRT calculations (TR-RBF method)
     "lmfit>=1.0.3",  # Needed for performing non-linear fitting.
     "matplotlib>=3.5.2",  # Needed for the plotting module.
     "numpy>=1.23.1",
@@ -28,13 +28,22 @@ dependencies = [
     "tabulate>=0.8.10",  # Required by pandas to generate Markdown tables.
 ]
 
+with open("requirements.txt", "w") as fp:
+    fp.write("\n".join(dependencies))
+
+dev_dependencies = [
+    "flake8",
+    "setuptools",
+]
+
+with open("dev-requirements.txt", "w") as fp:
+    fp.write("\n".join(dev_dependencies))
+
 optional_dependencies = {
     "cvxpy": "cvxpy>=1.2.1",  # Used in the DRT calculations (TR-RBF method)
     "kvxopt": "kvxopt>=1.3.0",  # Fork of cvxopt that may provide wheels for additional platforms
+    "dev": dev_dependencies,
 }
-
-with open("requirements.txt", "w") as fp:
-    fp.write("\n".join(dependencies))
 
 data_files = [
     "COPYRIGHT",
@@ -44,7 +53,7 @@ data_files = [
 
 setup(
     name="pyimpspec",
-    version="3.1.3",
+    version="3.2.0",
     author="pyimpspec developers",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
