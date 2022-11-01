@@ -35,9 +35,11 @@ References:
 - Ciucci, F. and Chen, C., 2015, Electrochim. Acta, 167, 439-454 (https://doi.org/10.1016/j.electacta.2015.03.123)
 - Effat, M. B. and Ciucci, F., 2017, Electrochim. Acta, 247, 1117-1129 (https://doi.org/10.1016/j.electacta.2017.07.050)
 - Liu, J., Wan, T. H., and Ciucci, F., 2020, Electrochim. Acta, 357, 136864 (https://doi.org/10.1016/j.electacta.2020.136864)
+- Boukamp, B.A., 2015, Electrochim. Acta, 154, 35-46, (https://doi.org/10.1016/j.electacta.2014.12.059)
+- Boukamp, B.A. and Rolle, A, 2017, Solid State Ionics, 302, 12-18 (https://doi.org/10.1016/j.ssi.2016.10.009)
 
 ```python
-def calculate_drt(data: DataSet, method: str = "tr-nnls", mode: str = "complex", lambda_value: float = -1.0, rbf_type: str = "gaussian", derivative_order: int = 1, rbf_shape: str = "fwhm", shape_coeff: float = 0.5, inductance: bool = False, credible_intervals: bool = False, num_samples: int = 2000, num_attempts: int = 10, maximum_symmetry: float = 0.5, num_procs: int = -1) -> DRTResult:
+def calculate_drt(data: DataSet, method: str = "tr-nnls", mode: str = "complex", lambda_value: float = -1.0, rbf_type: str = "gaussian", derivative_order: int = 1, rbf_shape: str = "fwhm", shape_coeff: float = 0.5, inductance: bool = False, credible_intervals: bool = False, num_samples: int = 2000, num_attempts: int = 10, maximum_symmetry: float = 0.5, circuit: Optional[Circuit] = None, W: float = 0.15, num_per_decade: int = 100, num_procs: int = -1) -> DRTResult:
 ```
 
 
@@ -46,6 +48,7 @@ _Parameters_
 - `data`: The data set to use in the calculations.
 - `method`: Valid values include:
     - "bht": Bayesian Hilbert Transform
+    - "m(RQ)fit": m(RQ)fit for calculating the DRT based on a fitted circuit
     - "tr-nnls": Tikhonov regularization with non-negative least squares
     - "tr-rbf": Tikhonov regularization with radial basis function discretization
 - `mode`: Which parts of the data are to be included in the calculations.
@@ -92,6 +95,16 @@ A high degree of symmetry is common for results where the gamma value oscillates
 A low value for the limit should improve the results but may cause the "bht" method to take longer to finish.
 This limit is only used in the "tr-rbf" method when the regularization parameter (lambda) is not provided.
 Used by the "bht" and "tr-rbf" methods.
+- `circuit`: A circuit that contains one or more "(RQ)" or "(RC)" elements connected in series.
+An optional series resistance may also be included.
+For example, a circuit with a CDC representation of "R(RQ)(RQ)(RC)" would be a valid circuit.
+It is highly recommended that the provided circuit has already been fitted.
+However, if all of the various parameters of the provided circuit are at their default values, then an attempt will be made to fit the circuit to the data.
+Used by the "m(RQ)fit" method.
+- `W`: The width of the Gaussian curve that is used to approximate the DRT of an "(RC)" element.
+Used by the "m(RQ)fit" method.
+- `num_per_decade`: The number of points per decade to use when calculating a DRT.
+Used by the "m(RQ)fit" method.
 - `num_procs`: The maximum number of processes to use.
 A value below one results in using the total number of CPU cores present.
 
