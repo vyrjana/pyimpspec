@@ -46,7 +46,7 @@ if __name__ == "__main__":
     root_folder: str = join(output_dir, "documentation")
     if not exists(root_folder):
         makedirs(root_folder)
-    # PDF
+    # Markdown
     write_file(
         join(root_folder, "API.md"),
         process(
