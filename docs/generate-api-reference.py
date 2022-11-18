@@ -38,18 +38,19 @@ permalink: /api/{link}/
 
 
 if __name__ == "__main__":
+    version: str = ""
+    with open(join(dirname(dirname(__file__)), "version.txt"), "r") as fp:
+        version = fp.read().strip()
+    assert version.strip() != ""
     output_dir: str = dirname(__file__)
+    root_folder: str = join(output_dir, "documentation")
+    if not exists(root_folder):
+        makedirs(root_folder)
     # PDF
     write_file(
-        join(output_dir, "API.md"),
-        r"""---
-header-includes:
-    \usepackage{geometry}
-    \geometry{a4paper, margin=2.5cm}
----
-"""
-        + process(
-            title="pyimpspec - API reference",
+        join(root_folder, "API.md"),
+        process(
+            title=f"pyimpspec - API reference ({version})",
             modules_to_document=[
                 pyimpspec,
                 pyimpspec.plot.mpl,
@@ -73,13 +74,10 @@ header-includes:
                 pyimpspec.WarburgShort,
                 pyimpspec.DeLevieFiniteLength,
             ],
-            latex_pagebreak=True,
+            latex_pagebreak=False,
         ),
     )
     # Jekyll
-    root_folder: str = join(output_dir, "documentation")
-    if not exists(root_folder):
-        makedirs(root_folder)
     root_url: str = "https://vyrjana.github.io/pyimpspec/api"
     # - index
     write_file(
@@ -93,6 +91,7 @@ permalink: /api/
 ## API documentation
 
 Check out [this Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main/examples/examples.ipynb) for examples of how to use the various functions and classes.
+A single Markdown file of the API reference is available [here](https://raw.githubusercontent.com/vyrjana/pyimpspec/gh-pages/documentation/API.md).
 
 - [High-level functions]({root_url}/high-level-functions)
 - [Data set]({root_url}/data-set)
