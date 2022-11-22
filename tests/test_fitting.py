@@ -384,7 +384,13 @@ class TestFitting(TestCase):
             )
             i += 1
         # LaTeX table
-        lines = fit.to_dataframe().to_latex().split("\n")
+        lines = (
+            fit.to_dataframe()
+            .style.format(precision=8)
+            .format_index(axis="columns", escape="latex")
+            .to_latex(hrules=True)
+            .split("\n")
+        )
         self.assertEqual(lines.pop(0), r"\begin{tabular}{lllrrl}")
         self.assertEqual(lines.pop(0), r"\toprule")
         line = lines.pop(0)

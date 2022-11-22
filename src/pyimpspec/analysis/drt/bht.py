@@ -26,7 +26,10 @@ from multiprocessing import (
     Pool,
     cpu_count,
 )
-from os import devnull
+from os import (
+    devnull,
+    environ,
+)
 from typing import (
     Callable,
     IO,
@@ -35,6 +38,7 @@ from typing import (
     Tuple,
 )
 from numpy import (
+    __config__ as numpy_config,
     array,
     diag,
     empty_like,
@@ -572,6 +576,17 @@ def _hilbert_transform_process(
         return None
 
 
+def _get_default_num_procs() -> int:
+    libraries: List[str] = list(map(str.lower, dir(numpy_config)))
+    if any(map(lambda _: "openblas" in _, libraries)):
+        if int(environ.get("OPENBLAS_NUM_THREADS", -1)) == -1:
+            return 1
+    elif any(map(lambda _: "mkl" in _, libraries)):
+        if int(environ.get("MKL_NUM_THREADS", -1)) == -1:
+            return 1
+    return cpu_count()
+
+
 def _calculate_drt_bht(
     data: DataSet,
     rbf_type: str,
@@ -612,7 +627,7 @@ def _calculate_drt_bht(
     ), maximum_symmetry
     assert issubdtype(type(num_procs), integer), num_procs
     if num_procs < 1:
-        num_procs = cpu_count()
+        num_procs = _get_default_num_procs()
     f: ndarray = data.get_frequency()
     Z: ndarray = data.get_impedance()
     tau: ndarray = 1 / f

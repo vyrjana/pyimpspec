@@ -1,3 +1,8 @@
+# 3.2.1
+
+- Fixed the BHT method (DRT analysis) so that it works properly when `num_procs` is set to greater than one and NumPy is using OpenBLAS.
+
+
 # 3.2.0
 
 - Added support for calculating the distribution of relaxation times using the `m(RQ)fit` method.
