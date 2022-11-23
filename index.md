@@ -27,6 +27,26 @@ Check out [this Jupyter notebook](https://github.com/vyrjana/pyimpspec/blob/main
 Check out [DearEIS](https://vyrjana.github.io/DearEIS/), which is based on pyimpspec, if you would prefer to use a program with a graphical user interface (GUI).
 
 
+![Kramers-Kronig example](assets/images/kk-example.svg)
+
+Figure: Example of the included visualization of exploratory Kramers-Kronig testing. The testing was performed using the complex form of the [linear Kramers-Kronig test](https://doi.org/10.1149/1.2044210) and a tweaked version of [an algorithm](https://doi.org/10.1016/j.electacta.2014.01.034) for determining an appropriate number of parallel RC circuits to use. The impedance spectrum corresponds to test circuit 1 from [this article](https://doi.org/10.1149/1.2044210).
+
+
+![Distribution of relaxation times example](assets/images/drt-example.svg)
+
+Figure: Example of the included visualization of the distribution of relaxation times (DRT). The DRT was calculated using the multi-(RQ)-fit method described in these articles: [Boukamp (2015)](https://doi.org/10.1016/j.electacta.2014.12.059) and [Boukamp & Rolle (2017)](https://doi.org/10.1016/j.ssi.2016.10.009). The impedance spectrum corresponds to test circuit 1 from [this article](https://doi.org/10.1149/1.2044210).
+
+
+![Equivalent circuit fitting example](assets/images/fit-example.svg)
+
+Figure: Example of the included visualization of a fitted equivalent circuit. The impedance spectrum corresponds to test circuit 1 from [this article](https://doi.org/10.1149/1.2044210).
+
+
+![Circuit diagram](assets/images/circuit-diagram.svg)
+
+Figure: Example of a circuit diagram that was generated for the circuit that was fitted in the previous figure.
+
+
 ## Recent news
 
 <ul>
