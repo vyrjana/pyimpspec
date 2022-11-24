@@ -46,11 +46,19 @@ if __name__ == "__main__":
     root_folder: str = join(output_dir, "documentation")
     if not exists(root_folder):
         makedirs(root_folder)
+    multiprocessing_disclaimer: str = """
+**NOTE!** The API makes use of multiple processes where possible to perform tasks in parallel. Functions that implement this parallelization have a `num_procs` keyword argument that can be used to override the maximum number of processes allowed. Using this keyword argument should not be necessary for most users under most circumstances.
+
+If NumPy is linked against a multithreaded linear algebra library like OpenBLAS or MKL, then this may in some circumstances result in unusually poor performance despite heavy CPU utilization. It may be possible to remedy the issue by specifying a lower number of processes via the `num_procs` keyword argument and/or limiting the number of threads that, e.g., OpenBLAS should use by setting the appropriate environment variable (e.g., `OPENBLAS_NUM_THREADS`). Again, this should not be necessary for most users and reporting this as an issue to the pyimpspec or DearEIS repository on GitHub would be preferred.
+"""
     # Markdown
     write_file(
         join(root_folder, "API.md"),
         process(
             title=f"pyimpspec - API reference ({version})",
+            description=f"""
+{multiprocessing_disclaimer}
+""".strip(),
             modules_to_document=[
                 pyimpspec,
                 pyimpspec.plot.mpl,
@@ -104,6 +112,9 @@ A single Markdown file of the API reference is available [here](https://raw.gith
 - [Fitting]({root_url}/fitting)
 - Plotting
   - [matplotlib]({root_url}/plot-mpl)
+
+{multiprocessing_disclaimer}
+
 """,
     )
     # - main module
