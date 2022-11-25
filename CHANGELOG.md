@@ -1,3 +1,8 @@
+# 3.2.2
+
+- Updated the .mpt parser to handle files without a metadata section.
+
+
 # 3.2.1
 
 - Fixed the BHT method (DRT analysis) so that it works properly when `num_procs` is set to greater than one and NumPy is using OpenBLAS.

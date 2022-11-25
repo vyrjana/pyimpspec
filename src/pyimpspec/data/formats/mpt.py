@@ -48,7 +48,6 @@ def parse_mpt(path: str) -> DataSet:
         lines: List[str] = list(
             filter(lambda _: _ != "", map(str.lower, map(str.strip, fp.readlines())))
         )
-    assert lines.pop(0) == "ec-lab ascii file"
     while lines:
         line: str = lines.pop(0)
         if line.startswith("freq/hz"):
