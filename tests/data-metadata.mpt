@@ -1,3 +1,70 @@
+EC-Lab ASCII FILE
+Nb header lines : 68                          
+
+Potentio Electrochemical Impedance Spectroscopy
+
+Run on channel : 1 (SN SERIAL)
+User : 
+Electrode connection : standard
+Ewe ctrl range : min = 00.00 V, max = 00.00 V
+Ewe,I filtering : 00 kHz
+Safety Limits :
+	Do not start on E overload
+Channel : Grounded
+Acquisition started on : DD/MM/YYYY HH:MM:SS
+Technique started on : DD/MM/YYYY HH:MM:SS
+Saved on :
+	File : test_data.mpr
+	Directory : C:\Users\user\Documents\EIS_data\
+	Host : 127.0.0.1
+Device : MODEL (SN SERIAL)
+Address : USB
+EC-Lab for windows v11.33 (software)
+Internet server v11.32 (firmware)
+Command interpretor v11.33 (firmware)
+Electrode material : 
+Initial state : 
+Electrolyte : 
+Comments : 
+Cable : standard
+Reference electrode : REFERENCE ELECTRODE
+Electrode surface area : 0.000 cm²
+Characteristic mass : 0.000 g
+Equivalent Weight : 0.000 g/eq.
+Density : 0.000 g/cm3
+Record Ece
+Text export
+   Mode : Standard
+   Time format : Elapsed
+Cycle Definition : Charge/Discharge alternance
+Mode                Single sine         
+E (V)               0.0000              
+vs.                 Emeas               
+tE (h:m:s)          0:00:0.0000         
+record              0                   
+dI                  0.000               
+unit dI             mA                  
+dt (s)              0.000               
+fi                  10.000             
+unit fi             kHz                 
+ff                  1.000               
+unit ff             Hz                  
+Nd                  7                   
+Points              per decade          
+spacing             Logarithmic         
+Va (mV)             00.0                
+pw                  0.00                
+Na                  0                   
+corr                0                   
+E range min (V)     00.000             
+E range max (V)     00.000              
+I Range             0 A                 
+Bandwidth           0                   
+nc cycles           0                   
+goto Ns'            0                   
+nr cycles           0                   
+inc. cycle          0                   
+
 freq/Hz	Re(Z)/Ohm	-Im(Z)/Ohm	|Z|/Ohm	Phase(Z)/deg	time/s	<Ewe>/V	<I>/mA	Cs/µF	Cp/µF	cycle number	I Range	|Ewe|/V	|I|/A	(Q-Qo)/mA.h	<Ece>/V	|Ece|/V	Phase(Zce)/deg	|Zce|/Ohm	Re(Zce)/Ohm	-Im(Zce)/Ohm	Phase(Zwe-ce)/deg	|Zwe-ce|/Ohm	Re(Zwe-ce)/Ohm	-Im(Zwe-ce)/Ohm	Re(Y)/Ohm-1	Im(Y)/Ohm-1	|Y|/Ohm-1	Phase(Y)/deg	dq/mA.h	
 1.0000000E+04	1.0900918E+02	2.6555680E+01	0.0000000E+00	0.0000000E+00	0.000000000000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.000000000000000E+00	0	0.0000000E+00	0.0000000E+00	0.000000000000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.000000000000000E+00
 7.1968567E+03	1.1205776E+02	3.5166226E+01	0.0000000E+00	0.0000000E+00	0.000000000000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.000000000000000E+00	0	0.0000000E+00	0.0000000E+00	0.000000000000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.0000000E+00	0.000000000000000E+00
