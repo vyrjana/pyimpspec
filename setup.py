@@ -45,7 +45,7 @@ data_files = [
     "LICENSES/README.md",
 ] + licenses
 
-version = "3.2.2"
+version = "3.2.3"
 
 if __name__ == "__main__":
     with open("requirements.txt", "w") as fp:
