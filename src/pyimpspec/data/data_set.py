@@ -690,20 +690,31 @@ def dataframe_to_dataset(df: DataFrame, path: str, label: str = "") -> DataSet:
     magnitude: List[float] = []
     phase: Union[List[float], ndarray] = []
     for row in df.values:
-        frequency.append(row[column_indices["frequency"]])
+        f: float = row[column_indices["frequency"]]
+        if type(f) is str:
+            f = float(row[column_indices["frequency"]].replace(",", "."))
+        frequency.append(f)
         if "real" in column_indices and "imaginary" in column_indices:
             re: float = row[column_indices["real"]]
+            if type(re) is str:
+                re = float(row[column_indices["real"]].replace(",", "."))
             if negative_columns["real"]:
                 re *= -1
             real.append(re)
             im: float = row[column_indices["imaginary"]]
+            if type(im) is str:
+                im = float(row[column_indices["imaginary"]].replace(",", "."))
             if negative_columns["imaginary"]:
                 im *= -1
             imaginary.append(im)
         elif "magnitude" in column_indices and "phase" in column_indices:
             mag: float = row[column_indices["magnitude"]]
+            if type(mag) is str:
+                mag = float(row[column_indices["magnitude"]].replace(",", "."))
             magnitude.append(mag)
             phi: float = row[column_indices["phase"]]
+            if type(phi) is str:
+                phi = float(row[column_indices["phase"]].replace(",", "."))
             if negative_columns["phase"]:
                 phi *= -1
             phase.append(phi)  # type: ignore

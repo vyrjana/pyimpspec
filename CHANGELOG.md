@@ -2,6 +2,7 @@
 
 - Updated the `parse_data` function to try other parsers when the parser that was chosen based on the file extension fails.
 - Updated parsing of data stored as CSV.
+- Improved support for files containing data with decimal commas.
 
 
 # 3.2.2
