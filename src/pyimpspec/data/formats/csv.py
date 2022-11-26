@@ -18,6 +18,7 @@
 # the LICENSES folder.
 
 from os.path import exists
+from typing import List
 from pyimpspec.data.data_set import (
     DataSet,
     dataframe_to_dataset,
@@ -42,5 +43,20 @@ def parse_csv(path: str, **kwargs) -> DataSet:
     DataSet
     """
     assert type(path) is str and exists(path)
-    df: DataFrame = read_csv(path, engine="python", **kwargs)
+    df: DataFrame
+    try:
+        df = read_csv(path, engine="python", **kwargs)
+    except UnicodeDecodeError:
+        kwargs["encoding"] = "latin-1"
+        df = read_csv(path, engine="python", **kwargs)
+    if len(df.columns) == 1:
+        separators: List[str] = [
+            "\t",
+            " ",
+            ";",
+            ",",
+        ]
+        while len(df.columns) == 1:
+            kwargs["sep"] = separators.pop(0)
+            df = read_csv(path, engine="python", **kwargs)
     return dataframe_to_dataset(df, path=path)

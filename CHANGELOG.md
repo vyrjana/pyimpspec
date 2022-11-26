@@ -1,6 +1,7 @@
 # 3.2.3
 
 - Updated the `parse_data` function to try other parsers when the parser that was chosen based on the file extension fails.
+- Updated parsing of data stored as CSV.
 
 
 # 3.2.2
