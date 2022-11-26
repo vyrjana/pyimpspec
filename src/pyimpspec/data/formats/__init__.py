@@ -75,6 +75,28 @@ def is_spreadsheet(path: str = "", extension: str = "") -> bool:
     ]
 
 
+def _brute_force(path: str, **kwargs) -> List[DataSet]:
+    data_sets: List[DataSet] = []
+    parsers: List[Callable] = [
+        lambda _, **k: parse_csv(_, sep=None, decimal=",", **k),
+    ] + list(set(get_parsers().values()))
+    parsed_data: bool = False
+    for parser in parsers:
+        try:
+            result = parser(path, **kwargs)
+            if type(result) is list:
+                data_sets.extend(result)
+            else:
+                data_sets.append(result)
+            parsed_data = True
+            break
+        except Exception:
+            pass
+    if not parsed_data:
+        raise UnsupportedFileFormat(f"Unknown/malformed file format: {path}")
+    return data_sets
+
+
 def parse_data(
     path: str,
     file_format: Optional[str] = None,
@@ -129,29 +151,16 @@ def parse_data(
                 except AssertionError:
                     data = func(path, sep=None, decimal=",", **kwargs)
             else:
-                data = func(path, **kwargs)
+                try:
+                    data = func(path, **kwargs)
+                except Exception:
+                    data = _brute_force(path)
             if type(data) is list:
                 data_sets.extend(data)
             else:
                 data_sets.append(data)  # type: ignore
     else:
-        parsers: List[Callable] = [
-            lambda _, **kwargs: parse_csv(_, sep=None, decimal=",", **kwargs),
-        ] + list(set(get_parsers().values()))
-        parsed_data: bool = False
-        for parser in parsers:
-            try:
-                result = parser(path, **kwargs)
-                if type(result) is list:
-                    data_sets.extend(result)
-                else:
-                    data_sets.append(result)
-                parsed_data = True
-                break
-            except Exception:
-                pass
-        if not parsed_data:
-            raise UnsupportedFileFormat(f"Unknown/malformed file format: {path}")
+        data_sets.extend(_brute_force(path, **kwargs))
     assert type(data_sets) is list, data_sets
     assert len(data_sets) > 0, data_sets
     assert all(map(lambda _: isinstance(_, DataSet), data_sets)), data_sets
