@@ -1,4 +1,4 @@
-# pyimpspec - API reference (3.2.1)
+# pyimpspec - API reference (3.2.2)
 
 **NOTE!** The API makes use of multiple processes where possible to perform tasks in parallel. Functions that implement this parallelization have a `num_procs` keyword argument that can be used to override the maximum number of processes allowed. Using this keyword argument should not be necessary for most users under most circumstances.
 
