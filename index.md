@@ -65,8 +65,21 @@ Figure: Example of a circuit diagram that was generated for the circuit that was
 ### Requirements
 
 - [Python (version 3.8 or later)](https://www.python.org/)
+- The following Python packages
+	- [cvxopt](https://github.com/cvxopt/cvxopt)
+	- [lmfit](https://lmfit.github.io/lmfit-py/)
+	- [matplotlib](https://matplotlib.org/)
+	- [numpy](https://numpy.org/)
+	- [odfpy](https://github.com/eea/odfpy)
+	- [openpyxl](https://openpyxl.readthedocs.io/en/stable/)
+	- [pandas](https://pandas.pydata.org/)
+	- [schemdraw](https://bitbucket.org/cdelker/schemdraw)
+	- [scipy](https://github.com/scipy/scipy)
+	- [sympy](https://www.sympy.org/en/index.html)
+	- [tabulate](https://github.com/astanin/python-tabulate)
 
-Check the GitHub repository for more information about the required and optional dependencies.
+These Python packages (and their dependencies) are installed automatically when pyimpspec is installed using [pip](https://pip.pypa.io/en/stable/).
+Check the [GitHub repository](https://github.com/vyrjana/pyimpspec#requirements) for more information about the required and optional dependencies.
 
 
 ### Supported platforms
