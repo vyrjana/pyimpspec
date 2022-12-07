@@ -177,26 +177,58 @@ class TestKramersKronig(TestCase):
         test: TestResult = perform_test(DATA)
         self.assertTrue(type(test) is TestResult)
         self.assertEqual(test.num_RC, 2)
-        self.assertAlmostEqual(test.mu, 0.8465317822199895)
-        self.assertAlmostEqual(test.pseudo_chisqr, 5.170991769675877)
+        self.assertAlmostEqual(
+            test.mu,
+            0.8465317822199895,
+            delta=2e-4,
+        )
+        self.assertAlmostEqual(
+            test.pseudo_chisqr,
+            5.170991769675877,
+            delta=2e-4,
+        )
         self.assertEqual(test.circuit.to_string(), "[RKKL]")
         # real
         test = perform_test(DATA, test="real")
         self.assertEqual(test.num_RC, 15)
-        self.assertAlmostEqual(test.mu, 0.8351972078416112)
-        self.assertAlmostEqual(test.pseudo_chisqr, 0.0022502074349343235)
+        self.assertAlmostEqual(
+            test.mu,
+            0.8351972078416112,
+            delta=2e-4,
+        )
+        self.assertAlmostEqual(
+            test.pseudo_chisqr,
+            0.0022502074349343235,
+            delta=2e-4,
+        )
         self.assertEqual(test.circuit.to_string(), "[RKKKKKKKKKKKKKKKL]")
         # imaginary
         test = perform_test(DATA, test="imaginary")
         self.assertEqual(test.num_RC, 2)
-        self.assertAlmostEqual(test.mu, 0.7634133056991227)
-        self.assertAlmostEqual(test.pseudo_chisqr, 5.397326608733074)
+        self.assertAlmostEqual(
+            test.mu,
+            0.7634133056991227,
+            delta=2e-4,
+        )
+        self.assertAlmostEqual(
+            test.pseudo_chisqr,
+            5.397326608733074,
+            delta=2e-4,
+        )
         self.assertEqual(test.circuit.to_string(), "[RKKL]")
         # cnls
         test = perform_test(DATA, test="cnls", max_nfev=1000)
         self.assertEqual(test.num_RC, 14)
-        self.assertAlmostEqual(test.mu, 0.8309531383631978)
-        self.assertAlmostEqual(test.pseudo_chisqr, 0.0013382040618625823)
+        self.assertAlmostEqual(
+            test.mu,
+            0.8309531383631978,
+            delta=2e-4,
+        )
+        self.assertAlmostEqual(
+            test.pseudo_chisqr,
+            0.0013382040618625823,
+            delta=2e-4,
+        )
         self.assertEqual(test.circuit.to_string(), "[RKKKKKKKKKKKKKK]")
 
     def test_02_add_capacitance(self):
@@ -286,27 +318,65 @@ class TestKramersKronig(TestCase):
         test_single_thread: TestResult = perform_test(DATA, num_procs=1)
         test_multithreaded: TestResult = perform_test(DATA, num_procs=2)
         self.assertEqual(test_single_thread.num_RC, 2)
-        self.assertAlmostEqual(test_single_thread.mu, 0.8465317822199895)
-        self.assertAlmostEqual(test_single_thread.pseudo_chisqr, 5.170991769675877)
+        self.assertAlmostEqual(
+            test_single_thread.mu,
+            0.8465317822199895,
+            delta=2e-4,
+        )
+        self.assertAlmostEqual(
+            test_single_thread.pseudo_chisqr,
+            5.170991769675877,
+            delta=2e-4,
+        )
         self.assertEqual(test_single_thread.circuit.to_string(), "[RKKL]")
         self.assertEqual(test_multithreaded.num_RC, 2)
-        self.assertAlmostEqual(test_multithreaded.mu, 0.8465317822199895)
-        self.assertAlmostEqual(test_multithreaded.pseudo_chisqr, 5.170991769675877)
+        self.assertAlmostEqual(
+            test_multithreaded.mu,
+            0.8465317822199895,
+            delta=2e-4,
+        )
+        self.assertAlmostEqual(
+            test_multithreaded.pseudo_chisqr,
+            5.170991769675877,
+            delta=2e-4,
+        )
         self.assertEqual(test_multithreaded.circuit.to_string(), "[RKKL]")
         # cnls
         test_single_thread: TestResult = perform_test(
-            DATA, test="cnls", num_procs=1, max_nfev=1000
+            DATA,
+            test="cnls",
+            num_procs=1,
+            max_nfev=1000,
         )
         test_multithreaded: TestResult = perform_test(
-            DATA, test="cnls", num_procs=2, max_nfev=1000
+            DATA,
+            test="cnls",
+            num_procs=2,
+            max_nfev=1000,
         )
         self.assertEqual(test_single_thread.num_RC, 14)
-        self.assertAlmostEqual(test_single_thread.mu, 0.8309531383631978)
-        self.assertAlmostEqual(test_single_thread.pseudo_chisqr, 0.0013382040618625823)
+        self.assertAlmostEqual(
+            test_single_thread.mu,
+            0.8309531383631978,
+            delta=2e-4,
+        )
+        self.assertAlmostEqual(
+            test_single_thread.pseudo_chisqr,
+            0.0013382040618625823,
+            delta=2e-4,
+        )
         self.assertEqual(test_single_thread.circuit.to_string(), "[RKKKKKKKKKKKKKK]")
         self.assertEqual(test_multithreaded.num_RC, 14)
-        self.assertAlmostEqual(test_multithreaded.mu, 0.8309531383631978)
-        self.assertAlmostEqual(test_multithreaded.pseudo_chisqr, 0.0013382040618625823)
+        self.assertAlmostEqual(
+            test_multithreaded.mu,
+            0.8309531383631978,
+            delta=2e-4,
+        )
+        self.assertAlmostEqual(
+            test_multithreaded.pseudo_chisqr,
+            0.0013382040618625823,
+            delta=2e-4,
+        )
         self.assertEqual(test_single_thread.circuit.to_string(), "[RKKKKKKKKKKKKKK]")
 
     def test_08_exploratory(self):
