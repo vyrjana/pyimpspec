@@ -80,7 +80,7 @@ These Python packages (and their dependencies) are installed automatically when 
 
 The following Python packages can be installed as optional dependencies for additional functionality:
 
-- DRT calculations using the TR-RBF method (see [DOI:10.1016/j.electacta.2015.09.097](https://doi.org/10.1016/j.electacta.2015.09.097))
+- Alternatives to cvxopt in DRT calculations using the [TR-RBF method](https://doi.org/10.1016/j.electacta.2015.09.097)
 	- [kvxopt](https://github.com/sanurielf/kvxopt): convex optimization
 		- This fork of cvxopt may support additional platforms (e.g., Apple Silicon hardware like M1).
 	- [cvxpy](https://github.com/cvxpy/cvxpy): convex optimization
@@ -102,7 +102,7 @@ Pyimpspec should now be importable in, e.g., Python scripts and Jupyter notebook
 If you wish to install the optional dependencies, then they must be specified explicitly when installing pyimpspec:
 
 ```
-pip install pyimpspec[cvxopt]
+pip install pyimpspec[cvxpy]
 ```
 
 Newer versions of pyimpspec can be installed at a later date by adding the `--upgrade` option to the command:
