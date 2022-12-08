@@ -27,7 +27,7 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 
 ## About
 
-pyimpspec is a Python package that provides an application programming interface (API) for working with impedance spectra.
+Pyimpspec is a Python package that provides an application programming interface (API) for working with impedance spectra.
 The target audience is researchers who use electrochemical impedance spectroscopy (EIS).
 Those looking for a program with a graphical user interface may wish to instead use [DearEIS](https://github.com/vyrjana/DearEIS), which is based on pyimpspec.
 
@@ -35,8 +35,9 @@ The API of pyimpspec implements the functionality required to:
 
 - read certain data formats and parse the experimental data contained within
 - validate impedance spectra by checking if the data is Kramers-Kronig transformable
-- construct circuits by parsing a circuit description code
-- extract quantitative data from an impedance spectrum through complex non-linear least squares fitting of a circuit
+- construct circuits by, e.g., parsing a circuit description code
+- calculate the distribution of relaxation times (DRT) in an imepdance spectrum
+- extract quantitative data from an impedance spectrum through complex non-linear least squares fitting of an equivalent circuit
 - simulate the impedance response of circuits
 - perform basic visualization of impedance spectra and test/fit/simulation results
 
@@ -49,6 +50,15 @@ If you encounter issues, then please open an issue on [GitHub](https://github.co
 
 
 ## Getting started
+
+### Supported platforms
+
+- Linux
+- Windows
+- MacOS
+
+The package **may** also work on other platforms depending on whether or not those platforms are supported by pyimpspec's [dependencies](setup.py).
+
 
 ### Requirements
 
@@ -70,17 +80,11 @@ These Python packages (and their dependencies) are installed automatically when 
 
 The following Python packages can be installed as optional dependencies for additional functionality:
 
-- [cvxpy](https://github.com/cvxpy/cvxpy): convex optimization
-	- **IMPORTANT!** Windows and MacOS users must follow the steps described in [the CVXPY documentation](https://www.cvxpy.org/install/index.html) before installing this optional dependency!
-- [kvxopt](https://github.com/sanurielf/kvxopt): convex optimization
-	- This fork of cvxopt may support additional platforms (e.g., Apple Silicon hardware like M1).
-
-
-If you wish to make use of these, then they must be specified explicitly when installing pyimpspec:
-
-```
-pip install pyimpspec[cvxpy]
-```
+- DRT calculations using the TR-RBF method (see [DOI:10.1016/j.electacta.2015.09.097](https://doi.org/10.1016/j.electacta.2015.09.097))
+	- [kvxopt](https://github.com/sanurielf/kvxopt): convex optimization
+		- This fork of cvxopt may support additional platforms (e.g., Apple Silicon hardware like M1).
+	- [cvxpy](https://github.com/cvxpy/cvxpy): convex optimization
+		- **IMPORTANT!** Windows and MacOS users must follow the steps described in [the CVXPY documentation](https://www.cvxpy.org/install/index.html) before installing this optional dependency!
 
 
 ### Installing
@@ -92,7 +96,14 @@ Make sure that Python and pip are installed first and then type the following co
 pip install pyimpspec
 ```
 
-pyimpspec should now be importable in, e.g., Python scripts and Jupyter notebooks.
+Pyimpspec should now be importable in, e.g., Python scripts and Jupyter notebooks.
+**NOTE!** You may wish use the `--user` option when installing with pip without using a virtual environment.
+
+If you wish to install the optional dependencies, then they must be specified explicitly when installing pyimpspec:
+
+```
+pip install pyimpspec[cvxopt]
+```
 
 Newer versions of pyimpspec can be installed at a later date by adding the `--upgrade` option to the command:
 
@@ -100,20 +111,12 @@ Newer versions of pyimpspec can be installed at a later date by adding the `--up
 pip install --upgrade pyimpspec
 ```
 
-Supported platforms:
-
-- Linux
-- Windows
-- MacOS
-
-The package **may** also work on other platforms depending on whether or not those platforms are supported by pyimpspec's [dependencies](setup.py).
-
 
 ## Features
 
 ### Circuits
 
-pyimpspec supports the creation of `Circuit` objects, which can be used to simulate impedance spectra or to extract information from experimental data by means of complex non-linear least squares (CNLS) fitting.
+Pyimpspec supports the creation of `Circuit` objects, which can be used to simulate impedance spectra or to extract information from experimental data by means of complex non-linear least squares (CNLS) fitting.
 The recommended way to create circuits is by letting pyimpspec parse a circuit description code (CDC).
 An extended CDC syntax, which makes it possible to define, e.g., initial values, is also supported.
 `Circuit` objects also have additional features such as generation of LaTeX source for drawing circuit diagrams (requires `\usepackage{circuitikz}` in the header of the LaTeX document).
@@ -200,7 +203,7 @@ The results are contained in a `DRTResult` object that includes at least the fol
 
 ### Plotting
 
-pyimpspec includes functions for visualizing `Circuit`, `DataSet`, `TestResult`, `DRTResult`, and `FitResult` objects.
+Pyimpspec includes functions for visualizing `Circuit`, `DataSet`, `TestResult`, `DRTResult`, and `FitResult` objects.
 The only backend that is currently supported is matplotlib.
 The functions offer some room for customization of the figures, but they are primarily intended for quick visualization.
 
@@ -236,6 +239,6 @@ See [CONTRIBUTORS](CONTRIBUTORS) for a list of people who have contributed to th
 
 Copyright 2022 pyimpspec developers
 
-pyimpspec is licensed under the [GPLv3 or later](https://www.gnu.org/licenses/gpl-3.0.html).
+Pyimpspec is licensed under the [GPLv3 or later](https://www.gnu.org/licenses/gpl-3.0.html).
 
 The licenses of pyimpspec's dependencies and/or sources of portions of code are included in the LICENSES folder.

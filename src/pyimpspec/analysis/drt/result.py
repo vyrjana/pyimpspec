@@ -200,7 +200,7 @@ class DRTResult:
         if include_frequency is True:
             dictionary["f (Hz)" if not latex_labels else r"$f$ (Hz)"] = f
         dictionary[
-            "gamma (ohms)" if not latex_labels else r"$\gamma\ (\Omega)$"
+            "gamma (ohm)" if not latex_labels else r"$\gamma\ (\Omega)$"
         ] = gamma
         return DataFrame.from_dict(dictionary)
 

@@ -15,27 +15,28 @@ for _, _, files in walk("LICENSES"):
     )
 
 dependencies = [
-    "cvxopt>=1.3.0",  # Used in the DRT calculations (TR-RBF method)
-    "lmfit>=1.0.3",  # Needed for performing non-linear fitting.
-    "matplotlib>=3.5.2",  # Needed for the plotting module.
-    "numpy>=1.23.1",
-    "odfpy>=1.4.1",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
-    "openpyxl>=3.0.10",  # Needed by pandas for parsing newer Excel files (.xlsx).
-    "pandas>=1.4.3",  # Needed for dealing with various file formats.
-    "schemdraw>=0.13",  # Needed to draw circuit diagrams
-    "scipy>=1.9.0",  # Used in the DRT calculations
-    "sympy>=1.10.1",  # Used to generate expressions for circuits
-    "tabulate>=0.8.10",  # Required by pandas to generate Markdown tables.
+    "cvxopt~=1.3",  # Used in the DRT calculations (TR-RBF method)
+    "lmfit~=1.0",  # Needed for performing non-linear fitting.
+    "matplotlib~=3.5",  # Needed for the plotting module.
+    "numpy~=1.23",
+    "odfpy~=1.4",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
+    "openpyxl~=3.0",  # Needed by pandas for parsing newer Excel files (.xlsx).
+    "pandas~=1.4",  # Needed for dealing with various file formats.
+    "schemdraw~=0.13",  # Needed to draw circuit diagrams
+    "scipy~=1.9",  # Used in the DRT calculations
+    "sympy~=1.10",  # Used to generate expressions for circuits
+    "tabulate~=0.8",  # Required by pandas to generate Markdown tables.
 ]
 
 dev_dependencies = [
     "flake8",
     "setuptools",
+    "build",
 ]
 
 optional_dependencies = {
-    "cvxpy": "cvxpy>=1.2.1",  # Used in the DRT calculations (TR-RBF method)
-    "kvxopt": "kvxopt>=1.3.0",  # Fork of cvxopt that may provide wheels for additional platforms
+    "cvxpy": "cvxpy~=1.2",  # Used in the DRT calculations (TR-RBF method)
+    "kvxopt": "kvxopt~=1.3",  # Fork of cvxopt that may provide wheels for additional platforms
     "dev": dev_dependencies,
 }
 
@@ -45,7 +46,7 @@ data_files = [
     "LICENSES/README.md",
 ] + licenses
 
-version = "3.2.3"
+version = "3.2.4"
 
 if __name__ == "__main__":
     with open("requirements.txt", "w") as fp:

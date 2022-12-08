@@ -1,3 +1,9 @@
+# 3.2.4
+
+- Updated dependency versions.
+- Fixed a typo.
+
+
 # 3.2.3
 
 - Updated the `parse_data` function to try other parsers when the parser that was chosen based on the file extension fails.
