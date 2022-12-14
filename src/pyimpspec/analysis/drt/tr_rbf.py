@@ -607,13 +607,13 @@ def _inner_product_rbf(
                     * (2 + abs(a))
                     * (-30 + abs(a) * (2 + abs(a)))
                     * (4 + abs(a) * (2 + abs(a)))
-                ) + 12 * (1 + abs(a)) ^ 2 * (
+                ) + 12 * (1 + abs(a)) ** 2 * (
                     16 + abs(a) * (2 + abs(a)) * (12 + abs(a) * (2 + abs(a)))
                 ) * ln(
                     1 + abs(a)
                 )
-                denominator = abs(a) ^ 5 * (1 + abs(a)) * (2 + abs(a)) ** 5
-                return 8 * epsilon ^ 3 * numerator / denominator
+                denominator = abs(a) ** 5 * (1 + abs(a)) * (2 + abs(a)) ** 5
+                return 8 * epsilon**3 * numerator / denominator
     elif rbf_type == "gaussian":
         if derivative_order == 1:
             return -epsilon * (-1 + a**2) * exp(-(a**2 / 2)) * sqrt(pi / 2)
@@ -656,10 +656,10 @@ def _inner_product_rbf(
             delta = 1e-4
             sqr_drbf_dy = (
                 lambda y: 1
-                / (delta ^ 2)
+                / (delta**2)
                 * (rbf_i(y + delta) - 2 * rbf_i(y) + rbf_i(y - delta))
                 * 1
-                / (delta ^ 2)
+                / (delta**2)
                 * (rbf_j(y + delta) - 2 * rbf_j(y) + rbf_j(y - delta))
             )
         return integrate.quad(sqr_drbf_dy, -50, 50, epsabs=1e-9, epsrel=1e-9)[0]

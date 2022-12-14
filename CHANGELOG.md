@@ -1,6 +1,7 @@
 # 3.2.4
 
 - Updated dependency versions.
+- Fixed a few bugs in calculations in the TR-RBF method (DRT analysis) when using 2nd order derivatives and either the Cauchy or the inverse quadric radial basis function.
 - Fixed a typo.
 
 
