@@ -1,4 +1,4 @@
-# 4.0.0
+# 4.0.0 (2023/03/20)
 
 **THIS UPDATE CONTAINS SEVERAL CHANGES THAT ARE NOT BACKWARDS COMPATIBLE WITH CODE WRITTEN USING VERSION 3.x!**
 
@@ -60,31 +60,31 @@ Kvxopt, which is a fork of cvxopt, may support a greater number of platforms (e.
 Windows and MacOS users should carefully read the installation instructions for cvxpy if deciding to install that package as it requires certain development tools to be installed first.
 
 
-# 3.2.4
+# 3.2.4 (2022/12/14)
 
 - Updated dependency versions.
 - Fixed a few bugs in calculations in the TR-RBF method (DRT analysis) when using 2nd order derivatives and either the Cauchy or the inverse quadric radial basis function.
 - Fixed a typo.
 
 
-# 3.2.3
+# 3.2.3 (2022/11/26)
 
 - Updated the `parse_data` function to try other parsers when the parser that was chosen based on the file extension fails.
 - Updated parsing of data stored as CSV.
 - Improved support for files containing data with decimal commas.
 
 
-# 3.2.2
+# 3.2.2 (2022/11/25)
 
 - Updated the .mpt parser to handle files without a metadata section.
 
 
-# 3.2.1
+# 3.2.1 (2022/11/22)
 
 - Fixed the BHT method (DRT analysis) so that it works properly when `num_procs` is set to greater than one and NumPy is using OpenBLAS.
 
 
-# 3.2.0
+# 3.2.0 (2022/11/01)
 
 - Added support for calculating the distribution of relaxation times using the `m(RQ)fit` method.
 - Added `HavriliakNegamiAlternative` as an element with an alternative form of Havriliak-Negami relaxation.
@@ -98,24 +98,24 @@ Windows and MacOS users should carefully read the installation instructions for 
 - Fixed bugs that caused the `Circuit.to_diagram` method to produce incorrect results.
 
 
-# 3.1.3
+# 3.1.3 (2022/10/28)
 
 - Added support for `kvxopt` as an optional dependency as a drop-in replacement for `cvxopt`.
 - Updated how import errors related to the convex optimizers required by the TR-RBF method (DRT analysis) are handled, which should allow the rest of pyimpspec to function even if no convex optimizers can be imported successfully.
 
 
-# 3.1.2
+# 3.1.2 (2022/09/15)
 
 - Added the 3-sigma CI series to the legends of DRT plots.
 - Updated the order that the mean and 3-sigma CI series are plotted in DRT plots.
 
 
-# 3.1.1
+# 3.1.1 (2022/09/13)
 
 - Updated API documentation.
 
 
-# 3.1.0
+# 3.1.0 (2022/09/11)
 
 - Added `Circuit.to_drawing` method for drawing circuit diagrams using the `schemdraw` package.
 - Added `schemdraw` as an explicit dependency.
@@ -128,7 +128,7 @@ Windows and MacOS users should carefully read the installation instructions for 
 - Updated minimum versions for dependencies.
 
 
-# 3.0.0
+# 3.0.0 (2022/09/05)
 
 **Breaking changes in the API!**
 
@@ -164,26 +164,26 @@ Windows and MacOS users should carefully read the installation instructions for 
 - Refactored to use generator expressions when performing, e.g., Kramers-Kronig tests.
 
 
-# 2.2.0
+# 2.2.0 (2022/08/10)
 
 - Added `num_per_decade` argument to the `pyimpspec.plot.mpl.plot_fit` function.
 - Added sorting of elements to the `to_dataframe` method in the `FittingResult` class.
 - Added `tabulate` package as explicit dependency.
 
 
-# 2.1.0
+# 2.1.0 (2022/08/04)
 
 - Added support for `.mpt` data format.
 - Refactored code.
 
 
-# 2.0.1
+# 2.0.1 (2022/08/01)
 
 - Added GitHub Actions workflow for testing the package on Linux (Ubuntu), MacOS, and Windows.
 - Fixed issues that prevented using the package with anything but Python 3.10.
 
 
-# 2.0.0
+# 2.0.0 (2022/07/31)
 
 - Added support for parsing the `.i2b` data format.
 - Added support for parsing the `.P00` data format.
@@ -193,19 +193,19 @@ Windows and MacOS users should carefully read the installation instructions for 
 - Removed support for parsing `.xls` files.
 
 
-# 1.1.0
+# 1.1.0 (2022/07/13)
 
 - Added support for parsing the `.dfr` data format.
 - Refactored `pyimpspec.data.formats`.
 - Updated the API and its documentation.
 
 
-# 1.0.1
+# 1.0.1 (2022/07/05)
 
 - Updated docstrings.
 
 
-# 1.0.0
+# 1.0.0 (2022/06/16)
 
 - Added assertions to ensure that DataSet objects have at least one unmasked data point before performing a Kramers-Kronig test or a circuit fit.
 - Updated the parsing of .dta files to support files generated with the THD (total harmonic distortion) setting enabled.
@@ -217,22 +217,22 @@ Windows and MacOS users should carefully read the installation instructions for 
 - Refactored pyimpspec.plot.mpl so that `import *` doesn't pollute the namespace.
 
 
-# 0.1.3
+# 0.1.3 (2022/04/04)
 
 - Updated the implementation of the `.idf/.ids` parser.
 - Updated assertion messages in `.idf/.ids` and `.dta` parsers.
 
 
-# 0.1.2
+# 0.1.2 (2022/03/29)
 
 - Added a missing trigger for raising an exception when encountering an unsupported file format.
 - Fixed a bug that prevented parsing of some `.idf/.ids` data files.
 
-# 0.1.1
+# 0.1.1 (2022/03/28)
 
 - Added a circuit validation step prior to fitting a circuit.
 
 
-# 0.1.0
+# 0.1.0 (2022/03/28)
 
 - Initial public beta release.
