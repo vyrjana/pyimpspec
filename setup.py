@@ -1,5 +1,5 @@
 from setuptools import setup, find_packages
-from os.path import join
+from os.path import exists, join
 
 entry_points = {
     "console_scripts": [
@@ -51,9 +51,10 @@ if __name__ == "__main__":
         fp.write(version)
     assert version.strip != ""
     copyright_notice = ""
-    with open("COPYRIGHT") as fp:
-        copyright_notice = fp.read().strip()
-    assert copyright_notice.strip() != ""
+    if exists("COPYRIGHT"):
+        with open("COPYRIGHT") as fp:
+            copyright_notice = fp.read().strip()
+        assert copyright_notice != ""
     with open(join("src", "pyimpspec", "version.py"), "w") as fp:
         fp.write(f'{copyright_notice}\n\nPACKAGE_VERSION: str = "{version}"')
     setup(
