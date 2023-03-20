@@ -18,4 +18,4 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-python -m unittest discover . -v
+python -m unittest discover . -v -f

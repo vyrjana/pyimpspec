@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,97 +17,62 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    Dict,
-    List,
+from numpy import (
+    inf,
+    pi,
 )
-from math import pi
-from collections import OrderedDict
 from .base import Element
-from numpy import inf
+from .registry import (
+    ElementDefinition,
+    ParameterDefinition,
+    register_element,
+)
+from pyimpspec.typing import (
+    ComplexImpedances,
+    Frequencies,
+)
 
 
 class Gerischer(Element):
-    """
-    Gerischer
+    def _impedance(self, f: Frequencies, Y: float, k: float, n: float) -> ComplexImpedances:
+        return 1 / (Y * (k + 2 * pi * f * 1j) ** n)
 
-        Symbol: G
 
-        Z = 1/(Y*(k+j*2*pi*f)^n)
-
-        Variables
-        ---------
-        Y: float = 1.0 (S*s^n)
-        k: float = 1.0 (s^-1)
-        n: float = 0.5
-    """
-
-    def __init__(self, **kwargs):
-        keys: List[str] = list(self.get_defaults().keys())
-        super().__init__(keys=keys)
-        self.reset_parameters(keys)
-        self.set_parameters(kwargs)
-
-    @staticmethod
-    def get_symbol() -> str:
-        return "G"
-
-    @staticmethod
-    def get_description() -> str:
-        return "G: Gerischer"
-
-    @staticmethod
-    def get_defaults() -> Dict[str, float]:
-        return {
-            "Y": 1.0,
-            "k": 1.0,
-            "n": 0.5,
-        }
-
-    @staticmethod
-    def get_default_fixed() -> Dict[str, bool]:
-        return {
-            "Y": False,
-            "k": False,
-            "n": True,
-        }
-
-    @staticmethod
-    def get_default_lower_limits() -> Dict[str, float]:
-        return {
-            "Y": 0.0,
-            "k": 0.0,
-            "n": 0.0,
-        }
-
-    @staticmethod
-    def get_default_upper_limits() -> Dict[str, float]:
-        return {
-            "Y": inf,
-            "k": inf,
-            "n": 1.0,
-        }
-
-    def impedance(self, f: float) -> complex:
-        return 1 / (self._Y * (self._k + 2 * pi * f * 1j) ** self._n)
-
-    def get_parameters(self) -> "OrderedDict[str, float]":
-        return OrderedDict(
-            {
-                "Y": self._Y,
-                "k": self._k,
-                "n": self._n,
-            }
-        )
-
-    def set_parameters(self, parameters: Dict[str, float]):
-        if "Y" in parameters:
-            self._Y = float(parameters["Y"])
-        if "k" in parameters:
-            self._k = float(parameters["k"])
-        if "n" in parameters:
-            self._n = float(parameters["n"])
-
-    def _str_expr(self, substitute: bool = False) -> str:
-        string: str = "1 / (Y * (k + I*2*pi*f)^n)"
-        return self._subs_str_expr(string, self.get_parameters(), not substitute)
+register_element(
+    ElementDefinition(
+        Class=Gerischer,
+        symbol="G",
+        name="Gerischer",
+        description="The impedance associated with an electroactive species that is created by a reaction in the electrolyte solution.",
+        equation="(Y*(k+I*2*pi*f)^n)^-1",
+        parameters=[
+            ParameterDefinition(
+                symbol="Y",
+                unit="S*s^n",
+                description="'Admittance'",
+                value=1.0,
+                lower_limit=1e-24,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="k",
+                unit="s^-1",
+                description="'Rate constant'",
+                value=1.0,
+                lower_limit=1e-24,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="n",
+                unit="",
+                description="",
+                value=0.5,
+                lower_limit=0.0,
+                upper_limit=1.0,
+                fixed=True,
+            ),
+        ],
+    ),
+)

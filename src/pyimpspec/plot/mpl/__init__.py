@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,20 +17,19 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from .mpl import (
-    plot_bode,
-    plot_circuit,
-    plot_complex_impedance,
-    plot_data,
-    plot_drt,
-    plot_exploratory_tests,
-    plot_fit,
-    plot_gamma,
-    plot_imaginary_impedance,
-    plot_impedance_magnitude,
-    plot_impedance_phase,
-    plot_mu_xps,
-    plot_nyquist,
-    plot_real_impedance,
-    plot_residual,
-)
+from .bht_scores import plot_bht_scores
+from .bode import plot_bode
+from .circuit import plot_circuit
+from .complex import plot_complex
+from .data import plot_data
+from .drt import plot_drt
+from .fit import plot_fit
+from .gamma import plot_gamma
+from .imaginary import plot_imaginary
+from .kramers_kronig import plot_tests
+from .magnitude import plot_magnitude
+from .mu_xps import plot_mu_xps
+from .nyquist import plot_nyquist
+from .phase import plot_phase
+from .real import plot_real
+from .residuals import plot_residuals

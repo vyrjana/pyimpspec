@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,201 +17,139 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    Dict,
-    List,
+from numpy import (
+    inf,
+    pi,
 )
-from math import pi
-from collections import OrderedDict
 from .base import Element
-from numpy import inf
+from .registry import (
+    ElementDefinition,
+    ParameterDefinition,
+    register_element,
+)
+from pyimpspec.typing import (
+    ComplexImpedances,
+    Frequencies,
+)
 
 
 class HavriliakNegami(Element):
-    """
-    Havriliak-Negami relaxation
+    def _impedance(
+        self,
+        f: Frequencies,
+        dC: float,
+        tau: float,
+        a: float,
+        b: float,
+    ) -> ComplexImpedances:
+        return (1 + (2 * pi * f * 1j * tau) ** a) ** b / (2 * pi * f * 1j * dC)
 
-        Symbol: H
 
-        Z = (((1+(j*2*pi*f*t)^a)^b)/(j*2*pi*f*dC))
-
-        Variables
-        ---------
-        dC: float = 1E-6 (F)
-        t: float = 1.0 (s)
-        a: float = 0.9
-        b: float = 0.9
-    """
-
-    def __init__(self, **kwargs):
-        keys: List[str] = list(self.get_defaults().keys())
-        super().__init__(keys=keys)
-        self.reset_parameters(keys)
-        self.set_parameters(kwargs)
-
-    @staticmethod
-    def get_symbol() -> str:
-        return "H"
-
-    @staticmethod
-    def get_description() -> str:
-        return "H: Havriliak-Negami"
-
-    @staticmethod
-    def get_defaults() -> Dict[str, float]:
-        return {
-            "dC": 1e-6,
-            "t": 1.0,
-            "a": 0.9,
-            "b": 0.9,
-        }
-
-    @staticmethod
-    def get_default_fixed() -> Dict[str, bool]:
-        return {
-            "dC": False,
-            "t": False,
-            "a": False,
-            "b": False,
-        }
-
-    @staticmethod
-    def get_default_lower_limits() -> Dict[str, float]:
-        return {
-            "dC": 0.0,
-            "t": 0.0,
-            "a": 0.0,
-            "b": 0.0,
-        }
-
-    @staticmethod
-    def get_default_upper_limits() -> Dict[str, float]:
-        return {
-            "dC": inf,
-            "t": inf,
-            "a": 1.0,
-            "b": 1.0,
-        }
-
-    def impedance(self, f: float) -> complex:
-        return (1 + (2 * pi * f * 1j * self._t) ** self._a) ** self._b / (
-            2 * pi * f * 1j * self._dC
-        )
-
-    def get_parameters(self) -> "OrderedDict[str, float]":
-        return OrderedDict(
-            {
-                "dC": self._dC,
-                "t": self._t,
-                "a": self._a,
-                "b": self._b,
-            }
-        )
-
-    def set_parameters(self, parameters: Dict[str, float]):
-        if "dC" in parameters:
-            self._dC = float(parameters["dC"])
-        if "t" in parameters:
-            self._t = float(parameters["t"])
-        if "a" in parameters:
-            self._a = float(parameters["a"])
-        if "b" in parameters:
-            self._b = float(parameters["b"])
-
-    def _str_expr(self, substitute: bool = False) -> str:
-        string: str = "(((1 + (I*2*pi*f*t)^a)^b) / (I*2*pi*f*dC))"
-        return self._subs_str_expr(string, self.get_parameters(), not substitute)
+register_element(
+    ElementDefinition(
+        Class=HavriliakNegami,
+        symbol="H",
+        name="Havriliak-Negami",
+        description="Havriliak-Negami, Cole-Davidson (a = 1), Cole-Cole (b = 1), or Debye (a = b = 1) relaxation.",
+        equation="((1+(I*2*pi*f*tau)^a)^b)/(I*2*pi*f*dC)",
+        parameters=[
+            ParameterDefinition(
+                symbol="dC",
+                unit="F",
+                description="Difference in capacitance",
+                value=1e-6,
+                lower_limit=1e-24,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="tau",
+                unit="s",
+                description="Time constant",
+                value=1.0,
+                lower_limit=1e-24,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="a",
+                unit="",
+                description="Asymmetry exponent",
+                value=0.9,
+                lower_limit=0.0,
+                upper_limit=1.0,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="b",
+                unit="",
+                description="Broadness exponent",
+                value=0.9,
+                lower_limit=0.0,
+                upper_limit=1.0,
+                fixed=False,
+            ),
+        ],
+    ),
+)
 
 
 class HavriliakNegamiAlternative(Element):
-    """
-    Havriliak-Negami relaxation (alternative form)
+    def _impedance(
+        self,
+        f: Frequencies,
+        R: float,
+        tau: float,
+        a: float,
+        b: float,
+    ) -> ComplexImpedances:
+        return R / ((1 + (2 * pi * f * 1j * tau) ** a) ** b)
 
-        Symbol: Ha
 
-        Z = R / ((1 + (I*2*pi*f*t)^b)^g)
-
-        Variables
-        ---------
-        R: float = 1 (ohm)
-        t: float = 1.0 (s)
-        b: float = 0.7
-        g: float = 0.8
-    """
-
-    def __init__(self, **kwargs):
-        keys: List[str] = list(self.get_defaults().keys())
-        super().__init__(keys=keys)
-        self.reset_parameters(keys)
-        self.set_parameters(kwargs)
-
-    @staticmethod
-    def get_symbol() -> str:
-        return "Ha"
-
-    @staticmethod
-    def get_description() -> str:
-        return "Ha: Havriliak-Negami (alternative)"
-
-    @staticmethod
-    def get_defaults() -> Dict[str, float]:
-        return {
-            "R": 1.0,
-            "t": 1.0,
-            "b": 0.7,
-            "g": 0.8,
-        }
-
-    @staticmethod
-    def get_default_fixed() -> Dict[str, bool]:
-        return {
-            "R": False,
-            "t": False,
-            "b": False,
-            "g": False,
-        }
-
-    @staticmethod
-    def get_default_lower_limits() -> Dict[str, float]:
-        return {
-            "R": 0.0,
-            "t": 0.0,
-            "b": 0.0,
-            "g": 0.0,
-        }
-
-    @staticmethod
-    def get_default_upper_limits() -> Dict[str, float]:
-        return {
-            "R": inf,
-            "t": inf,
-            "b": 1.0,
-            "g": 1.0,
-        }
-
-    def impedance(self, f: float) -> complex:
-        return self._R / ((1 + (2 * pi * f * 1j * self._t) ** self._b) ** self._g)
-
-    def get_parameters(self) -> "OrderedDict[str, float]":
-        return OrderedDict(
-            {
-                "R": self._R,
-                "t": self._t,
-                "b": self._b,
-                "g": self._g,
-            }
-        )
-
-    def set_parameters(self, parameters: Dict[str, float]):
-        if "R" in parameters:
-            self._R = float(parameters["R"])
-        if "t" in parameters:
-            self._t = float(parameters["t"])
-        if "b" in parameters:
-            self._b = float(parameters["b"])
-        if "g" in parameters:
-            self._g = float(parameters["g"])
-
-    def _str_expr(self, substitute: bool = False) -> str:
-        string: str = "R/((1+(I*2*pi*f*t)^b)^g)"
-        return self._subs_str_expr(string, self.get_parameters(), not substitute)
+register_element(
+    ElementDefinition(
+        Class=HavriliakNegamiAlternative,
+        symbol="Ha",
+        name="Havriliak-Negami, alt.",
+        description="Havriliak-Negami relaxation (alternative form).",
+        equation="R/((1+(I*2*pi*f*tau)^a)^b)",
+        parameters=[
+            ParameterDefinition(
+                symbol="R",
+                unit="ohm",
+                description="Resistance",
+                value=1.0,
+                lower_limit=0.0,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="tau",
+                unit="s",
+                description="Time constant",
+                value=1.0,
+                lower_limit=1e-24,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="a",
+                unit="",
+                description="Asymmetry exponent",
+                value=0.7,
+                lower_limit=0.0,
+                upper_limit=1.0,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="b",
+                unit="",
+                description="Broadness exponent",
+                value=0.8,
+                lower_limit=0.0,
+                upper_limit=1.0,
+                fixed=False,
+            ),
+        ],
+    ),
+)

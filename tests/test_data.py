@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,10 +23,15 @@ from pyimpspec import (
     parse_data,
 )
 from pyimpspec.data.data_set import VERSION
+from pyimpspec.typing import (
+    ComplexImpedance,
+    ComplexImpedances,
+    Frequency,
+    Frequencies,
+)
 from numpy import (
     allclose,
     array,
-    ndarray,
 )
 from typing import (
     Callable,
@@ -41,11 +46,19 @@ from os.path import (
     join,
     splitext,
 )
+from pandas import DataFrame
+from test_matplotlib import (
+    UNFILLED_MARKERS,
+    check_mpl_return_values,
+    mpl,
+    primitive_mpl_plotters,
+)
 
 
 def get_control_data() -> DataSet:
     return DataSet.from_dict(
         {
+            "version": 1,
             "label": "Control",
             "frequency": [
                 10000,
@@ -149,6 +162,7 @@ def get_test_files(extension: Optional[str] = None) -> List[str]:
     files: List[str]
     for root, _, files in walk(dirname(__file__)):
         break
+    files = list(filter(lambda _: _.startswith("data"), files))
     assert len(files) > 0
     files.sort()
     files = list(map(lambda _: join(root, _), files))
@@ -160,142 +174,167 @@ def get_test_files(extension: Optional[str] = None) -> List[str]:
 
 
 class TestDataSet(TestCase):
-    def test_01_constructors(self):
-        freq: ndarray = array(list(range(1, 21)))
-        Z: ndarray = array(list(map(lambda _: complex(_, -_), range(1, 21))))
-        mask: Dict[int, bool] = {
+    @classmethod
+    def setUpClass(cls):
+        cls.f: Frequencies = array(
+            list(range(1, 21)),
+            dtype=Frequency,
+        )
+        cls.Z: ComplexImpedances = array(
+            list(
+                map(
+                    lambda _: complex(_, -_),
+                    range(1, 21),
+                )
+            ),
+            dtype=ComplexImpedance,
+        )
+        cls.mask: Dict[int, bool] = {
             2: True,
             7: True,
             15: False,
         }
-        path: str = "/test/path/file.ext"
-        # __init__
-        data: DataSet
+        cls.path: str = "/test/path/file.ext"
+        cls.data: DataSet = DataSet(cls.f, cls.Z, cls.mask, cls.path)
+
+    def test_constructor(self):
         with self.assertRaises(AssertionError):
             DataSet(array([]), array([]))
             DataSet([1], [complex(1, -1)])
-        data = DataSet(freq, Z, mask, path)
-        self.assertGreater(data.get_frequency()[0], data.get_frequency()[-1])
-        self.assertEqual(data.get_path(), path)
-        self.assertEqual(data.get_label(), splitext(basename(path))[0])
-        self.assertEqual(data.get_num_points(), 18)
-        self.assertEqual(data.get_num_points(masked=None), 20)
-        self.assertEqual(data.get_num_points(masked=True), 2)
-        self.assertEqual(data.get_num_points(masked=False), 18)
-        methods: List[Callable] = [
-            data.get_frequency,
-            data.get_impedance,
-            data.get_real,
-            data.get_imaginary,
-            data.get_magnitude,
-            data.get_phase,
-        ]
-        method: Callable
-        for method in methods:
-            self.assertEqual(len(method()), 18)
-            self.assertEqual(len(method(masked=None)), 20)
-            self.assertEqual(len(method(masked=True)), 2)
-            self.assertEqual(len(method(masked=False)), 18)
-        #
-        self.assertEqual(len(data.get_nyquist_data()[0]), 18)
-        self.assertEqual(len(data.get_nyquist_data(masked=None)[0]), 20)
-        self.assertEqual(len(data.get_nyquist_data(masked=True)[0]), 2)
-        self.assertEqual(len(data.get_nyquist_data(masked=False)[0]), 18)
-        #
-        self.assertEqual(len(data.get_bode_data()[0]), 18)
-        self.assertEqual(len(data.get_bode_data(masked=None)[0]), 20)
-        self.assertEqual(len(data.get_bode_data(masked=True)[0]), 2)
-        self.assertEqual(len(data.get_bode_data(masked=False)[0]), 18)
-        # from_dict
-        label: str = "label"
-        data = DataSet(freq, Z, mask, path, label)
-        self.assertEqual(data.get_label(), label)
-        data = DataSet.from_dict(
-            {
-                "frequency": freq,
-                "real": Z.real,
-                "imaginary": Z.imag,
-                "mask": mask,
-                "path": path,
-                "label": label,
-            }
-        )
-        self.assertEqual(data.get_path(), path)
-        self.assertEqual(data.get_label(), label)
-        self.assertEqual(data.get_num_points(), 18)
-        self.assertEqual(data.get_num_points(masked=None), 20)
-        self.assertEqual(data.get_num_points(masked=True), 2)
-        self.assertEqual(data.get_num_points(masked=False), 18)
-        methods: List[Callable] = [
-            data.get_frequency,
-            data.get_impedance,
-            data.get_real,
-            data.get_imaginary,
-            data.get_magnitude,
-            data.get_phase,
-        ]
-        method: Callable
-        for method in methods:
-            self.assertEqual(len(method()), 18)
-            self.assertEqual(len(method(masked=None)), 20)
-            self.assertEqual(len(method(masked=True)), 2)
-            self.assertEqual(len(method(masked=False)), 18)
-        #
-        self.assertEqual(len(data.get_nyquist_data()[0]), 18)
-        self.assertEqual(len(data.get_nyquist_data(masked=None)[0]), 20)
-        self.assertEqual(len(data.get_nyquist_data(masked=True)[0]), 2)
-        self.assertEqual(len(data.get_nyquist_data(masked=False)[0]), 18)
-        #
-        self.assertEqual(len(data.get_bode_data()[0]), 18)
-        self.assertEqual(len(data.get_bode_data(masked=None)[0]), 20)
-        self.assertEqual(len(data.get_bode_data(masked=True)[0]), 2)
-        self.assertEqual(len(data.get_bode_data(masked=False)[0]), 18)
 
-    def test_02_subtract_impedance(self):
-        freq: ndarray = array(list(reversed(range(1, 6))))
-        Z: ndarray = array(list(map(lambda _: complex(_, -_), range(1, 6))))
+    def test_get_set_path(self):
+        self.assertEqual(self.data.get_path(), self.path)
+        self.data.set_path("test")
+        self.assertEqual(self.data.get_path(), "test")
+        self.data.set_path(self.path)
+
+    def test_frequency_order(self):
+        f: Frequencies = self.data.get_frequencies()
+        self.assertGreater(f[0], f[-1])
+        self.assertEqual(f[0], self.f[-1])
+        self.assertEqual(f[-1], self.f[0])
+
+    def test_get_label(self):
+        self.assertEqual(self.data.get_label(), splitext(basename(self.path))[0])
+
+    def test_get_num_points(self):
+        self.assertEqual(self.data.get_num_points(), 18)
+        self.assertEqual(self.data.get_num_points(masked=None), 20)
+        self.assertEqual(self.data.get_num_points(masked=True), 2)
+        self.assertEqual(self.data.get_num_points(masked=False), 18)
+
+    def test_getters(self):
+        methods: List[Callable] = [
+            self.data.get_frequencies,
+            self.data.get_impedances,
+            self.data.get_magnitudes,
+            self.data.get_phases,
+        ]
+        method: Callable
+        for method in methods:
+            self.assertEqual(len(method()), 18)
+            self.assertEqual(len(method(masked=None)), 20)
+            self.assertEqual(len(method(masked=True)), 2)
+            self.assertEqual(len(method(masked=False)), 18)
+        # Nyquist data
+        self.assertEqual(len(self.data.get_nyquist_data()[0]), 18)
+        self.assertEqual(len(self.data.get_nyquist_data(masked=None)[0]), 20)
+        self.assertEqual(len(self.data.get_nyquist_data(masked=True)[0]), 2)
+        self.assertEqual(len(self.data.get_nyquist_data(masked=False)[0]), 18)
+        # Bode data
+        self.assertEqual(len(self.data.get_bode_data()[0]), 18)
+        self.assertEqual(len(self.data.get_bode_data(masked=None)[0]), 20)
+        self.assertEqual(len(self.data.get_bode_data(masked=True)[0]), 2)
+        self.assertEqual(len(self.data.get_bode_data(masked=False)[0]), 18)
+
+    def test_from_dict(self):
+        label: str = "label"
+        dictionaries: List[dict] = [
+            {
+                "version": 1,
+                "frequency": self.f,
+                "real": self.Z.real,
+                "imaginary": self.Z.imag,
+                "mask": self.mask,
+                "path": self.path,
+                "label": label,
+            },
+            {
+                "version": 2,
+                "frequencies": self.f,
+                "real_impedances": self.Z.real,
+                "imaginary_impedances": self.Z.imag,
+                "mask": self.mask,
+                "path": self.path,
+                "label": label,
+            },
+        ]
+        d: dict
+        for d in dictionaries:
+            data: DataSet = DataSet.from_dict(d)
+            self.assertEqual(data.get_path(), self.path)
+            self.assertEqual(data.get_label(), label)
+            self.assertEqual(data.get_num_points(), 18)
+            self.assertEqual(data.get_num_points(masked=None), 20)
+            self.assertEqual(data.get_num_points(masked=True), 2)
+            self.assertEqual(data.get_num_points(masked=False), 18)
+
+    def test_subtract_impedances(self):
+        freq: Frequencies = array(list(reversed(range(1, 6))))
+        Z: ComplexImpedances = array(list(map(lambda _: complex(_, -_), range(1, 6))))
         data: DataSet = DataSet(freq, Z)
         i: int
         z: complex
-        for i, z in enumerate(data.get_impedance()):
+        for i, z in enumerate(data.get_impedances()):
             self.assertEqual(z, Z[i])
-        data.subtract_impedance(complex(1, -1))
-        for i, z in enumerate(data.get_impedance()):
+        data.subtract_impedances(array(complex(1, -1)))
+        for i, z in enumerate(data.get_impedances()):
             self.assertEqual(z, Z[i] - complex(1, -1))
 
-    def test_03_get_set_label(self):
+    def test_get_set_label(self):
         data: DataSet = DataSet(array([1]), array([complex(1, -1)]))
         self.assertEqual(data.get_label(), "")
         label: str = "testing"
         data.set_label(label)
         self.assertEqual(data.get_label(), label)
 
-    def test_04_get_set_mask(self):
+    def test_get_set_mask(self):
         data: DataSet = DataSet(array([1]), array([complex(1, -1)]))
         data.set_mask({0: True})
         self.assertEqual(len(data.get_mask()), 1)
         self.assertTrue(data.get_mask()[0])
+        data = DataSet.duplicate(get_control_data())
+        self.assertEqual(len(data.get_mask()), 29)
+        self.assertTrue(all(map(lambda _: _ is False, data.get_mask().values())))
+        data = DataSet(
+            data.get_frequencies(), data.get_impedances(), mask={-1: True, 30: True}
+        )
+        self.assertEqual(len(data.get_mask()), 29)
+        self.assertTrue(all(map(lambda _: _ is False, data.get_mask().values())))
+        data = DataSet(
+            data.get_frequencies(), data.get_impedances(), mask={5: True, 6: False}
+        )
+        self.assertEqual(len(data.get_mask()), 29)
+        self.assertFalse(all(map(lambda _: _ is False, data.get_mask().values())))
+        self.assertEqual(data.get_mask()[5], True)
+        self.assertEqual(data.get_mask()[6], False)
 
-    def test_05_get_values(self):
+    def test_get_values(self):
         data: DataSet = DataSet(array([1]), array([complex(1, -1)]))
-        self.assertEqual(data.get_frequency()[0], 1)
-        self.assertEqual(data.get_impedance()[0].real, 1)
-        self.assertEqual(data.get_impedance()[0].imag, -1)
-        self.assertEqual(data.get_real()[0], 1)
-        self.assertEqual(data.get_imaginary()[0], -1)
-        self.assertEqual(data.get_magnitude()[0], abs(complex(1, -1)))
-        self.assertEqual(data.get_phase()[0], -45)
-        #
+        self.assertEqual(data.get_frequencies()[0], 1)
+        self.assertEqual(data.get_impedances()[0].real, 1)
+        self.assertEqual(data.get_impedances()[0].imag, -1)
+        self.assertEqual(data.get_magnitudes()[0], abs(complex(1, -1)))
+        self.assertEqual(data.get_phases()[0], -45)
         self.assertEqual(len(data.get_nyquist_data()), 2)
         self.assertEqual(data.get_nyquist_data()[0][0], 1)
         self.assertEqual(data.get_nyquist_data()[1][0], 1)
-        #
         self.assertEqual(len(data.get_bode_data()), 3)
         self.assertEqual(data.get_bode_data()[0][0], 1)
         self.assertEqual(data.get_bode_data()[1][0], abs(complex(1, -1)))
         self.assertEqual(data.get_bode_data()[2][0], 45)
 
-    def test_06_to_dict(self):
+    def test_to_dict(self):
         path: str = "/test/path/file.ext"
         label: str = "testing"
         data: DataSet = DataSet(
@@ -305,55 +344,138 @@ class TestDataSet(TestCase):
         self.assertTrue("version" in dictionary, True)
         self.assertTrue("path" in dictionary, True)
         self.assertTrue("label" in dictionary, True)
-        self.assertTrue("frequency" in dictionary, True)
-        self.assertTrue("real" in dictionary, True)
-        self.assertTrue("imaginary" in dictionary, True)
+        self.assertTrue("frequencies" in dictionary, True)
+        self.assertTrue("real_impedances" in dictionary, True)
+        self.assertTrue("imaginary_impedances" in dictionary, True)
         self.assertTrue("mask" in dictionary, True)
         #
-        self.assertEqual(type(dictionary["version"]), int)
-        self.assertEqual(type(dictionary["path"]), str)
-        self.assertEqual(type(dictionary["label"]), str)
-        self.assertEqual(type(dictionary["frequency"]), list)
-        self.assertEqual(type(dictionary["real"]), list)
-        self.assertEqual(type(dictionary["imaginary"]), list)
-        self.assertEqual(type(dictionary["mask"]), dict)
+        self.assertIsInstance(dictionary["version"], int)
+        self.assertIsInstance(dictionary["path"], str)
+        self.assertIsInstance(dictionary["label"], str)
+        self.assertIsInstance(dictionary["frequencies"], list)
+        self.assertIsInstance(dictionary["real_impedances"], list)
+        self.assertIsInstance(dictionary["imaginary_impedances"], list)
+        self.assertIsInstance(dictionary["mask"], dict)
         #
         self.assertEqual(dictionary["version"], VERSION)
         self.assertEqual(dictionary["path"], path)
         self.assertEqual(dictionary["label"], label)
-        self.assertEqual(dictionary["frequency"][0], 1)
-        self.assertEqual(dictionary["real"][0], 1)
-        self.assertEqual(dictionary["imaginary"][0], -1)
+        self.assertEqual(dictionary["frequencies"][0], 1)
+        self.assertEqual(dictionary["real_impedances"][0], 1)
+        self.assertEqual(dictionary["imaginary_impedances"][0], -1)
         self.assertEqual(dictionary["mask"][0], True)
 
-    def test_07_to_dataframe(self):
-        # TODO: Implement
-        pass
+    def test_duplicate(self):
+        data: DataSet = DataSet.duplicate(get_control_data())
+        self.assertEqual(data.get_label(), "Control")
+        data = DataSet.duplicate(get_control_data(), label="test")
+        self.assertEqual(data.get_label(), "test")
 
-    def test_08_dataframe_to_dataset(self):
-        # TODO: Implement
-        pass
+    def test_average(self):
+        control: DataSet = get_control_data()
+        data_1: DataSet = get_control_data()
+        data_1.subtract_impedances(array(complex(-1, -2)))
+        self.assertFalse(allclose(control.get_impedances(), data_1.get_impedances()))
+        data_2: DataSet = get_control_data()
+        data_2.subtract_impedances(array(complex(1, 2)))
+        self.assertFalse(allclose(control.get_impedances(), data_2.get_impedances()))
+        average: DataSet = DataSet.average([data_1, data_2])
+        self.assertTrue(allclose(control.get_impedances(), average.get_impedances()))
+
+    def test_to_dataframe(self):
+        data: DataSet = get_control_data()
+        df: DataFrame = data.to_dataframe()
+        self.assertIsInstance(df, DataFrame)
+        self.assertEqual(len(df), 29)
+        data.set_mask({5: True, 7: True})
+        df = data.to_dataframe(masked=None)
+        self.assertEqual(len(df), 29)
+        df = data.to_dataframe(masked=True)
+        self.assertEqual(len(df), 2)
+        df = data.to_dataframe(masked=False)
+        self.assertEqual(len(df), 27)
+        df = data.to_dataframe(
+            columns=[
+                "test1",
+                "test2",
+                "test3",
+                "test4",
+                "test5",
+            ]
+        )
+        i: int
+        label: str
+        for i, label in enumerate(df.columns, start=1):
+            self.assertEqual(label, f"test{i}")
+        self.assertTrue(df[df.columns[-3]][0] < 0.0)
+        self.assertTrue(df[df.columns[-1]][0] < 0.0)
+        df = data.to_dataframe(negative_imaginary=True, negative_phase=True)
+        self.assertTrue(df[df.columns[-3]][0] > 0.0)
+        self.assertTrue(df[df.columns[-1]][0] > 0.0)
+
+    def test_repr(self):
+        data: DataSet = DataSet.duplicate(get_control_data())
+        self.assertEqual(repr(data), f"DataSet ({data.get_label()}, {hex(id(data))})")
+
+    def test_low_pass(self):
+        data: DataSet = get_control_data()
+        data.set_mask({15: True})
+        data.low_pass(1000.0)
+        self.assertEqual(data.get_num_points(), 21)
+
+    def test_high_pass(self):
+        data: DataSet = get_control_data()
+        data.set_mask({5: True})
+        data.high_pass(1000.0)
+        self.assertEqual(data.get_num_points(), 7)
+
+    def test_matplotlib(self):
+        data: DataSet = self.data
+        plotter: Callable
+        for plotter in primitive_mpl_plotters:
+            check_mpl_return_values(self, *plotter(data=data))
+            check_mpl_return_values(self, *plotter(data=data, colored_axes=True))
+        check_mpl_return_values(self, *mpl.plot_data(data=data))
+        check_mpl_return_values(
+            self,
+            *mpl.plot_magnitude(
+                data=data,
+                marker=next(
+                    iter(UNFILLED_MARKERS),
+                ),
+            ),
+        )
 
 
 class TestFormatParsers(TestCase):
     def validate(self, data: DataSet, control: DataSet, atol: float = 1e-8):
         self.assertEqual(control.get_num_points(), data.get_num_points())
         self.assertTrue(
-            allclose(control.get_frequency(), data.get_frequency(), atol=atol)
+            allclose(control.get_frequencies(), data.get_frequencies(), atol=atol)
         )
         self.assertTrue(
-            allclose(control.get_impedance(), data.get_impedance(), atol=atol)
+            allclose(control.get_impedances(), data.get_impedances(), atol=atol)
         )
 
-    def test_01_csv(self):
+    def test_csv(self):
         control: DataSet = get_control_data()
         path: str
+        data: DataSet
         for path in get_test_files(".csv"):
-            data: DataSet
             for data in parse_data(path):
                 self.validate(data, control)
+        self.validate(parse_data(path, file_format="CSV")[0], control)
+        self.assertEqual(len(parse_data("./case-multiple-spectra.csv")), 4)
+        for data in parse_data("./case-multiple-spectra.csv"):
+            self.validate(data, control, atol=1e-1)
+        self.assertEqual(len(parse_data("./case-multiple-spectra-reverse.csv")), 2)
+        for data in parse_data("./case-multiple-spectra-reverse.csv"):
+            self.validate(data, control, atol=1e-1)
+        self.assertEqual(len(parse_data("./case-multiple-spectra-reverse.csv")), 2)
+        for data in parse_data("./case-negative-real-imaginary.csv"):
+            self.validate(data, control, atol=1e-1)
 
-    def test_02_i2b(self):
+    def test_i2b(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".i2b")
         self.assertTrue(len(paths) > 0)
@@ -363,7 +485,7 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
-    def test_03_xlsx(self):
+    def test_xlsx(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".xlsx")
         self.assertTrue(len(paths) > 0)
@@ -373,7 +495,7 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
-    def test_04_ods(self):
+    def test_ods(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".ods")
         self.assertTrue(len(paths) > 0)
@@ -383,7 +505,7 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
-    def test_05_dta(self):
+    def test_dta(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".dta")
         self.assertTrue(len(paths) > 0)
@@ -393,7 +515,7 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
-    def test_06_idf(self):
+    def test_idf(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".idf")
         self.assertTrue(len(paths) > 0)
@@ -403,7 +525,7 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
-    def test_07_ids(self):
+    def test_ids(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".ids")
         self.assertTrue(len(paths) > 0)
@@ -413,7 +535,7 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
-    def test_08_no_extension(self):
+    def test_no_extension(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files("")
         self.assertTrue(len(paths) > 0)
@@ -423,7 +545,7 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control, atol=1e-1)
 
-    def test_09_dfr(self):
+    def test_dfr(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".dfr")
         self.assertTrue(len(paths) > 0)
@@ -433,7 +555,7 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control)
 
-    def test_10_p00(self):
+    def test_p00(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".P00")
         self.assertTrue(len(paths) > 0)
@@ -443,12 +565,15 @@ class TestFormatParsers(TestCase):
             for data in parse_data(path):
                 self.validate(data, control, atol=1e-1)
 
-    def test_11_mpt(self):
+    def test_mpt(self):
         control: DataSet = get_control_data()
         paths: List[str] = get_test_files(".mpt")
         self.assertTrue(len(paths) > 0)
+        data: DataSet
         path: str
         for path in paths:
-            data: DataSet
             for data in parse_data(path):
                 self.validate(data, control, atol=1e-1)
+        self.assertEqual(len(parse_data("./case-multiple-spectra.mpt")), 3)
+        for data in parse_data("./case-multiple-spectra.mpt"):
+            self.validate(data, control, atol=1e-1)

@@ -1,6 +1,6 @@
-include COPYRIGHT
-include CONTRIBUTORS
-include LICENSE
-include README.md
-include LICENSES/README.md
-include LICENSES/*.txt
+include src/pyimpspec/CHANGELOG.md
+include src/pyimpspec/CONTRIBUTORS
+include src/pyimpspec/COPYRIGHT
+include src/pyimpspec/LICENSE
+include src/pyimpspec/LICENSES/*
+include src/pyimpspec/README.md

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,80 +17,41 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    Dict,
-    List,
-)
-from collections import OrderedDict
-from .base import Element
 from numpy import inf
+from .base import Element
+from .registry import (
+    ElementDefinition,
+    ParameterDefinition,
+    register_element,
+)
+from pyimpspec.typing import (
+    ComplexImpedances,
+    Frequencies,
+)
 
 
 class Resistor(Element):
-    """
-    Resistor
+    def _impedance(self, f: Frequencies, R: float) -> ComplexImpedances:
+        return R + 0j * f
 
-        Symbol: R
 
-        Z = R
-
-        Variables
-        ---------
-        R: float = 1E+3 (ohm)
-    """
-
-    def __init__(self, **kwargs):
-        keys: List[str] = list(self.get_defaults().keys())
-        super().__init__(keys=keys)
-        self.reset_parameters(keys)
-        self.set_parameters(kwargs)
-
-    @staticmethod
-    def get_symbol() -> str:
-        return "R"
-
-    @staticmethod
-    def get_description() -> str:
-        return "R: Resistor"
-
-    @staticmethod
-    def get_defaults() -> Dict[str, float]:
-        return {
-            "R": 1e3,
-        }
-
-    @staticmethod
-    def get_default_fixed() -> Dict[str, bool]:
-        return {
-            "R": False,
-        }
-
-    @staticmethod
-    def get_default_lower_limits() -> Dict[str, float]:
-        return {
-            "R": 0.0,
-        }
-
-    @staticmethod
-    def get_default_upper_limits() -> Dict[str, float]:
-        return {
-            "R": inf,
-        }
-
-    def impedance(self, f: float) -> complex:
-        return complex(self._R, 0)
-
-    def get_parameters(self) -> "OrderedDict[str, float]":
-        return OrderedDict(
-            {
-                "R": self._R,
-            }
-        )
-
-    def set_parameters(self, parameters: Dict[str, float]):
-        if "R" in parameters:
-            self._R = float(parameters["R"])
-
-    def _str_expr(self, substitute: bool = False) -> str:
-        string: str = "R"
-        return self._subs_str_expr(string, self.get_parameters(), not substitute)
+register_element(
+    ElementDefinition(
+        Class=Resistor,
+        symbol="R",
+        name="Resistor",
+        description="An ideal resistor.",
+        equation="R",
+        parameters=[
+            ParameterDefinition(
+                symbol="R",
+                unit="ohm",
+                description="Resistance",
+                value=1000.0,
+                lower_limit=0.0,
+                upper_limit=inf,
+                fixed=False,
+            ),
+        ],
+    ),
+)

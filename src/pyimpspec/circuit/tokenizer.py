@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -32,10 +32,7 @@ from typing import (
     Type,
     Union,
 )
-
-
-class UnexpectedCharacter(Exception):
-    pass
+from pyimpspec.exceptions import UnexpectedCharacter
 
 
 @dataclass(frozen=True)
@@ -48,6 +45,9 @@ class Token:
 @dataclass(frozen=True)
 class Identifier(Token):
     value: str
+
+    def __post_init__(self):
+        assert self.value.isidentifier(), f"{self.value=}"
 
 
 @dataclass(frozen=True)
@@ -120,6 +120,11 @@ class Colon(Token):
     value: str
 
 
+@dataclass(frozen=True)
+class Exclamation(Token):
+    value: str
+
+
 class Tokenizer:
     def __init__(self):
         self._original: str = ""
@@ -141,6 +146,7 @@ class Tokenizer:
             "%": Percent,
             ",": Comma,
             ":": Colon,
+            "!": Exclamation,
         }
 
     def process(self, string: str) -> List[Token]:
@@ -187,14 +193,17 @@ class Tokenizer:
             self.push(Label)
             return
         prev_token: Optional[Token] = self.peek(-1)
+        valid_chars: str
         if type(prev_token) is LCurly or type(prev_token) is Comma:
             # Identifier for a parameter
-            while char is not None and char in ascii_letters:
+            valid_chars = ascii_letters + digits + "_"
+            while char is not None and char in valid_chars:
                 self.consume(self.pop())
                 char = self.peek(0)
         else:
             # Identifier for an element
-            while char is not None and char in ascii_lowercase:
+            valid_chars = ascii_lowercase + digits + "_"
+            while char is not None and char in valid_chars:
                 self.consume(self.pop())
                 char = self.peek(0)
         self.push(Identifier)
@@ -221,6 +230,12 @@ class Tokenizer:
             self.push(FixedNumber)
         else:
             self.push(Number)
+
+    def look_ahead_for(self, char: str) -> int:
+        for i, c in enumerate(self._chars):
+            if c == char:
+                return i
+        return -1
 
     def peek(self, n: int = 1) -> Optional[Union[str, Token]]:
         if n >= 0:

@@ -1,3 +1,65 @@
+# 4.0.0
+
+**THIS UPDATE CONTAINS SEVERAL CHANGES THAT ARE NOT BACKWARDS COMPATIBLE WITH CODE WRITTEN USING VERSION 3.x!**
+
+- Added a command-line interface for quickly performing tasks via a terminal. The CLI also has support for a configuration file with user-definable default values.
+- Added support for user-defined circuit elements, which can be registered using a `register_element` function along with some definition classes (e.g. `ElementDefinition` and `ParameterDefinition`).
+- Added several transmission line models for blocking and non-blocking porous electrodes.
+- Added support for parsing circuit description codes (CDCs) with additional metadata (e.g., version number). This can be used to help with parsing some older CDCs in the future if, e.g., the name of a circuit element's parameter has been changed.
+- Added a Container class (subclass of Element) that can have parameters and subcircuits. 
+- Added a general transmission line model that is implemented as a subclass of Container.
+- Added support for parsing CDCs for elements based on the Container class. Subcircuits that are short circuits or open circuits can be specified with `short` (or `zero`) and `open` (or `inf`), respectively (e.g., `cdc = "Tlm{X_1=short, Z_B=open}"`).
+- Added an implementation of the Z-HIT algorithm, which provides another means of data analysis/validation.
+- Added statsmodels as an explicit dependency.
+- Added `Circuit.serialize` method that returns a string that contains the corresponding CDC and some metadata (e.g., version number).
+- Added a `get_label` method to the `FitResult` and `TestResult` classes.
+- Added a `colored_axes` keyword argument to most of the plotting functions that can be used to set the colors of the y-axes to match that of the data plotted in those axes.
+- Added the xdg package as an explicit dependency and use it for determining where to place the optional config file for the command-line interface.
+- Added `low_pass` and `high_pass` methods to the `DataSet` class for quickly masking frequencies above or below a cutoff frequency, respectively.
+- Added support for using `inf` to indicate an infinite limit for an element parameter's lower or upper limit in a circuit description code (interpreted as either negative or positive if provided as the limit for the lower or upper limit, respectively).
+- Added type aliases for, e.g., frequencies, impedances, and residuals.
+- Added `get_default_num_procs` and `set_default_num_procs` functions. The former is used internally but may also be of interest for debugging. The latter can be used to globally set the number of process to use instead of setting the value of `num_procs` in the various function calls (e.g., `fit_circuit`).
+- Added numdifftools as explicit dependency.
+- Updated the function signatures of most plotting functions (e.g., to make them more consistent).
+- Updated title generation for `FitResult` objects in the `plot.mpl.plot_fit` function.
+- Updated data parsing to handle files containing multiple impedance spectra and to have a more consistent API (e.g., the individual parsers all return `List[DataSet]`).
+- Updated the `progress` module to support registration of multiple callbacks and the ability to unregister callbacks.
+- Updated the implementation of `Circuit` objects.
+- Updated the implementation of `Connection` objects:
+	- These objects now include methods similar to those present in lists (`append`, `extend`, `remove`, etc.).
+	- `Parallel` objects now properly handle paths that are short circuits or open circuits.
+- Updated the implementation of `Element` objects:
+	- Elements no longer have static identifiers assigned to them but rather they are assigned dynamically as needed, which improves support for adding connections and/or elements after a `Circuit` object has been created.
+	- Defining a new circuit element (i.e., a subclass of `Element`) requires much less boilerplate code and implements automatic generation of the class docstring.
+	- It is now possible to calculate the impedance of a circuit element when the excitation frequency approaches zero or infinity. Note that some elements may raise an exception about infinite impedance when attempting to calculate the impedance at a limit (e.g., `Capacitor` when f -> 0).
+- Updated the DRT analysis module so that each method have their own result class based on a common DRTResult class.
+- Updated the TR-NNLS method implementation (DRT analysis) to use a new approach to automatically suggest regularization parameters.
+- Updated axis labels in plots.
+- Updated LaTeX output for element equations.
+- Updated parameter names/symbols of the de Levie element.
+- Updated the function signature for the m(RQ)fit method (DRT analysis).
+- Refactored circuit fitting, Kramers-Kronig testing, and m(RQ)fit (DRT analysis) to work with the dynamic identifiers.
+- Refactored the BHT method implementation (DRT analysis).
+- Refactored to use lazy imports, which avoids the overhead associated with importing dependencies until they are required.
+- Improved the performance of impedance calculations (e.g., by utilizing NumPy better and by removing redundant assertions).
+- Switched to Sphinx for documentation.
+- Fixed bugs in the calculations of the TR-RBF method (DRT analysis) when using the 2nd derivative order in combination with some radial basis functions.
+- Fixed a bug that prevented spreadsheet files from being detected as such when parsing data.
+- Fixed a bug that raised an exception when calling `DataSet.to_dataframe` with `masked=True` or `masked=False` when there were masked data points.
+- Fixed a bug that raised an exception when calling `Connection.get_connections` with `flattened=False`.
+- Fixed a bug that caused the `Connection.get_elements` method to return elements in the wrong order with `flattened=False`.
+- Fixed a bug that caused parallel connections to not properly handle short circuits.
+- Fixed a bug that caused m(RQ)fit result to incorrectly calculate time constants.
+- Fixed a bug that could cause an exception when calling `sympy.sympify` on an equation.
+
+**NOTE!** The cvxopt package is now an optional dependency rather than an explicit one.
+If that package is not available for a particular platform, then it should now not prevent installation of pyimpspec.
+However, the TR-RBF method (DRT analysis) requires a convex optimizer package and attempting to use the method without one installed will raise an exception.
+Currently, kvxopt and cvxpy can also be used if cvxopt is not available.
+Kvxopt, which is a fork of cvxopt, may support a greater number of platforms (e.g., operating systems and/or hardware architectures).
+Windows and MacOS users should carefully read the installation instructions for cvxpy if deciding to install that package as it requires certain development tools to be installed first.
+
+
 # 3.2.4
 
 - Updated dependency versions.

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -34,9 +34,8 @@ from numpy import (
 )
 from pyimpspec.data.data_set import (
     DataSet,
-    dataframe_to_dataset,
+    _dataframe_to_data_set,
 )
-from pandas import DataFrame
 from string import printable
 
 
@@ -44,8 +43,8 @@ def _extract_primary_data(
     num_freq: int, lines: List[str]
 ) -> Tuple[List[float], List[float], List[float]]:
     assert issubdtype(type(num_freq), integer), num_freq
-    assert type(lines) is list and all(map(lambda _: type(_) is str, lines))
-    assert len(lines) > num_freq
+    assert isinstance(lines, list) and all(map(lambda _: type(_) is str, lines)), lines
+    assert len(lines) > num_freq, (len(lines), num_freq)
     re: List[float] = []
     im: List[float] = []
     f: List[float] = []
@@ -76,9 +75,10 @@ def parse_ids(path: str) -> List[DataSet]:
 
     Returns
     -------
-    DataSet
+    List[DataSet]
     """
-    assert type(path) is str and exists(path)
+    from pandas import DataFrame
+    assert isinstance(path, str) and exists(path), path
     default_label: str = splitext(basename(path))[0]
     fp: IO
     with open(path, "r", encoding="latin1") as fp:
@@ -123,7 +123,13 @@ def parse_ids(path: str) -> List[DataSet]:
     assert len(lines) == 0, lines
     data_sets: List[DataSet] = []
     for label, values in raw_data_sets.items():
-        data_sets.append(dataframe_to_dataset(DataFrame.from_dict(values), path, label))
+        data_sets.append(
+            _dataframe_to_data_set(
+                DataFrame.from_dict(values),
+                path=path,
+                label=label,
+            )
+        )
     assert len(data_sets) == len(raw_data_sets), (
         len(data_sets),
         len(raw_data_sets),

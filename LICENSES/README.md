@@ -43,6 +43,11 @@
 - License: custom license
 - Dependency.
 
+# numdifftools
+- https://github.com/pbrod/numdifftools 
+- License: BSD 3-clause
+- Optional dependency of _lmfit_ for estimating uncertainties.
+
 # numpy
 - https://github.com/numpy/numpy
 - License: BSD 3-clause
@@ -78,6 +83,11 @@
 - License: BSD 3-clause
 - Dependency.
 
+# statsmodels
+- https://github.com/statsmodels/statsmodels
+- License: BSD 3-clause
+- Dependency.
+
 # SymPy
 - https://github.com/sympy/sympy
 - License: BSD 3-clause
@@ -92,3 +102,8 @@
 - https://personal.sron.nl/~pault/data/tol_colors.py
 - License: BSD 3-clause
 - Copied values for some colors.
+
+# xdg
+- https://github.com/srstevenson/xdg
+- License: ISC
+- Dependency.

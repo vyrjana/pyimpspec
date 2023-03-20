@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,15 +21,11 @@ from os.path import exists
 from typing import List
 from pyimpspec.data.data_set import (
     DataSet,
-    dataframe_to_dataset,
-)
-from pandas import (
-    DataFrame,
-    read_csv,
+    dataframe_to_data_sets,
 )
 
 
-def parse_csv(path: str, **kwargs) -> DataSet:
+def parse_csv(path: str, **kwargs) -> List[DataSet]:
     """
     Parse a file containing data as character-separated values.
 
@@ -38,11 +34,19 @@ def parse_csv(path: str, **kwargs) -> DataSet:
     path: str
         The path to the file to process.
 
+    **kwargs
+        Keyword arguments are passed forward to `pandas.read_csv`_.
+
     Returns
     -------
-    DataSet
+    List[DataSet]
     """
-    assert type(path) is str and exists(path)
+    from pandas import (
+        DataFrame,
+        read_csv,
+    )
+
+    assert isinstance(path, str) and exists(path), path
     df: DataFrame
     try:
         df = read_csv(path, engine="python", **kwargs)
@@ -59,4 +63,4 @@ def parse_csv(path: str, **kwargs) -> DataSet:
         while len(df.columns) == 1:
             kwargs["sep"] = separators.pop(0)
             df = read_csv(path, engine="python", **kwargs)
-    return dataframe_to_dataset(df, path=path)
+    return dataframe_to_data_sets(df, path=path)

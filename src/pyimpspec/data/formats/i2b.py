@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,13 +23,12 @@ from typing import (
     List,
 )
 from pyimpspec.data.data_set import (
-    DataFrame,
     DataSet,
-    dataframe_to_dataset,
+    dataframe_to_data_sets,
 )
 
 
-def parse_i2b(path: str) -> DataSet:
+def parse_i2b(path: str) -> List[DataSet]:
     """
     Parse an Elchemea Analytical .i2b file containing an impedance spectrum.
 
@@ -40,9 +39,10 @@ def parse_i2b(path: str) -> DataSet:
 
     Returns
     -------
-    DataSet
+    List[DataSet]
     """
-    assert type(path) is str and exists(path)
+    from pandas import DataFrame
+    assert isinstance(path, str) and exists(path), path
     fp: IO
     with open(path, "r", encoding="latin1") as fp:
         lines: List[str] = list(
@@ -63,7 +63,7 @@ def parse_i2b(path: str) -> DataSet:
         real.append(re)
         imag.append(im)
     assert len(freq) == len(real) == len(imag) > 0, len(freq)
-    return dataframe_to_dataset(
+    return dataframe_to_data_sets(
         DataFrame.from_dict(
             {
                 "frequency": freq,
@@ -71,6 +71,5 @@ def parse_i2b(path: str) -> DataSet:
                 "imaginary": imag,
             }
         ),
-        path,
-        "",
+        path=path,
     )

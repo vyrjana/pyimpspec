@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,122 +17,326 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from collections import OrderedDict
-from re import sub
+from abc import (
+    ABC,
+    abstractmethod,
+)
+from copy import deepcopy
 from typing import (
+    Any,
+    Callable,
     Dict,
     List,
     Optional,
+    Set,
     Tuple,
+    Type,
     Union,
 )
 from numpy import (
-    array,
-    inf,
+    concatenate,
+    delete,
+    fromiter,
+    indices as array_indices,
     integer,
+    isinf,
+    isnan,
+    isneginf,
+    isposinf,
     issubdtype,
     ndarray,
+    unique,
+    where,
+    zeros,
 )
 from sympy import (
+    Basic,
     Expr,
     latex,
+    limit,
     sympify,
+)
+from pyimpspec.typing import (
+    ComplexImpedance,
+    ComplexImpedances,
+    Frequency,
+    Frequencies,
+    Indices,
+)
+from pyimpspec.exceptions import (
+    InfiniteImpedance,
+    InfiniteLimit,
+    InvalidEquation,
+    InvalidParameterKey,
+    NotANumberImpedance,
 )
 
 
-class Element:
-    def __init__(self, keys: List[str]):
+def _calculate_limit(obj, f: Frequency) -> ComplexImpedance:
+    assert hasattr(obj, "to_sympy") and callable(
+        obj.to_sympy
+    ), f"The provided object ({obj}) does not have a 'to_sympy' method!"
+    expr: Expr = obj.to_sympy(substitute=True)
+    symbols: Set[Basic] = expr.free_symbols
+    Z: ComplexImpedance
+    if len(symbols) == 0:
+        Z = ComplexImpedance(expr)
+    elif len(symbols) == 1:
+        Z = ComplexImpedance(limit(expr, symbols.pop(), f))
+    else:
+        raise InvalidEquation("Invalid impedance expression! Too many free symbols!")
+    if isinf(Z):
+        raise InfiniteLimit(
+            f"The f -> {f} limit is not finite for the following expression when values are substituted: {str(obj.to_sympy())}"
+        )
+    elif isnan(Z):
+        raise NotANumberImpedance()
+    return Z.astype(ComplexImpedance)
+
+
+def _calculate_impedances(
+    obj: Union["Element", "Container", "Connection"],
+    f: Frequencies,
+) -> ComplexImpedances:
+    assert len(f.shape) == 1, f.shape
+    assert min(f) >= 0.0
+    parameters: Dict[str, float]
+    subcircuits: Dict[str, Optional[Connection]]
+    func: Callable
+    if isinstance(obj, Container):
+        parameters = obj.get_values()
+        subcircuits = obj.get_subcircuits()
+        func = lambda _: obj._impedance(_, **parameters, **subcircuits)
+    elif isinstance(obj, Element):
+        parameters = obj.get_values()
+        func = lambda _: obj._impedance(_, **parameters)
+    elif isinstance(obj, Connection):
+        parameters = {}
+        func = lambda _: obj._impedance(_)
+    else:
+        raise NotImplementedError(f"Unsupported object: '{type(obj)}'!")
+    Z: ComplexImpedances = zeros(f.shape, dtype=ComplexImpedance)
+    indices: Indices = array_indices(Z.shape)[0]
+    limit_indices: Indices = unique(
+        concatenate(
+            (
+                where(f == 0.0)[0],
+                where(isinf(f))[0],
+            ),
+            axis=0,
+        )
+    )
+    if limit_indices.size > 0:
+        Z[limit_indices] = fromiter(
+            (_calculate_limit(obj, _) for _ in f[limit_indices]),
+            dtype=ComplexImpedance,
+            count=limit_indices.size,
+        )
+        indices = delete(indices, limit_indices)
+    if indices.size > 0:
+        Z[indices] = func(f[indices])
+    if isinf(Z).any():
+        raise InfiniteImpedance()
+    elif isnan(Z).any():
+        raise NotANumberImpedance()
+    return Z.astype(ComplexImpedance)
+
+
+class Element(ABC):
+    """
+    The base class for circuit elements.
+    Classes implementing circuit elements should extend this base class and implement the ``_impedance`` method (note the underscore).
+    The docstring for the class is generated when the class is registered via the :func:`~pyimpspec.register_element` function.
+    """
+
+    _symbol: str = ""
+    _name: str = ""
+    _description: str = ""
+    _equation: str = ""
+    _parameter_unit: Dict[str, str] = {}
+    _parameter_description: Dict[str, str] = {}
+    _parameter_default_value: Dict[str, float] = {}
+    _parameter_default_lower_limit: Dict[str, float] = {}
+    _parameter_default_upper_limit: Dict[str, float] = {}
+    _parameter_default_fixed: Dict[str, bool] = {}
+    _valid_kwargs_keys: Set[str] = set()
+
+    def __init__(self, **kwargs):
+        if kwargs and not set(kwargs.keys()).issubset(self._valid_kwargs_keys):
+            raise InvalidParameterKey(
+                "Invalid parameter (or subcircuit) key detected! The valid keys are: "
+                + ", ".join(self._valid_kwargs_keys)
+            )
         self._label: str = ""
-        self._fixed_parameters: Dict[str, bool] = {}
-        self._lower_limits: Dict[str, float] = {}
-        self._upper_limits: Dict[str, float] = {}
-        # Make sure the keys exist in the relevant dictionaries
+        self._parameter_value: Dict[str, float] = {}
         key: str
-        for key in keys:
-            self._fixed_parameters[key] = False
-            self._lower_limits[key] = -inf
-            self._upper_limits[key] = inf
-        self._identifier: int = -1
+        value: float
+        for key, value in self._parameter_default_value.items():
+            if key not in kwargs:
+                self._parameter_value[key] = value
+            else:
+                self._parameter_value[key] = float(kwargs[key])
+        self._parameter_lower_limit: Dict[
+            str, float
+        ] = self._parameter_default_lower_limit.copy()
+        self._parameter_upper_limit: Dict[
+            str, float
+        ] = self._parameter_default_upper_limit.copy()
+        self._parameter_fixed: Dict[str, bool] = self._parameter_default_fixed.copy()
+
+    def __copy__(self) -> "Element":
+        return (
+            type(self)(**self.get_values())
+            .set_lower_limits(**self.get_lower_limits())
+            .set_upper_limits(**self.get_upper_limits())
+            .set_fixed(**self.are_fixed())
+            .set_label(self._label)
+        )
+
+    def __deepcopy__(self, memo: dict) -> "Element":
+        ident: int = id(self)
+        copy: Optional["Element"] = memo.get(ident)
+        if copy is None:
+            copy = self.__copy__()
+            memo[ident] = copy
+        return copy
 
     def __repr__(self) -> str:
-        return f"{self.get_label()} ({hex(id(self))})"
+        return f"{self.get_name()} ({hex(id(self))})"
+
+    def __str__(self) -> str:
+        return self.get_description()
 
     @classmethod
     def get_extended_description(Class) -> str:
-        assert (
-            hasattr(Class, "__doc__")
-            and type(Class.__doc__) is str
-            and Class.__doc__.strip() != ""
-        )
-        return "\n".join(map(str.strip, Class.__doc__.split("\n"))).strip()
-
-    @staticmethod
-    def get_description() -> str:
         """
-        Get a brief description of the element and its symbol.
+        Get an extended description of this element.
 
         Returns
         -------
         str
         """
-        raise Exception("Method has not been implemented!")
+        assert isinstance(Class.__doc__, str)
+        return Class.__doc__
 
-    @staticmethod
-    def get_defaults() -> Dict[str, float]:
+    @classmethod
+    def get_description(Class) -> str:
         """
-        Get the default values for the element's parameters.
-
-        Returns
-        -------
-        Dict[str, float]
-        """
-        raise Exception("Method has not been implemented!")
-
-    @staticmethod
-    def get_default_fixed() -> Dict[str, bool]:
-        """
-        Get whether or not the element's parameters are fixed by default.
-
-        Returns
-        -------
-        Dict[str, bool]
-        """
-        raise Exception("Method has not been implemented!")
-
-    @staticmethod
-    def get_default_lower_limits() -> Dict[str, float]:
-        """
-        Get the default lower limits for the element's parameters.
-
-        Returns
-        -------
-        Dict[str, float]
-        """
-        raise Exception("Method has not been implemented!")
-
-    @staticmethod
-    def get_default_upper_limits() -> Dict[str, float]:
-        """
-        Get the default upper limits for the element's parameters.
-
-        Returns
-        -------
-        Dict[str, float]
-        """
-        raise Exception("Method has not been implemented!")
-
-    def get_default_label(self) -> str:
-        """
-        Get the default label for this element.
+        Get a brief description of this element.
 
         Returns
         -------
         str
         """
-        if self._identifier >= 0:
-            return f"{self.get_symbol()}_{self._identifier}"
-        else:
-            return self.get_symbol()
+        return f"{Class._symbol}: {Class._name}"  # type: ignore
+
+    @classmethod
+    def get_default_values(Class, *args, **kwargs) -> Dict[str, float]:
+        """
+        Get the default values for this element's parameters as a dictionary.
+
+        Returns
+        -------
+        Dict[str, float]
+        """
+        if not (args or kwargs):
+            return Class._parameter_default_value.copy()
+        results: Dict[str, float] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = Class._parameter_default_value[key]
+        return results
+
+    @classmethod
+    def get_default_value(Class, key: str) -> float:
+        """
+        Get the default value for a specific parameter.
+
+        Parameters
+        ----------
+        key: str
+            A key corresponding to a parameter.
+
+        Returns
+        -------
+        float
+        """
+        return Class.get_default_values(key)[key]
+
+    @classmethod
+    def get_symbol(Class) -> str:
+        """
+        Get the symbol for this element.
+        The symbol is used to represent this type of element in a circuit description code.
+
+        Returns
+        -------
+        str
+        """
+        return Class._symbol
+
+    def _sympy(
+        self,
+        substitute: bool,
+        identifier: int,
+        values: Dict[str, float],
+    ) -> Expr:
+        return sympify(self._equation)
+
+    def to_sympy(self, substitute: bool = False, identifier: int = -1) -> Expr:
+        """
+        Get the |Expr| object for the impedance of this element.
+
+        Parameters
+        ----------
+        substitute: bool, optional
+            Substitute the numeric values for the variables.
+
+        identifier: int, optional
+            The identifier of the element.
+
+        Returns
+        -------
+        |Expr|
+        """
+        assert isinstance(substitute, bool), substitute
+        assert isinstance(identifier, int), identifier
+        substitutions: Dict[str, Union[str, float]] = {}
+        values: Dict[str, float] = self.get_values()
+        key: str
+        value: float
+        for key, value in values.items():
+            repl: Union[str, float]
+            if not substitute:
+                if self._label != "":
+                    repl = f"{key}_{self._label}"
+                elif identifier >= 0:
+                    repl = f"{key}_{identifier}"
+                else:
+                    repl = f"{key}"
+            elif isposinf(value):
+                repl = "oo"
+            elif isneginf(value):
+                repl = "-oo"
+            else:
+                repl = value
+            substitutions[key] = repl
+        return self._sympy(
+            substitute=substitute,
+            identifier=identifier,
+            values=values,
+        ).subs(substitutions)
+
+    def to_latex(self) -> str:
+        """
+        Get the equation for the impedance of this element as a LaTeX-compatible string.
+
+        Returns
+        -------
+        str
+        """
+        return f"Z = {latex(self.to_sympy(substitute=False), imaginary_unit='j')}"
 
     def get_label(self) -> str:
         """
@@ -142,9 +346,7 @@ class Element:
         -------
         str
         """
-        if self._label == "":
-            return self.get_default_label()
-        return f"{self.get_symbol()}_{self._label}"
+        return self._label
 
     def set_label(self, label: str) -> "Element":
         """
@@ -154,21 +356,34 @@ class Element:
         ----------
         label: str
             The new label.
+
+        Returns
+        -------
+        Element
         """
-        assert type(label) is str, f"{label=}"
-        self._label = label.strip()
+        assert isinstance(label, str), f"{label=}"
+        label = label.strip()
+        if label != "":
+            assert all(map(str.isascii, label)) and not all(
+                map(str.isdigit, label)
+            ), label
+        self._label = label
         return self
 
-    @staticmethod
-    def get_symbol() -> str:
+    def get_name(self) -> str:
         """
-        Get the symbol representing the element.
+        Get the display name for this element, which consists of the element's symbol and its optional label.
 
         Returns
         -------
         str
         """
-        raise Exception("NOT YET IMPLEMENTED!")
+        if self._label == "":
+            return self.get_symbol()
+        return f"{self.get_symbol()}_{self._label}"
+
+    def serialize(self, decimals: int = 12) -> str:
+        return self.to_string(decimals=decimals)
 
     def to_string(self, decimals: int = -1) -> str:
         """
@@ -176,7 +391,7 @@ class Element:
 
         Parameters
         ----------
-        decimals: int = -1
+        decimals: int, optional
             The number of decimals used when formatting the current value and the limits for the element's parameters.
             -1 corresponds to no values being included in the output.
 
@@ -187,314 +402,743 @@ class Element:
         assert issubdtype(type(decimals), integer), decimals
         if decimals < 0:
             return self.get_symbol()
+        lower_limits: Dict[str, float] = self.get_lower_limits()
+        upper_limits: Dict[str, float] = self.get_upper_limits()
+        fixed_values: Dict[str, bool] = self.are_fixed()
         parameters: List[str] = []
-        for symbol, value in self.get_parameters().items():
-            lower: float = self.get_lower_limit(symbol)
-            upper: float = self.get_upper_limit(symbol)
-            fixed: bool = self.is_fixed(symbol)
+        for symbol, value in self.get_values().items():
+            lower: float = lower_limits[symbol]
+            upper: float = upper_limits[symbol]
+            fixed: bool = fixed_values[symbol]
             string: str = f"{symbol}=" + (f"%.{decimals}E") % value
             if fixed:
                 string += "F"
-            elif lower != -inf and upper == inf:
+            if isinf(lower):
+                string += "/inf"
+            else:
                 string += (f"/%.{decimals}E") % lower
-            elif lower == -inf and upper != inf:
-                string += (f"//%.{decimals}E") % upper
-            elif lower != -inf and upper != inf:
-                string += (f"/%.{decimals}E") % lower + (f"/%.{decimals}E") % upper
+            if isinf(upper):
+                string += "/inf"
+            else:
+                string += (f"/%.{decimals}E") % upper
             parameters.append(string)
         cdc: str = self.get_symbol() + "{" + ",".join(parameters)
         if self._label != "":
             cdc += f":{self._label}"
         return cdc + "}"
 
-    def _assign_identifier(self, current: int) -> int:
-        """
-        Get the internal identifier that is unique in the context of a circuit.
-        Used internally when generating unique names for parameters when fitting a circuit to a
-        data set.
-
-        Parameters
-        ----------
-        current: int
-            The most recently assigned identifier.
-        """
-        assert type(current) is int and current >= 0
-        self._identifier = current
-        return current + 1
-
-    def get_identifier(self) -> int:
-        """
-        Get the internal identifier that is unique in the context of a circuit.
-        Used internally when generating unique names for parameters when fitting a circuit to a
-        data set.
-
-        Returns
-        -------
-        int
-        """
-        return self._identifier
-
-    def impedance(self, f: float) -> complex:
-        """
-        Calculates the complex impedance of the element at a specific frequency.
-
-        Parameters
-        ----------
-        f: float
-            Frequency in hertz.
-
-        Returns
-        -------
-        complex
-        """
-        assert f > 0 and f < inf
-        return complex(-999, 999)
-
-    def impedances(self, freq: Union[list, ndarray]) -> ndarray:
-        """
-        Calculates the complex impedance of the element at specific frequencies.
-
-        Parameters
-        ----------
-        freq: Union[list, ndarray]
-            Frequencies in hertz.
-
-        Returns
-        -------
-        ndarray
-        """
-        assert type(freq) is list or type(freq) is ndarray
-        assert min(freq) > 0 and max(freq) < inf
-        return array(list(map(self.impedance, freq)))
-
-    def reset_parameters(self, keys: List[str]):
+    def reset_parameters(self, *args, **kwargs):
         """
         Resets the value, lower limit, upper limit, and fixed state of one or more parameters.
 
         Parameters
         ----------
-        keys: List[str]
-            Names of the parameters to reset.
-        """
-        assert type(keys) is list
-        assert len(keys) > 0
-        assert all(list(map(lambda _: type(_) is str, keys)))
-        self.set_parameters({k: v for k, v in self.get_defaults().items() if k in keys})
-        for k, v in self.get_default_lower_limits().items():
-            if k not in keys:
-                continue
-            self.set_lower_limit(k, v)
-        for k, v in self.get_default_upper_limits().items():
-            if k not in keys:
-                continue
-            self.set_upper_limit(k, v)
-        for k, v in self.get_default_fixed().items():
-            if k not in keys:
-                continue
-            self.set_fixed(k, v)
+        *args
+            One or more string keys corresponding to parameters.
 
-    def get_parameters(self) -> "OrderedDict[str, float]":
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
         """
-        Get the current parameters of the element.
+        self.set_values(**self.get_default_values(*args, **kwargs))
+        self.set_lower_limits(**self.get_default_lower_limits(*args, **kwargs))
+        self.set_upper_limits(**self.get_default_upper_limits(*args, **kwargs))
+        self.set_fixed(**self.are_fixed_by_default(*args, **kwargs))
 
-        Returns
-        -------
-        OrderedDict[str, float]
+    def reset_parameter(self, key: str):
         """
-        # This implementation is just for basic testing
-        return OrderedDict(
-            {
-                "A": -999,
-                "B": 999,
-            }
-        )
-
-    # TODO: Switch over to or add **kwargs?
-    def set_parameters(self, parameters: Dict[str, float]):
-        """
-        Set new values for the parameters of the element.
-
-        Parameters
-        ----------
-        parameters: Dict[str, float]
-        """
-        raise Exception("Method has not been implemented!")
-
-    def is_fixed(self, key: str) -> bool:
-        """
-        Check if an element parameter should have a fixed value when fitting a circuit to a data
-        set.
-        True if fixed and False if not fixed.
+        Resets the value, lower limit, upper limit, and fixed state of one parameter.
 
         Parameters
         ----------
         key: str
-            A key corresponding to an element parameter.
+            A string key corresponding to a parameter.
+        """
+        self.set_values(key, self.get_default_value(key))
+        self.set_lower_limits(key, self.get_default_lower_limit(key))
+        self.set_upper_limits(key, self.get_default_upper_limit(key))
+        self.set_fixed(key, self.is_fixed_by_default(key))
+
+    def are_fixed(self, *args, **kwargs) -> Dict[str, bool]:
+        """
+        Get a dictionary that maps parameter keys to whether or not those parameters currently have fixed values.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
+
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, bool]
+        """
+        if not (args or kwargs):
+            return self._parameter_fixed.copy()
+        results: Dict[str, bool] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = self._parameter_fixed[key]
+        return results
+
+    @classmethod
+    def are_fixed_by_default(Class, *args, **kwargs) -> Dict[str, bool]:
+        """
+        Get a dictionary that maps parameter keys to whether or not those parameters have fixed values by default.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
+
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, bool]
+        """
+        if not (args or kwargs):
+            return Class._parameter_default_fixed.copy()
+        results: Dict[str, bool] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = Class._parameter_default_fixed[key]
+        return results
+
+    def is_fixed(self, key: str) -> bool:
+        """
+        Get whether or not a specific parameter currently has a fixed value.
+
+        Parameters
+        ----------
+        key: str
+            A key corresponding to a parameter.
 
         Returns
         -------
         bool
         """
-        assert type(key) is str and key.strip() != ""
-        return self._fixed_parameters[key]
+        return self.are_fixed(key)[key]
 
-    def set_fixed(self, key: str, value: bool) -> "Element":
+    @classmethod
+    def is_fixed_by_default(Class, key: str) -> bool:
         """
-        Set whether or not an element parameter should have a fixed value when fitting a circuit
-        to a data set.
+        Get whether or not a specific parameter has a fixed value by default.
 
         Parameters
         ----------
         key: str
-            A key corresponding to an element parameter.
+            A key corresponding to a parameter.
 
-        value: bool
-            True if the value should be fixed.
+        Returns
+        -------
+        bool
         """
-        assert type(key) is str and key.strip() != ""
-        assert key in self._fixed_parameters, f"{key=}"
-        assert type(value) is bool, f"{value=}"
-        self._fixed_parameters[key] = value
+        return Class.are_fixed_by_default(key)[key]
+
+    def set_fixed(self, *args, **kwargs) -> "Element":
+        """
+        Set parameters to have fixed values.
+
+        Parameters
+        ----------
+        *args
+            Pairs of string keys and boolean values corresponding to parameters (e.g., `set_fixed("R", True, "Y", False)`).
+
+        **kwargs
+            String keys and boolean values corresponding to parameters (e.g., `set_fixed(R=True, Y=False)`).
+
+        Returns
+        -------
+        Element
+        """
+        key: Any
+        value: Any
+        if args:
+            assert len(args) % 2 == 0
+            args_list: List[Any] = list(args)
+            while args_list:
+                key = args_list.pop(0)
+                value = args_list.pop(0)
+                assert isinstance(key, str), key
+                assert key in self._parameter_fixed, key
+                assert isinstance(value, bool), value
+                self._parameter_fixed[key] = value
+        for key, value in kwargs.items():
+            assert isinstance(key, str), key
+            assert key in self._parameter_fixed, key
+            assert isinstance(value, bool), value
+            self._parameter_fixed[key] = value
         return self
+
+    def get_lower_limits(self, *args, **kwargs) -> Dict[str, float]:
+        """
+        Get a dictionary that maps parameter keys to their current lower limits.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
+
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, float]
+        """
+        if not (args or kwargs):
+            return self._parameter_lower_limit.copy()
+        results: Dict[str, float] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = self._parameter_lower_limit[key]
+        return results
 
     def get_lower_limit(self, key: str) -> float:
         """
-        Get the lower limit for the value of an element parameter when fitting a circuit to a data
-        set.
-        The absence of a limit is represented by -numpy.inf.
+        Get the current lower limit for a specific parameter.
 
         Parameters
         ----------
         key: str
-            A key corresponding to an element parameter.
+            A key corresponding to a parameter.
 
         Returns
         -------
         float
         """
-        assert type(key) is str and key.strip() != ""
-        return self._lower_limits[key]
+        return self.get_lower_limits(key)[key]
 
-    def set_lower_limit(self, key: str, value: float) -> "Element":
+    @classmethod
+    def get_default_lower_limits(Class, *args, **kwargs) -> Dict[str, float]:
         """
-        Set the upper limit for the value of an element parameter when fitting a circuit to a data
-        set.
+        Get a dictionary that maps parameter keys to their default lower limits.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
+
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, float]
+        """
+        if not (args or kwargs):
+            return Class._parameter_default_lower_limit.copy()
+        results: Dict[str, float] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = Class._parameter_default_lower_limit[key]
+        return results
+
+    @classmethod
+    def get_default_lower_limit(Class, key: str) -> float:
+        """
+        Get the default lower limit for a specific parameter.
 
         Parameters
         ----------
         key: str
-            A key corresponding to an element parameter.
+            A key corresponding to a parameter.
 
-        value: float
-            The new limit for the element parameter. The limit can be removed by setting the limit
-            to be -numpy.inf.
+        Returns
+        -------
+        float
         """
-        assert type(key) is str and key.strip() != ""
-        assert key in self._lower_limits, f"{key=}"
-        self._lower_limits[key] = float(value)
+        return Class.get_default_lower_limits(key)[key]
+
+    def set_lower_limits(self, *args, **kwargs) -> "Element":
+        """
+        Set lower limits for parameters.
+
+        Parameters
+        ----------
+        *args
+            Pairs of string keys and numeric values corresponding to parameters (e.g., `set_lower_limits("R", 1.0, "Y", 1e-9)`).
+
+        **kwargs
+            String keys and numeric values corresponding to parameters (e.g., `set_lower_limits(R=1.0, Y=1e-9)`)..
+
+        Returns
+        -------
+        Element
+        """
+        key: Any
+        value: Any
+        if args:
+            assert len(args) % 2 == 0
+            args_list: List[Any] = list(args)
+            while args_list:
+                key = args_list.pop(0)
+                assert isinstance(key, str), f"Expected a string key but got '{key}'!"
+                assert (
+                    key in self._parameter_lower_limit
+                ), f"Invalid parameter key: '{key}'!"
+                value = float(args_list.pop(0))
+                assert (
+                    value < self._parameter_upper_limit[key]
+                ), f"Lower limit must be less than the upper limit ({self._parameter_upper_limit[key]})!"
+                if self._parameter_value[key] < value:
+                    self._parameter_value[key] = value
+                self._parameter_lower_limit[key] = value
+        for key, value in kwargs.items():
+            assert isinstance(key, str), f"Expected a string key but got '{key}'!"
+            assert (
+                key in self._parameter_lower_limit
+            ), f"Invalid parameter key: '{key}'!"
+            value = float(value)
+            assert (
+                value < self._parameter_upper_limit[key]
+            ), f"Lower limit must be less than the upper limit ({self._parameter_upper_limit[key]})!"
+            if self._parameter_value[key] < value:
+                self._parameter_value[key] = value
+            self._parameter_lower_limit[key] = value
         return self
+
+    def get_upper_limits(self, *args, **kwargs) -> Dict[str, float]:
+        """
+        Get a dictionary that maps parameter keys to their current upper limits.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
+
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, float]
+        """
+        if not (args or kwargs):
+            return self._parameter_upper_limit.copy()
+        results: Dict[str, float] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = self._parameter_upper_limit[key]
+        return results
 
     def get_upper_limit(self, key: str) -> float:
         """
-        Get the upper limit for the value of an element parameter when fitting a circuit to a data
-        set.
-        The absence of a limit is represented by numpy.inf.
+        Get the current upper limit for a specific parameter.
 
         Parameters
         ----------
         key: str
-            A key corresponding to an element parameter.
+            A key corresponding to a parameter.
 
         Returns
         -------
         float
         """
-        assert type(key) is str and key.strip() != ""
-        return self._upper_limits[key]
+        return self.get_upper_limits(key)[key]
 
-    def set_upper_limit(self, key: str, value: float) -> "Element":
+    @classmethod
+    def get_default_upper_limits(Class, *args, **kwargs) -> Dict[str, float]:
         """
-        Set the upper limit for the value of an element parameter when fitting a circuit to a data
-        set.
+        Get a dictionary that maps parameter keys to their default upper limits.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
+
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, float]
+        """
+        if not (args or kwargs):
+            return Class._parameter_default_upper_limit.copy()
+        results: Dict[str, float] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = Class._parameter_default_upper_limit[key]
+        return results
+
+    @classmethod
+    def get_default_upper_limit(Class, key: str) -> float:
+        """
+        Get the default upper limit for a specific parameter.
 
         Parameters
         ----------
         key: str
-            A key corresponding to an element parameter.
+            A key corresponding to a parameter.
 
-        value: float
-            The new limit for the element parameter. The limit can be removed by setting the limit
-            to be numpy.inf.
+        Returns
+        -------
+        float
         """
-        assert type(key) is str and key.strip() != ""
-        assert key in self._upper_limits, f"{key=}"
-        self._upper_limits[key] = float(value)
+        return Class.get_default_upper_limits(key)[key]
+
+    def set_upper_limits(self, *args, **kwargs) -> "Element":
+        """
+        Set upper limits for parameters.
+
+        Parameters
+        ----------
+        *args
+            Pairs of string keys and numeric values corresponding to parameters (e.g., `set_upper_limits("R", 1.0, "Y", 1e-9)`).
+
+        **kwargs
+            String keys and numeric values corresponding to parameters (e.g., `set_upper_limits(R=1.0, Y=1e-9)`).
+
+        Returns
+        -------
+        Element
+        """
+        key: Any
+        value: Any
+        if args:
+            assert len(args) % 2 == 0
+            args_list: List[Any] = list(args)
+            while args_list:
+                key = args_list.pop(0)
+                assert isinstance(key, str), f"Expected a string key but got '{key}'!"
+                assert (
+                    key in self._parameter_upper_limit
+                ), f"Invalid parameter key: '{key}'!"
+                value = float(args_list.pop(0))
+                assert (
+                    value > self._parameter_lower_limit[key]
+                ), f"Upper limit must be greater than the lower limit ({self._parameter_lower_limit[key]})!"
+                if self._parameter_value[key] > value:
+                    self._parameter_value[key] = value
+                self._parameter_upper_limit[key] = value
+        for key, value in kwargs.items():
+            assert isinstance(key, str), f"Expected a string key but got '{key}'!"
+            assert (
+                key in self._parameter_upper_limit
+            ), f"Invalid parameter key: '{key}'!"
+            value = float(value)
+            assert (
+                value > self._parameter_lower_limit[key]
+            ), f"Upper limit must be greater than the lower limit ({self._parameter_lower_limit[key]})!"
+            if self._parameter_value[key] > value:
+                self._parameter_value[key] = value
+            self._parameter_upper_limit[key] = value
         return self
 
-    def _str_expr(self, substitute: bool = False) -> str:
-        raise Exception("Method has not been implemented!")
+    def get_values(self, *args, **kwargs) -> Dict[str, float]:
+        """
+        Get a dictionary that maps parameter keys to their current values.
 
-    def _subs_str_expr(
-        self, string: str, parameters: "OrderedDict[str, float]", symbols_only: bool
-    ) -> str:
-        assert type(string) is str
-        assert type(parameters) is OrderedDict
-        assert type(symbols_only) is bool
-        k: str
-        v: float
-        for k, v in parameters.items():
-            repl: str = f"{v:.12E}"
-            if symbols_only:
-                if self._label != "":
-                    repl = f"{k}_{self._label}"
-                elif self._identifier >= 0:
-                    repl = f"{k}_{self._identifier}"
-                else:
-                    repl = f"{k}"
-            pattern: str = r"(?<![a-zA-Z])" + k + r"(?![a-zA-Z])"
-            string = sub(pattern, repl, string)
-        return string
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
 
-    def to_sympy(self, substitute: bool = False) -> Expr:
-        assert type(substitute) is bool
-        return sympify(self._str_expr(substitute=substitute))
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
 
-    def to_latex(self) -> str:
-        return f"Z = {latex(self.to_sympy(substitute=False))}"
+        Returns
+        -------
+        Dict[str, float]
+        """
+        if not (args or kwargs):
+            return self._parameter_value.copy()
+        results: Dict[str, float] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = self._parameter_value[key]
+        return results
+
+    def get_value(self, key: str) -> float:
+        """
+        Get the current value for a specific parameter.
+
+        Parameters
+        ----------
+        key: str
+            A key corresponding to a parameter.
+
+        Returns
+        -------
+        float
+        """
+        return self.get_values(key)[key]
+
+    def set_values(self, *args, **kwargs) -> "Element":
+        """
+        Set values for parameters.
+
+        Parameters
+        ----------
+        *args
+            Pairs of string keys and numeric values corresponding to parameters (e.g., `set_values("R", 1.0, "Y", 1e-9)`).
+
+        **kwargs
+            String keys and numeric values corresponding to parameters (e.g., `set_values(R=1.0, Y=1e-9)`).
+
+        Returns
+        -------
+        Element
+        """
+        key: Any
+        value: Any
+        if args:
+            assert len(args) % 2 == 0
+            args_list: List[Any] = list(args)
+            while args_list:
+                key = args_list.pop(0)
+                value = args_list.pop(0)
+                assert isinstance(key, str), key
+                assert key in self._parameter_value, key
+                self._parameter_value[key] = float(value)
+        for key, value in kwargs.items():
+            assert isinstance(key, str), key
+            assert key in self._parameter_value, key
+            self._parameter_value[key] = float(value)
+        return self
+
+    @classmethod
+    def get_units(Class, *args, **kwargs) -> Dict[str, str]:
+        """
+        Get a dictionary that maps parameter keys to their corresponding units.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
+
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, str]
+        """
+        if not (args or kwargs):
+            return Class._parameter_unit.copy()
+        results: Dict[str, str] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = Class._parameter_unit[key]
+        return results
+
+    @classmethod
+    def get_unit(Class, key: str) -> str:
+        """
+        Get the unit for a specific parameter.
+
+        Parameters
+        ----------
+        key: str
+            String key for a parameter.
+
+        Returns
+        -------
+        str
+        """
+        return Class.get_units(key)[key]
+
+    @classmethod
+    def get_value_descriptions(Class, *args, **kwargs) -> Dict[str, str]:
+        """
+        Get a dictionary that maps parameter keys to their corresponding descriptions.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters.
+
+        **kwargs
+            String keys corresponding to parameters.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, str]
+        """
+        if not (args or kwargs):
+            return Class._parameter_description.copy()
+        results: Dict[str, str] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = Class._parameter_description[key]
+        return results
+
+    @classmethod
+    def get_value_description(Class, key: str) -> str:
+        """
+        Get the description for a specific parameter.
+
+        Parameters
+        ----------
+        key: str
+            String key for a parameter.
+
+        Returns
+        -------
+        str
+        """
+        return Class.get_value_descriptions(key)[key]
+
+    @abstractmethod
+    def _impedance(self, f: Frequencies, **kwargs) -> ComplexImpedances:
+        """
+        The method that performs the actual computation of the element's impedance at a given excitation frequency.
+        This is the method that should be overridden by classes that implement circuit elements.
+
+        Parameters
+        ----------
+        f: |Frequencies|
+            The excitation frequencies in hertz.
+
+        **kwargs
+            The element parameters.
+
+        Returns
+        -------
+        |ComplexImpedances|
+        """
+        pass
+
+    def get_impedances(self, frequencies: Frequencies) -> ComplexImpedances:
+        """
+        Calculate the impedance of this element at multiple frequencies.
+
+        Parameters
+        ----------
+        frequencies: |Frequencies|
+            The excitation frequencies in hertz.
+
+        Returns
+        -------
+        |ComplexImpedances|
+        """
+        assert isinstance(frequencies, ndarray), frequencies
+        return _calculate_impedances(self, frequencies)
 
 
-class Connection:
+class Connection(ABC):
     def __init__(self, elements: List[Union[Element, "Connection"]]):
-        assert type(elements) is list
+        assert isinstance(elements, list), elements
         assert all(
             map(lambda _: isinstance(_, Connection) or isinstance(_, Element), elements)
         )
         self._elements: List[Union[Element, "Connection"]] = elements
 
+    def __copy__(self) -> "Connection":
+        return type(self)([_.__copy__() for _ in self._elements])
+
+    def __deepcopy__(self, memo: dict) -> "Connection":
+        ident: int = id(self)
+        copy: Optional["Connection"] = memo.get(ident)
+        if copy is None:
+            copy = type(self)([_.__deepcopy__(memo) for _ in self._elements])
+            memo[ident] = copy
+        return copy
+
     def __repr__(self) -> str:
-        return f"{self.get_label()} ({hex(id(self))})"
+        return f"TODO ({hex(id(self))})"
 
     def __len__(self) -> int:
         return len(self._elements)
 
-    def __contains__(self, element: Union[Element, "Connection"]) -> bool:
-        for ec in self.get_elements(flattened=False):
-            if ec == element:
+    def __contains__(self, element_or_connection: Union[Element, "Connection"]) -> bool:
+        ec: Union[Element, "Connection"]
+        for ec in self.get_elements():
+            if ec == element_or_connection:
                 return True
+            elif isinstance(ec, Container):
+                if element_or_connection in ec:
+                    return True
         return False
 
+    def _get_elements_recursive(self) -> List[Element]:
+        connection_type: Type["Connection"] = type(self).__bases__[0]
+        queue: List[Union[Element, "Connection"]] = self.get_elements(flattened=True)
+        elements: List[Element] = []
+        while queue:
+            element: Union[Element, "Connection"] = queue.pop(0)
+            if isinstance(element, connection_type):
+                queue.extend(element._get_elements_recursive())
+                continue
+            assert isinstance(element, Element), element
+            if element not in elements:
+                elements.append(element)
+            if isinstance(element, Container):
+                queue.extend(
+                    filter(
+                        lambda connection: connection is not None,
+                        element.get_subcircuits().values(),
+                    )
+                )
+        assert len(elements) == len(set(elements)), "Detected duplicates!"
+        return elements
+
+    def generate_element_identifiers(self, running: bool) -> Dict[Element, int]:
+        """
+        Generate a mapping of elements to their corresponding integer identifiers.
+
+        Parameters
+        ----------
+        running: bool
+            If true, then the identifiers are simply a running count from 0 to N. Primarily intended for use within pyimpspec.
+            If false, then the identifiers represent what number instance of a particular element type an element is (e.g., the second resistor of three resistors would have 2 as its identifier). Primarily intended for use in anything that most users would see (e.g., circuit diagrams and parameter tables).
+
+        Returns
+        -------
+        Dict[Element, int]
+        """
+        if running is True:
+            return {
+                element: i for i, element in enumerate(self._get_elements_recursive())
+            }
+        elements: List[Element] = self._get_elements_recursive()
+        identifiers: Dict[Element, int] = {}
+        element: Element
+        counts: Dict[str, int] = {element.get_symbol(): 0 for element in elements}
+        for element in elements:
+            symbol: str = element.get_symbol()
+            i: int = counts[symbol] + 1
+            counts[symbol] = i
+            identifiers[element] = i
+        return identifiers
+
     def contains(
-        self, element: Union[Element, "Connection"], top_level: bool = False
+        self,
+        element_or_connection: Union[Element, "Connection"],
+        top_level: bool = False,
     ) -> bool:
         """
         Check if this connection contains a specific Element or Connection instance.
 
         Parameters
         ----------
-        element: Union[Element, Connection]
+        element_or_connection: Union[Element, Connection]
             The Element or Connection instance to check for.
 
-        top_level: bool = False
+        top_level: bool, optional
             Whether to only check in the current Connection instance instead of also checking in any nested Connection instances.
 
         Returns
@@ -502,42 +1146,132 @@ class Connection:
         bool
         """
         if top_level:
-            return element in self._elements
-        return element in self
+            return element_or_connection in self._elements
+        return element_or_connection in self
 
-    def _assign_identifier(self, current: int) -> int:
+    def append(self, element_or_connection: Union[Element, "Connection"]):
         """
-        Used internally when generating unique names for parameters when fitting a circuit to a
-        data set.
+        Append an element/connection to this connection.
 
         Parameters
         ----------
-        current: int
-            The most recently assigned identifier.
+        element_or_connection: Union[Element, Connection]
+        """
+        self._elements.append(element_or_connection)
+
+    def extend(self, elements_or_connections: List[Union[Element, "Connection"]]):
+        """
+        Extend this connection with a list of elements and/or connections.
+
+        Parameters
+        ----------
+        elements_or_connections: List[Union[Element, Connection]]
+        """
+        self._elements.extend(elements_or_connections)
+
+    def insert(self, i: int, element_or_connection: Union[Element, "Connection"]):
+        """
+        Insert an element/connection into position i of this connection.
+
+        Parameters
+        ----------
+        i: int
+
+        element_or_connection: Union[Element, Connection]
+        """
+        self._elements.insert(i, element_or_connection)
+
+    def remove(self, element_or_connection: Union[Element, "Connection"]):
+        """
+        Remove a specific element/connection from this connection.
+
+        Parameters
+        ----------
+        element_or_connection: Union[Element, Connection]
+        """
+        self._elements.remove(element_or_connection)
+
+    def pop(self, i: int) -> Union[Element, "Connection"]:
+        """
+        Pop the element/connection at position i in this connection.
+
+        Parameters
+        ----------
+        i: int
+
+        Returns
+        -------
+        Union[Element, Connection]
+        """
+        return self._elements.pop(i)
+
+    def clear(self):
+        """
+        Remove all elements and/or connections from this connection.
+        """
+        self._elements.clear()
+
+    def index(
+        self,
+        element_or_connection: Union[Element, "Connection"],
+        start: int = 0,
+        end: int = -1,
+    ) -> int:
+        """
+        Get the index of an element/connection in this connection.
+
+        Parameters
+        ----------
+        element_or_connection: Union[Element, Connection]
+
+        start: int, optional
+
+        end: int, optional
 
         Returns
         -------
         int
-            The most recently assigned identifier.
         """
-        element: Union[Element, "Connection"]
-        for element in reversed(self._elements):
-            current = element._assign_identifier(current)
-        return current
+        if end < 0:
+            end = len(self._elements)
+        return self._elements.index(element_or_connection, start, end)
 
-    def get_label(self) -> str:
-        raise Exception("Not yet implemented!")
+    def count(self) -> int:
+        """
+        Get the number of elements and/or connections in this connection.
 
+        Returns
+        -------
+        int
+        """
+        return len(self._elements)
+
+    def serialize(self, decimals: int = 12) -> str:
+        return self.to_string(decimals=decimals)
+
+    @abstractmethod
     def to_string(self, decimals: int = -1) -> str:
-        raise Exception("Not yet implemented!")
-
-    def get_connections(self, flattened: bool = True) -> List["Connection"]:
         """
-        Get the connections in this circuit.
+        Generate the circuit description code for this connection.
 
         Parameters
         ----------
-        flattened: bool = True
+        decimals: int, optional
+            The number of decimals used in numeric values.
+
+        Returns
+        -------
+        str
+        """
+        pass
+
+    def get_connections(self, flattened: bool = True) -> List["Connection"]:
+        """
+        Get the connections in this connection.
+
+        Parameters
+        ----------
+        flattened: bool, optional
             Whether or not the connections should be returned as a list of all connections or as a list connections that may also contain more connections.
 
         Returns
@@ -548,24 +1282,23 @@ class Connection:
             connections: List["Connection"] = []
             for element in self._elements:
                 if isinstance(element, Connection):
-                    connections.extend(
-                        reversed(element.get_connections(flattened=flattened))
-                    )
                     connections.append(element)
-            return list(reversed(connections))
+                    connections.extend(element.get_connections(flattened=flattened))
+            return list(connections)
         return list(
-            reversed(filter(lambda _: isinstance(_, Connection), self._elements))
+            filter(lambda _: isinstance(_, Connection), self._elements)  # type: ignore
         )
 
     def get_elements(
-        self, flattened: bool = True
+        self,
+        flattened: bool = True,
     ) -> List[Union[Element, "Connection"]]:
         """
         Get the elements in this circuit.
 
         Parameters
         ----------
-        flattened: bool = True
+        flattened: bool, optional
             Whether or not the elements should be returned as a list of only elements or as a list of connections containing elements.
 
         Returns
@@ -576,133 +1309,527 @@ class Connection:
             elements: List[Union[Element, "Connection"]] = []
             for element in self._elements:
                 if isinstance(element, Connection):
-                    elements.extend(reversed(element.get_elements(flattened=flattened)))
+                    elements.extend(element.get_elements(flattened=flattened))
                 else:
                     elements.append(element)
-            return list(reversed(elements))
-        return list(reversed(self._elements))
+            return elements
+        return self._elements[:]
 
-    def substitute_element(self, ident: int, element: Element) -> bool:
-        elem_con: Union[Element, Connection]
-        for elem_con in self.get_elements(flattened=False):
-            if isinstance(elem_con, Element):
-                if elem_con.get_identifier() == ident:
-                    element._assign_identifier(ident)
-                    index: int = self._elements.index(elem_con)
-                    self._elements.pop(index)
-                    self._elements.insert(index, element)
-                    return True
-            else:
-                if elem_con.substitute_element(ident, element) is True:
-                    return True
-        return False
-
-    def impedance(self, f: float) -> complex:
+    @abstractmethod
+    def _impedance(self, f: Frequencies) -> ComplexImpedances:
         """
-        Calculates the impedance of the connection at a single frequency.
+        The method that performs the actual computation of the connection's impedance at a given excitation frequency.
+        This is the method that should be overridden by classes that implement circuit connections.
 
         Parameters
         ----------
-        f: float
-            Frequency in Hz
+        f: |Frequencies|
+            The excitation frequency in hertz.
 
         Returns
         -------
-        complex
+        |ComplexImpedances|
         """
-        raise Exception("Method has not been implemented!")
+        pass
 
-    def impedances(self, freq: Union[list, ndarray]) -> ndarray:
+    def get_impedances(self, frequencies: Frequencies) -> ComplexImpedances:
         """
-        Calculates the impedance of the element at multiple frequencies.
+        Calculate the impedance of this connection at multiple frequencies.
 
         Parameters
         ----------
-        freq: Union[list, ndarray]
-            Frequencies in Hz
+        frequencies: |Frequencies|
+            The excitation frequencies in hertz.
 
         Returns
         -------
-        ndarray
+        |ComplexImpedances|
         """
-        assert type(freq) is list or type(freq) is ndarray
-        assert min(freq) > 0 and max(freq) < inf
-        return array(list(map(self.impedance, freq)))
+        assert isinstance(frequencies, ndarray), frequencies
+        return _calculate_impedances(self, frequencies)
 
-    def get_parameters(self) -> "Dict[int, OrderedDict[str, float]]":
-        """
-        Get the current element parameters of all elements nested inside this connection.
-        The outer key is the unique identifier assigned to an element.
-        The inner key is the symbol corresponding to an element parameter.
-
-        Returns
-        -------
-        Dict[int, OrderedDict[str, float]]
-        """
-        parameters: "Dict[int, OrderedDict[str, float]]" = {}
-        element: Union[Element, "Connection"]
-        for element in self._elements:
-            if isinstance(element, Connection):
-                parameters.update(element.get_parameters())
-                continue
-            parameters[element.get_identifier()] = element.get_parameters()
-        return parameters
-
-    def set_parameters(self, parameters: Dict[int, Dict[str, float]]):
-        """
-        Set new element parameters to some/all elements nested inside this connection.
-
-        Parameters
-        ----------
-        parameters: Dict[int, Dict[str, float]]
-            The outer key is the unique identifier assigned to an element.
-            The inner key is the symbol corresponding to an element parameter.
-        """
-        assert type(parameters) is dict
-        element: Union[Element, "Connection"]
-        for element in self._elements:
-            if isinstance(element, Connection):
-                element.set_parameters(parameters)
-                continue
-            ident: int = element.get_identifier()
-            if ident not in parameters:
-                continue
-            element.set_parameters(parameters[ident])
-
-    def get_element(self, ident: int) -> Optional[Element]:
-        """
-        Get a specific element based on its unique identifier.
-
-        Parameters
-        ----------
-        ident: int
-            The integer identifier that should be unique in the context of the circuit.
-
-        Returns
-        -------
-        Optional[Element]
-        """
-        assert issubdtype(type(ident), integer), ident
-        element: Optional[Union[Element, "Connection"]]
-        for element in self._elements:
-            if isinstance(element, Connection):
-                element = element.get_element(ident)  # type: ignore
-                if element is not None:
-                    return element  # type: ignore
-                continue
-            elif element is not None and element.get_identifier() == ident:
-                return element  # type: ignore
-        return None
-
+    @abstractmethod
     def to_stack(self, stack: List[Tuple[str, Union[Element, "Connection"]]]):
-        raise Exception("Method has not been implemented!")
+        pass
 
-    def _str_expr(self, substitute: bool = False) -> str:
-        raise Exception("Method has not been implemented!")
+    @abstractmethod
+    def to_sympy(
+        self,
+        substitute: bool = False,
+        identifiers: Optional[Dict[Element, int]] = None,
+    ) -> Expr:
+        """
+        Get the |Expr| object for the impedance of this connection.
 
-    def to_sympy(self, substitute: bool = False) -> Expr:
-        assert type(substitute) is bool
-        return sympify(self._str_expr(substitute=substitute))
+        Parameters
+        ----------
+        substitute: bool, optional
+            Substitute the numeric values for the variables.
+
+        identifiers: Optional[Dict[Element, int]], optional
+            A mapping of elements to their identifiers.
+
+        Returns
+        -------
+        |Expr|
+        """
+        pass
 
     def to_latex(self) -> str:
-        return f"Z = {latex(self.to_sympy(substitute=False))}"
+        """
+        Get the equation for the impedance of this connection as a LaTeX-compatible string.
+
+        Returns
+        -------
+        str
+        """
+        return f"Z = {latex(self.to_sympy(substitute=False), imaginary_unit='j')}"
+
+    def to_drawing(self) -> "Drawing":  # noqa: F821
+        # Dynamically set to pyimpspec.circuit.diagrams.to_drawing
+        raise NotImplementedError()
+
+    def to_circuitikz(self) -> str:
+        # Dynamically set to pyimpspec.circuit.diagrams.to_circuitikz
+        raise NotImplementedError()
+
+    def get_element_name(
+        self,
+        element: Element,
+        identifiers: Optional[Dict[Element, int]] = None,
+    ) -> str:
+        """
+        Get the name of the element with consideration for any overriding label assigned to the element or the type-specific count in the context of this connection.
+
+        Parameters
+        ----------
+        element: Element
+            The element whose name should be returned.
+
+        identifiers: Optional[Dict[Element, int]], optional
+            The identifiers to use when determining the name of the provided element.
+
+        Returns
+        -------
+        str
+        """
+        assert element in self, "This connection does not contain the provided element!"
+        name: str = element.get_name()
+        symbol: str = element.get_symbol()
+        if name != symbol:
+            return name
+        if identifiers is None:
+            identifiers = self.generate_element_identifiers(running=False)
+        assert element in identifiers
+        return f"{symbol}_{identifiers[element]}"
+
+
+class Container(Element):
+    """
+    A subclass of :class:`~pyimpspec.circuit.base.Element` that adds support for subcircuits.
+    """
+
+    _subcircuit_unit: Dict[str, str] = {}
+    _subcircuit_description: Dict[str, str] = {}
+    _subcircuit_default_value: Dict[str, Optional[Connection]] = {}
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._subcircuit_value: Dict[str, Optional[Connection]] = {}
+        key: str
+        value: Optional[Connection]
+        for key, value in self._subcircuit_default_value.items():
+            if key not in kwargs:
+                self._subcircuit_value[key] = (
+                    deepcopy(value) if value is not None else value
+                )
+            else:
+                value = kwargs[key]
+                assert value is None or isinstance(value, Connection), value
+                self._subcircuit_value[key] = value
+
+    def __contains__(self, element_or_connection: Union[Element, Connection]) -> bool:
+        con: Optional[Connection]
+        for con in self._subcircuit_value.values():
+            if con is None:
+                continue
+            if element_or_connection in con:
+                return True
+        return False
+
+    def __copy__(self) -> "Container":
+        return (
+            type(self)(
+                **self.get_values(),
+                **{
+                    k: (v.__copy__() if v is not None else v)
+                    for k, v in self.get_subcircuits().items()
+                },
+            )
+            .set_lower_limits(**self.get_lower_limits())
+            .set_upper_limits(**self.get_upper_limits())
+            .set_fixed(**self.are_fixed())
+            .set_label(self._label)
+        )
+
+    def __deepcopy__(self, memo: dict) -> "Container":
+        ident: int = id(self)
+        copy: Optional["Container"] = memo.get(ident)
+        if copy is None:
+            copy = (
+                type(self)(
+                    **self.get_values(),
+                    **{
+                        k: (v.__deepcopy__(memo) if v is not None else None)
+                        for k, v in self.get_subcircuits().items()
+                    },
+                )
+                .set_lower_limits(**self.get_lower_limits())
+                .set_upper_limits(**self.get_upper_limits())
+                .set_fixed(**self.are_fixed())
+                .set_label(self._label)
+            )
+            memo[ident] = copy
+        assert copy is not None
+        return copy
+
+    def _sympy(
+        self,
+        substitute: bool,
+        identifiers: Dict[Element, int],
+        values: Dict[str, float],
+        subcircuits: Dict[str, Optional[Connection]],
+    ) -> Expr:
+        return sympify(self._equation)
+
+    def to_sympy(
+        self,
+        substitute: bool = False,
+        identifiers: Optional[Dict[Element, int]] = None,
+    ) -> Expr:
+        """
+        Get the SymPy expression for the impedance of this element.
+
+        Parameters
+        ----------
+        substitute: bool, optional
+            Substitute the numeric values for the variables.
+
+        identifiers: Optional[Dict[Element, int]], optional
+            A mapping of elements to their identifiers.
+
+        Returns
+        -------
+        `sympy.Expr`_
+        """
+        assert isinstance(substitute, bool), substitute
+        if identifiers is None:
+            identifiers = self.generate_element_identifiers(running=False)
+        assert isinstance(identifiers, dict), identifiers
+        identifier: int = identifiers[self]
+        substitutions: Dict[str, Union[str, float, Expr]] = {}
+        values: Dict[str, float] = self.get_values()
+        subcircuits: Dict[str, Optional[Connection]] = self.get_subcircuits()
+        key: str
+        value: float
+        for key, value in values.items():
+            repl: Union[str, float, Expr]
+            if not substitute:
+                if self._label != "":
+                    repl = f"{key}_{self._label}"
+                elif identifier >= 0:
+                    repl = f"{key}_{identifier}"
+                else:
+                    repl = f"{key}"
+            elif isposinf(value):
+                repl = "oo"
+            elif isneginf(value):
+                repl = "-oo"
+            else:
+                repl = value
+            substitutions[key] = repl
+        con: Optional[Connection]
+        for key, con in subcircuits.items():
+            if con is None:
+                repl = "oo"
+            else:
+                repl = con.to_sympy(substitute=substitute, identifiers=identifiers)
+            substitutions[key] = repl
+        return self._sympy(
+            substitute=substitute,
+            identifiers=identifiers,
+            values=values,
+            subcircuits=subcircuits,
+        ).subs(substitutions)
+
+    def generate_element_identifiers(self, running: bool) -> Dict[Element, int]:
+        """
+        Generate a mapping of elements to their corresponding integer identifiers.
+
+        Parameters
+        ----------
+        running: bool
+            If true, then the identifiers are simply a running count from 0 to N. Primarily intended for use within pyimpspec.
+            If false, then the identifiers represent what number instance of a particular element type an element is (e.g., the second resistor of three resistors would have 2 as its identifier). Primarily intended for use in anything that most users would see (e.g., circuit diagrams and parameter tables).
+
+        Returns
+        -------
+        Dict[Element, int]
+        """
+        identifiers: Dict[Element, int] = {}
+        subcircuits: List[Connection] = []
+        counts: Dict[str, int] = {}
+
+        def process_element(element: Element):
+            if running is True:
+                identifiers[element] = len(identifiers)
+            else:
+                symbol: str = element.get_symbol()
+                if symbol not in counts:
+                    counts[symbol] = 0
+                i: int = counts[symbol] + 1
+                counts[symbol] = i
+                identifiers[element] = i
+            if isinstance(element, Container):
+                subcircuits.extend(
+                    filter(
+                        lambda connection: connection is not None,
+                        element.get_subcircuits().values(),
+                    )
+                )
+
+        process_element(self)
+        counts[self.get_symbol()] = 0
+        identifiers[self] = -1
+        connection: Optional[Connection]
+        for connection in self.get_subcircuits().values():
+            if connection is None:
+                continue
+            [process_element(_) for _ in connection.get_elements(flattened=True)]
+        return identifiers
+
+    def to_string(self, decimals: int = -1) -> str:
+        cdc: str = super().to_string(decimals=decimals)
+        if decimals < 0 or not cdc.endswith("}"):
+            return cdc
+        index: int = cdc.find("{") + 1
+        assert index > 0
+        ending: str
+        cdc, ending = cdc[:index], cdc[index:]
+        key: str
+        for key in sorted(self._subcircuit_value.keys()):
+            con: Optional[Connection] = self._subcircuit_value[key]
+            if con is None:
+                cdc += f"{key}=open, "
+            elif len(con.get_elements()) == 0:
+                cdc += f"{key}=short, "
+            else:
+                cdc += f"{key}={con.to_string(decimals=decimals)}, "
+        if ending[0] == ":" or ending[0] == "}":
+            cdc = cdc[:-2]
+        return cdc + ending
+
+    @classmethod
+    def get_units(Class, *args, **kwargs) -> Dict[str, str]:
+        """
+        Get a dictionary that maps parameter and/or subcircuit keys to their corresponding units.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to parameters and/or subcircuits.
+
+        **kwargs
+            String keys corresponding to parameters and/or subcircuits.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, str]
+        """
+        results: Dict[str, str] = {}
+        if not (args or kwargs):
+            results.update(Class._parameter_unit)
+            results.update(Class._subcircuit_unit)
+        else:
+            key: Any
+            for key in set(list(args) + list(kwargs.keys())):
+                assert isinstance(key, str), key
+                if key in Class._parameter_unit:
+                    results[key] = Class._parameter_unit[key]
+                elif key in Class._subcircuit_unit:
+                    results[key] = Class._subcircuit_unit[key]
+                else:
+                    raise Exception(f"Invalid parameter/subcircuit key: '{key}'!")
+        return results
+
+    @classmethod
+    def get_unit(Class, key: str) -> str:
+        """
+        Get the unit for a specific parameter or subcircuit.
+
+        Parameters
+        ----------
+        key: str
+            String key for a parameter or subcircuit.
+
+        Returns
+        -------
+        str
+        """
+        return Class.get_units(key)[key]
+
+    @classmethod
+    def get_subcircuit_descriptions(Class, *args, **kwargs) -> Dict[str, str]:
+        """
+        Get a dictionary that maps subcircuit keys to their corresponding descriptions.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to subcircuits.
+
+        **kwargs
+            String keys corresponding to subcircuits.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, str]
+        """
+        if not (args or kwargs):
+            return Class._subcircuit_description.copy()
+        results: Dict[str, str] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = Class._subcircuit_description[key]
+        return results
+
+    @classmethod
+    def get_subcircuit_description(Class, key: str) -> str:
+        """
+        Get the description for a specific subcircuit.
+
+        Parameters
+        ----------
+        key: str
+            String key for a subcircuit.
+
+        Returns
+        -------
+        str
+        """
+        return Class.get_subcircuit_descriptions(key)[key]
+
+    @classmethod
+    def get_default_subcircuits(
+        Class, *args, **kwargs
+    ) -> Dict[str, Optional[Connection]]:
+        """
+        Get the default values for this element's parameters as a dictionary.
+
+        Returns
+        -------
+        Dict[str, Optional[Connection]]
+        """
+        if not (args or kwargs):
+            return Class._subcircuit_default_value.copy()
+        results: Dict[str, Optional[Connection]] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = Class._subcircuit_default_value[key]
+        return results
+
+    @classmethod
+    def get_default_subcircuit(Class, key: str) -> Optional[Connection]:
+        """
+        Get the default value for a specific subcircuit.
+
+        Parameters
+        ----------
+        key: str
+            A key corresponding to a subcircuit.
+
+        Returns
+        -------
+        float
+        """
+        return Class.get_default_subcircuits(key)[key]
+
+    def get_subcircuits(self, *args, **kwargs) -> Dict[str, Optional[Connection]]:
+        """
+        Get a dictionary that maps subcircuit keys to their current values.
+
+        Parameters
+        ----------
+        *args
+            String keys corresponding to subcircuits.
+
+        **kwargs
+            String keys corresponding to subcircuits.
+            The values can be anything.
+
+        Returns
+        -------
+        Dict[str, Optional[Connection]]
+        """
+        if not (args or kwargs):
+            return self._subcircuit_value.copy()
+        results: Dict[str, Optional[Connection]] = {}
+        key: Any
+        for key in set(list(args) + list(kwargs.keys())):
+            assert isinstance(key, str), key
+            results[key] = self._subcircuit_value[key]
+        return results
+
+    def get_subcircuit(self, key: str) -> Optional[Connection]:
+        """
+        Get the current subcircuit matching the given key.
+
+        Parameters
+        ----------
+        key: str
+            A key corresponding to a subcircuit.
+
+        Returns
+        -------
+        Optional[Connection]
+        """
+        return self.get_subcircuits(key)[key]
+
+    def set_subcircuits(self, *args, **kwargs) -> "Element":
+        """
+        Set values for subcircuits.
+
+        Parameters
+        ----------
+        *args
+            Pairs of string keys and numeric values corresponding to subcircuits(e.g., `set_subcircuits("X", None, "Y", Series([Resistor()]), "Z", Series([]))`).
+
+        **kwargs
+            String keys and numeric values corresponding to parameters (e.g., `set_values(R=None, Y=Series([Resistor()]), Z=Series([]))`).
+
+        Returns
+        -------
+        Element
+        """
+        key: Any
+        value: Any
+        if args:
+            assert len(args) % 2 == 0
+            args_list: List[Any] = list(args)
+            while args_list:
+                key = args_list.pop(0)
+                value = args_list.pop(0)
+                assert isinstance(key, str), key
+                assert value is None or isinstance(value, Connection), value
+                assert key in self._subcircuit_value, key
+                self._subcircuit_value[key] = value
+        for key, value in kwargs.items():
+            assert isinstance(key, str), key
+            assert value is None or isinstance(value, Connection), value
+            assert key in self._subcircuit_value, key
+            self._subcircuit_value[key] = value
+        return self

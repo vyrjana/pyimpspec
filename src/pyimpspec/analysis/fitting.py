@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,14 +17,10 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from collections import OrderedDict
+from copy import deepcopy
 from dataclasses import dataclass
-from multiprocessing import (
-    Pool,
-    cpu_count,
-)
+from multiprocessing import Pool
 from typing import (
-    Any,
     Callable,
     Dict,
     List,
@@ -38,41 +34,36 @@ import warnings
 from numpy import (
     angle,
     array,
-    ceil,
-    floor,
+    float64,
     inf,
     integer,
+    isnan,
     issubdtype,
     log10 as log,
-    logspace,
     nan,
     ndarray,
-    ones as ones_array,
-    sum as array_sum,
+    ones,
 )
-from pandas import DataFrame
-from lmfit import (
-    Parameters,
-    minimize,
+from numpy.typing import NDArray
+from pyimpspec.exceptions import FittingError
+from pyimpspec.analysis.utility import (
+    _calculate_pseudo_chisqr,
+    _calculate_residuals,
+    _get_default_num_procs,
+    _interpolate,
 )
-from lmfit.minimizer import MinimizerResult
-from pyimpspec.circuit import (
-    Circuit,
-    parse_cdc,
-)
-from pyimpspec.circuit.base import (
-    Element,
-    Connection,
-)
+from pyimpspec.circuit import Circuit
+from pyimpspec.circuit.base import Element
 from pyimpspec.data import DataSet
-import pyimpspec.progress as progress
-
-
-class FittingError(Exception):
-    pass
-
-
-VERSION: int = 1
+from pyimpspec.progress import Progress
+from pyimpspec.typing import (
+    ComplexImpedances,
+    ComplexResiduals,
+    Frequencies,
+    Impedances,
+    Phases,
+    Residuals,
+)
 
 
 @dataclass(frozen=True)
@@ -85,74 +76,82 @@ class FittedParameter:
     value: float
         The fitted value.
 
-    stderr: Optional[float] = None
-        The estimated standard error of the fitted value.
+    stderr: float
+        The estimated standard error of the fitted value. If the value is numpy.nan, then the standard error could not be estimated.
 
-    fixed: bool = False
+    fixed: bool
         Whether or not this parameter had a fixed value during the circuit fitting.
+
+    unit: str
+        The parameter's unit.
     """
 
     value: float
-    stderr: Optional[float] = None
-    fixed: bool = False
+    stderr: float
+    fixed: bool
+    unit: str
 
-    @staticmethod
-    def _parse_v1(dictionary: dict) -> dict:
-        assert type(dictionary) is dict
-        return {
-            "value": dictionary["value"],
-            "stderr": dictionary["stderr"],
-            "fixed": dictionary["fixed"],
-        }
+    def __str__(self) -> str:
+        string: str = f"{self.value:.6e}"
+        if not isnan(self.stderr):
+            string += f" +/- {self.stderr:.6e}"
+        if self.unit != "":
+            string += f" {self.unit}"
+        if self.fixed:
+            string += " (fixed)"
+        return string
 
-    @classmethod
-    def from_dict(Class, dictionary: dict) -> "FittedParameter":
-        assert type(dictionary) is dict, dictionary
-        assert "version" in dictionary
-        version: int = dictionary["version"]
-        assert version <= VERSION, f"{version=} > {VERSION=}"
-        parsers: Dict[int, Callable] = {
-            1: Class._parse_v1,
-        }
-        assert version in parsers, f"{version=} not in {parsers.keys()=}"
-        return Class(**parsers[version](dictionary))
+    def get_value(self) -> float:
+        """
+        Get the fitted value of this parameter.
 
-    def to_dict(self) -> dict:
-        return {
-            "version": VERSION,
-            "value": self.value,
-            "stderr": self.stderr,
-            "fixed": self.fixed,
-        }
+        Returns
+        -------
+        float
+        """
+        return self.value
+
+    def get_error(self) -> float:
+        """
+        Get the estimated absolute standard error of this parameter or numpy.nan if it was not possible to provide an estimate.
+
+        Returns
+        -------
+        float
+        """
+        return self.stderr
+
+    def is_fixed(self) -> bool:
+        """
+        Check whether or not this parameter was fixed during the fitting process.
+
+        Returns
+        -------
+        bool
+        """
+        return self.fixed
+
+    def get_unit(self) -> str:
+        """
+        Get the unit of this parameter if it has one.
+
+        Returns
+        -------
+        str
+        """
+        return self.unit
 
     def get_relative_error(self) -> float:
+        """
+        Get the estimated relative standard error of this parameter or numpy.nan if it was not possible to estimate.
+
+        Returns
+        -------
+        float
+        """
+        if isnan(self.stderr):
+            return self.stderr
         return (self.stderr or 0.0) / self.value
-
-
-def _interpolate(
-    experimental: Union[List[float], ndarray], num_per_decade: int
-) -> ndarray:
-    assert type(experimental) is list or type(experimental) is ndarray, experimental
-    assert (
-        issubdtype(type(num_per_decade), integer) and num_per_decade > 0
-    ), num_per_decade
-    min_f: float = min(experimental)
-    max_f: float = max(experimental)
-    log_min_f: int = int(floor(log(min_f)))
-    log_max_f: int = int(ceil(log(max_f)))
-    f: float
-    freq: List[float] = [
-        f
-        for f in logspace(
-            log_min_f, log_max_f, num=(log_max_f - log_min_f) * num_per_decade + 1
-        )
-        if f >= min_f and f <= max_f
-    ]
-    if min_f not in freq:
-        freq.append(min_f)
-    if max_f not in freq:
-        freq.append(max_f)
-    return array(list(sorted(freq, reverse=True)))
 
 
 @dataclass(frozen=True)
@@ -168,23 +167,20 @@ class FitResult:
     parameters: Dict[str, Dict[str, FittedParameter]]
         Fitted parameters and their estimated standard errors (if possible to estimate).
 
-    pseudo_chisqr: float
-        The pseudo chi-squared fit value (eq. 14 in Boukamp, 1995).
+    minimizer_result: |MinimizerResult|
+        The results of the fit as provided by the `lmfit.minimize`_ function.
 
-    minimizer_result: MinimizerResult
-        The results of the fit as provided by the lmfit.minimize function.
-
-    frequency: ndarray
+    frequencies: |Frequencies|
         The frequencies used to perform the fit.
 
-    impedance: ndarray
-        The impedance produced by the fitted circuit at each of the fitted frequencies.
+    impedances: |ComplexImpedances|
+        The impedances produced by the fitted circuit at each of the frequencies.
 
-    real_residual: ndarray
-        The residuals for the real parts (eq. 15 in Schönleber et al., 2014).
+    residuals: |ComplexResiduals|
+        The residuals for the real (eq. 15 in Schönleber et al., 2014) and imaginary (eq. 16 in Schönleber et al., 2014) parts of the fit.
 
-    imaginary_residual: ndarray
-        The residuals for the imaginary parts (eq. 16 in Schönleber et al., 2014).
+    pseudo_chisqr: float
+        The pseudo chi-squared value (|pseudo chi-squared|, eq. 14 in Boukamp, 1995).
 
     method: str
         The iterative method used during the fitting process.
@@ -195,229 +191,361 @@ class FitResult:
 
     circuit: Circuit
     parameters: Dict[str, Dict[str, FittedParameter]]
+    minimizer_result: "MinimizerResult"  # noqa: F821
+    frequencies: Frequencies
+    impedances: ComplexImpedances
+    residuals: ComplexResiduals
     pseudo_chisqr: float
-    minimizer_result: MinimizerResult
-    frequency: ndarray
-    impedance: ndarray
-    real_residual: ndarray
-    imaginary_residual: ndarray
     method: str
     weight: str
 
     def __repr__(self) -> str:
         return f"FitResult ({self.circuit.to_string()}, {hex(id(self))})"
 
-    def get_frequency(self, num_per_decade: int = -1) -> ndarray:
+    def get_label(self) -> str:
+        """
+        Get the label for this result.
+
+        Returns
+        -------
+        str
+        """
+        cdc: str = self.circuit.to_string()
+        if cdc.startswith("[") and cdc.endswith("]"):
+            cdc = cdc[1:-1]
+        return cdc
+
+    def get_frequencies(self, num_per_decade: int = -1) -> Frequencies:
+        """
+        Get the frequencies in the fitted frequency range.
+
+        Parameters
+        ----------
+        num_per_decade: int, optional
+            The number of points per decade.
+            A positive value results in frequencies being calculated within the original frequency range.
+            Otherwise, only the original frequencies are used.
+
+        Returns
+        -------
+        |Frequencies|
+        """
         assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
-            return _interpolate(self.frequency, num_per_decade)
-        return self.frequency
+            return _interpolate(self.frequencies, num_per_decade)
+        return self.frequencies
 
-    def get_impedance(self, num_per_decade: int = -1) -> ndarray:
+    def get_impedances(self, num_per_decade: int = -1) -> ComplexImpedances:
+        """
+        Get the impedance response of the fitted circuit.
+
+        Parameters
+        ----------
+        num_per_decade: int, optional
+            The number of points per decade.
+            A positive value results in data points being calculated using the fitted circuit within the original frequency range.
+            Otherwise, only the original frequencies are used.
+
+        Returns
+        -------
+        |ComplexImpedances|
+        """
         assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
-            return self.circuit.impedances(self.get_frequency(num_per_decade))
-        return self.impedance
+            return self.circuit.get_impedances(self.get_frequencies(num_per_decade))
+        return self.impedances
 
-    def get_nyquist_data(self, num_per_decade: int = -1) -> Tuple[ndarray, ndarray]:
+    def get_nyquist_data(
+        self, num_per_decade: int = -1
+    ) -> Tuple[Impedances, Impedances]:
         """
         Get the data necessary to plot this FitResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.
 
         Parameters
         ----------
-        num_per_decade: int = -1
+        num_per_decade: int, optional
             The number of points per decade.
             A positive value results in data points being calculated using the fitted circuit within the original frequency range.
             Otherwise, only the original frequencies are used.
 
         Returns
         -------
-        Tuple[ndarray, ndarray]
+        Tuple[|Impedances|, |Impedances|]
         """
         assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
-            Z: ndarray = self.get_impedance(num_per_decade)
+            Z: ComplexImpedances = self.get_impedances(num_per_decade)
             return (
                 Z.real,
                 -Z.imag,
             )
         return (
-            self.impedance.real,
-            -self.impedance.imag,
+            self.impedances.real,
+            -self.impedances.imag,
         )
 
     def get_bode_data(
-        self, num_per_decade: int = -1
-    ) -> Tuple[ndarray, ndarray, ndarray]:
+        self,
+        num_per_decade: int = -1,
+    ) -> Tuple[Frequencies, Impedances, Phases]:
         """
         Get the data necessary to plot this FitResult as a Bode plot: the frequencies, the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.
 
         Parameters
         ----------
-        num_per_decade: int = -1
+        num_per_decade: int, optional
             The number of points per decade.
             A positive value results in data points being calculated using the fitted circuit within the original frequency range.
             Otherwise, only the original frequencies are used.
 
         Returns
         -------
-        Tuple[ndarray, ndarray, ndarray]
+        Tuple[|Frequencies|, |Impedances|, |Phases|]
         """
         assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
-            freq: ndarray = self.get_frequency(num_per_decade)
-            Z: ndarray = self.circuit.impedances(freq)
+            f: Frequencies = self.get_frequencies(num_per_decade)
+            Z: ComplexImpedances = self.circuit.get_impedances(f)
             return (
-                freq,
+                f,
                 abs(Z),
                 -angle(Z, deg=True),
             )
         return (
-            self.frequency,
-            abs(self.impedance),
-            -angle(self.impedance, deg=True),
+            self.frequencies,
+            abs(self.impedances),
+            -angle(self.impedances, deg=True),
         )
 
-    def get_residual_data(self) -> Tuple[ndarray, ndarray, ndarray]:
+    def get_residuals_data(
+        self,
+    ) -> Tuple[Frequencies, Residuals, Residuals]:
         """
-        Get the data necessary to plot the relative residuals for this FitResult: the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.
+        Get the data necessary to plot the relative residuals for this result: the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.
 
         Returns
         -------
-        Tuple[ndarray, ndarray, ndarray]
+        Tuple[|Frequencies|, |Residuals|, |Residuals|]
         """
         return (
-            self.frequency,
-            self.real_residual * 100,
-            self.imaginary_residual * 100,
+            self.frequencies,
+            self.residuals.real * 100,
+            self.residuals.imag * 100,
         )
 
-    def to_dataframe(self) -> DataFrame:
-        element_labels: List[str] = []
+    def get_parameters(self) -> Dict[str, Dict[str, FittedParameter]]:
+        """
+        Get information about the the fitted parameters as FittedParameter objects.
+        The outer dictionary has the labels of the elements as keys and the inner dictionary has the symbols of the parameters as keys.
+
+        Returns
+        -------
+        Dict[str, Dict[str, FittedParameter]]
+        """
+
+    def to_parameters_dataframe(
+        self,
+        running: bool = False,
+    ) -> "DataFrame":  # noqa: F821
+        """
+        Get the fitted parameters and the corresponding estimated errors as a |DataFrame| object.
+        Parameters
+        ----------
+        running: bool, optional
+            Whether or not to use running counts as the lower indices of elements.
+
+        Returns
+        -------
+        |DataFrame|
+        """
+        from pandas import DataFrame
+
+        assert isinstance(running, bool), running
+        element_names: List[str] = []
         parameter_labels: List[str] = []
         fitted_values: List[float] = []
         stderr_values: List[Optional[float]] = []
         fixed: List[str] = []
-        element_label: str
+        units: List[str] = []
+        element_name: str
         parameters: Dict[str, FittedParameter]
-        elements: List[Element]
-        elements = self.circuit.get_elements(flattened=True)  # type: ignore
-        element: Union[Element, Connection]
-        for element in sorted(
-            elements,
-            key=lambda _: _.get_identifier(),
-        ):
-            element_label = element.get_label()
-            parameters = self.parameters[element_label]
+        internal_identifiers: Dict[
+            Element, int
+        ] = self.circuit.generate_element_identifiers(running=True)
+        external_identifiers: Dict[
+            Element, int
+        ] = self.circuit.generate_element_identifiers(running=False)
+        element: Element
+        for element, ident in external_identifiers.items():
+            element_name = self.circuit.get_element_name(
+                element,
+                identifiers=external_identifiers,
+            )
+            parameters = self.parameters[element_name]
             parameter_label: str
             parameter: FittedParameter
             for parameter_label, parameter in parameters.items():
-                element_labels.append(element_label)
+                element_names.append(
+                    self.circuit.get_element_name(
+                        element,
+                        identifiers=external_identifiers
+                        if running is False
+                        else internal_identifiers,
+                    )
+                )
                 parameter_labels.append(parameter_label)
                 fitted_values.append(parameter.value)
                 stderr_values.append(
                     parameter.stderr / parameter.value * 100
-                    if parameter.stderr is not None
-                    else None
+                    if parameter.stderr is not None and parameter.fixed is False
+                    else nan
                 )
                 fixed.append("Yes" if parameter.fixed else "No")
+                units.append(parameter.unit)
         return DataFrame.from_dict(
             {
-                "Element": element_labels,
+                "Element": element_names,
                 "Parameter": parameter_labels,
                 "Value": fitted_values,
                 "Std. err. (%)": stderr_values,
+                "Unit": units,
                 "Fixed": fixed,
             }
         )
 
+    def to_statistics_dataframe(self) -> "DataFrame":  # noqa: F821
+        """
+        Get the statistics related to the fit as a |DataFrame| object.
 
-def _to_lmfit(circuit: Circuit) -> Parameters:
-    assert type(circuit) is Circuit, circuit
+        Returns
+        -------
+        |DataFrame|
+        """
+        from lmfit.minimizer import MinimizerResult
+        from pandas import DataFrame
+
+        result: MinimizerResult = self.minimizer_result
+        statistics: Dict[str, Union[int, float, str]] = {
+            "Log pseudo chi-squared": log(self.pseudo_chisqr),
+            "Log chi-squared": log(result.chisqr),
+            "Log chi-squared (reduced)": log(result.redchi),
+            "Akaike info. criterion": result.aic,
+            "Bayesian info. criterion": result.bic,
+            "Degrees of freedom": result.nfree,
+            "Number of data points": result.ndata,
+            "Number of function evaluations": result.nfev,
+            "Method": self.method,
+            "Weight": self.weight,
+        }
+        return DataFrame.from_dict(
+            {
+                "Label": list(statistics.keys()),
+                "Value": list(statistics.values()),
+            }
+        )
+
+
+def _to_lmfit(
+    identifiers: Dict[int, Element],
+) -> "Parameters":  # noqa: F821
+    from lmfit import Parameters
+
+    assert isinstance(identifiers, dict), identifiers
     result: Parameters = Parameters()
-    parameters: "Dict[int, OrderedDict[str, float]]" = circuit.get_parameters()
     ident: int
-    params: Dict[str, float]
-    for ident, params in parameters.items():
-        element: Optional[Element] = circuit.get_element(ident)
-        assert element is not None
-        element_symbol: str
+    element: Element
+    for ident, element in identifiers.items():
+        lower_limits: Dict[str, float] = element.get_lower_limits()
+        upper_limits: Dict[str, float] = element.get_upper_limits()
+        fixed: Dict[str, bool] = element.are_fixed()
         symbol: str
         value: float
-        for symbol, value in params.items():
-            minimum: Any
-            maximum: Any
-            lower: float = element.get_lower_limit(symbol)
-            upper: float = element.get_upper_limit(symbol)
-            fixed: bool = element.is_fixed(symbol)
-            result.add(f"{symbol}_{ident}", value, min=lower, max=upper, vary=not fixed)
+        for symbol, value in element.get_values().items():
+            result.add(
+                f"{symbol}_{ident}",
+                value,
+                min=lower_limits[symbol],
+                max=upper_limits[symbol],
+                vary=not fixed[symbol],
+            )
     return result
 
 
-def _from_lmfit(parameters: Parameters) -> Dict[int, Dict[str, float]]:
-    assert type(parameters) is Parameters, parameters
-    result: Dict[int, Dict[str, float]] = {}
+def _from_lmfit(
+    parameters: "Parameters",  # noqa: F821
+    identifiers: Dict[int, Element],
+):
+    from lmfit import Parameters
+
+    assert isinstance(parameters, Parameters), parameters
+    assert isinstance(identifiers, dict), identifiers
+    result: Dict[int, Dict[str, float]] = {_: {} for _ in identifiers}
     key: str
     value: float
     for key, value in parameters.valuesdict().items():
         ident: int
         symbol: str
-        symbol, ident = key.split("_")  # type: ignore
+        symbol, ident = key.rsplit("_", 1)  # type: ignore
         ident = int(ident)
-        if ident not in result:
-            result[ident] = {}
         result[ident][symbol] = float(value)
-    return result
+    element: Element
+    for ident, element in identifiers.items():
+        element.set_values(**result[ident])
 
 
 def _residual(
-    params: Parameters,
+    params: "Parameters",  # noqa: F821
     circuit: Circuit,
-    freq: ndarray,
-    Z_exp: ndarray,
+    f: Frequencies,
+    Z_exp: ComplexImpedances,
     weight_func: Callable,
-) -> ndarray:
-    assert type(params) is Parameters, params
-    assert type(circuit) is Circuit, circuit
-    assert type(freq) is ndarray, freq
-    assert type(Z_exp) is ndarray, Z_exp
-    circuit.set_parameters(_from_lmfit(params))
-    Z_fit: ndarray = circuit.impedances(freq)
-    errors: ndarray = array(
-        [(Z_exp.real - Z_fit.real) ** 2, (Z_exp.imag - Z_fit.imag) ** 2]
+    identifiers: Dict[int, Element],
+) -> NDArray[float64]:
+    _from_lmfit(params, identifiers)
+    Z_fit: ComplexImpedances = circuit.get_impedances(f)
+    errors: NDArray[float64] = array(
+        [
+            (Z_exp.real - Z_fit.real) ** 2,
+            (Z_exp.imag - Z_fit.imag) ** 2,
+        ],
+        dtype=float64,
     )
     return weight_func(Z_exp, Z_fit) * errors
 
 
-def _unity_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
-    assert type(Z_exp) is ndarray, Z_exp
-    assert type(Z_fit) is ndarray, Z_fit
-    return ones_array(shape=(2, len(Z_exp)))
+def _unity_weight(
+    Z_exp: ComplexImpedances,
+    Z_fit: ComplexImpedances,
+) -> NDArray[float64]:
+    return ones(shape=(2, Z_exp.size), dtype=float64)
 
 
-def _modulus_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
-    assert type(Z_exp) is ndarray, Z_exp
-    assert type(Z_fit) is ndarray, Z_fit
-    return ones_array(shape=(2, len(Z_exp))) / abs(Z_fit)
+def _modulus_weight(
+    Z_exp: ComplexImpedances,
+    Z_fit: ComplexImpedances,
+) -> NDArray[float64]:
+    return ones(shape=(2, Z_exp.size), dtype=float64) / abs(Z_fit)
 
 
-def _proportional_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
-    assert type(Z_exp) is ndarray, Z_exp
-    assert type(Z_fit) is ndarray, Z_fit
-    weight: ndarray = ones_array(shape=(2, len(Z_exp)))
+def _proportional_weight(
+    Z_exp: ComplexImpedances,
+    Z_fit: ComplexImpedances,
+) -> NDArray[float64]:
+    weight: NDArray[float64] = ones(shape=(2, Z_exp.size), dtype=float64)
     weight[0] = weight[0] / Z_fit.real**2
     weight[1] = weight[1] / Z_fit.imag**2
     return weight
 
 
-def _boukamp_weight(Z_exp: ndarray, Z_fit: ndarray) -> ndarray:
-    assert type(Z_exp) is ndarray, Z_exp
-    assert type(Z_fit) is ndarray, Z_fit
+def _boukamp_weight(
+    Z_exp: ComplexImpedances,
+    Z_fit: ComplexImpedances,
+) -> NDArray[float64]:
     # See eq. 13 in Boukamp (1995)
-    return (Z_exp.real**2 + Z_exp.imag**2) ** -1
+    return (Z_exp.real**2 + Z_exp.imag**2) ** -1  # type: ignore
 
 
-_weight_functions: Dict[str, Callable] = {
+_WEIGHT_FUNCTIONS: Dict[str, Callable] = {
     "unity": _unity_weight,
     "modulus": _modulus_weight,
     "proportional": _proportional_weight,
@@ -425,7 +553,7 @@ _weight_functions: Dict[str, Callable] = {
 }
 
 
-_methods: List[str] = [
+_METHODS: List[str] = [
     "leastsq",
     "least_squares",
     # "differential_evolution",
@@ -453,94 +581,122 @@ _methods: List[str] = [
 
 
 def _extract_parameters(
-    circuit: Circuit, fit: MinimizerResult
+    circuit: Circuit,
+    fit: "MinimizerResult",  # noqa: F821
 ) -> Dict[str, Dict[str, FittedParameter]]:
-    assert type(circuit) is Circuit, circuit
-    assert type(fit) is MinimizerResult, fit
+    from lmfit.minimizer import MinimizerResult
+
+    assert isinstance(circuit, Circuit), circuit
+    assert isinstance(fit, MinimizerResult), fit
     parameters: Dict[str, Dict[str, FittedParameter]] = {}
-    ident: int
-    for ident in reversed(circuit.get_parameters()):
-        element: Optional[Element] = circuit.get_element(ident)
-        assert element is not None
-        label: str = element.get_label()
-        assert label not in parameters, label
-        parameters[label] = {}
+    internal_identifiers: Dict[int, Element] = {
+        v: k for k, v in circuit.generate_element_identifiers(running=True).items()
+    }
+    external_identifiers: Dict[Element, int] = circuit.generate_element_identifiers(
+        running=False
+    )
+    internal_id: int
+    element: Element
+    for internal_id, element in internal_identifiers.items():
+        element_name: str = element.get_name()
+        symbol: str = element.get_symbol()
+        if element_name == symbol:
+            element_name = f"{symbol}_{external_identifiers[element]}"
+        assert element_name not in parameters, element_name
+        parameters[element_name] = {}
+        units: Dict[str, str] = element.get_units()
         # Parameters that were not fixed
-        name: str
-        for name in filter(lambda _: _.endswith(f"_{ident}"), fit.var_names):
-            par = fit.params[name]
-            stderr: Optional[float] = par.stderr if hasattr(par, "stderr") else None
-            parameters[label][name[: name.find("_")]] = FittedParameter(
-                par.value,
-                stderr if stderr != nan else None,
+        variable_name: str
+        for variable_name in filter(
+            lambda _: _.endswith(f"_{internal_id}"),
+            fit.var_names,
+        ):
+            par = fit.params[variable_name]
+            stderr: float = par.stderr if hasattr(par, "stderr") else nan
+            try:
+                float(stderr)
+            except TypeError:
+                stderr = nan
+            variable_name, _ = variable_name.rsplit("_", 1)
+            parameters[element_name][variable_name] = FittedParameter(
+                value=par.value,
+                stderr=stderr,
+                fixed=False,
+                unit=units[variable_name],
             )
         # Remaining parameters are fixed
         value: float
-        for name, value in element.get_parameters().items():
-            if name in parameters[label]:
+        for name, value in element.get_values().items():
+            if name in parameters[element_name]:
                 continue
-            parameters[label][name] = FittedParameter(value, None, True)
+            parameters[element_name][name] = FittedParameter(
+                value=value,
+                stderr=nan,
+                fixed=True,
+                unit=units[name],
+            )
     return parameters
 
 
-def _calculate_pseudo_chisqr(Z_exp: ndarray, Z_fit: ndarray) -> float:
-    assert type(Z_exp) is ndarray, Z_exp
-    assert type(Z_fit) is ndarray, Z_fit
-    # See eq. 14 in Boukamp (1995)
-    weight: ndarray = _boukamp_weight(Z_exp, Z_fit)
-    return float(
-        array_sum(
-            weight * ((Z_exp.real - Z_fit.real) ** 2 + (Z_exp.imag - Z_fit.imag) ** 2)
-        )
-    )
+def _fit_process(
+    args,
+) -> Tuple[Circuit, float, Optional["MinimizerResult"], str, str, str]:  # noqa: F821
+    from lmfit import minimize
+    from lmfit.minimizer import MinimizerResult
 
-
-def _fit_process(args) -> Tuple[str, Optional[MinimizerResult], float, str, str, str]:
     circuit: Circuit
-    freq: ndarray
-    Z_exp: ndarray
+    f: Frequencies
+    Z_exp: ComplexImpedances
     method: str
     weight: str
     max_nfev: int
     auto: bool
-    circuit, freq, Z_exp, method, weight, max_nfev, auto = args
-    assert type(circuit) is Circuit, circuit
-    assert type(freq) is ndarray, freq
-    assert type(Z_exp) is ndarray, Z_exp
-    assert type(method) is str, method
-    assert type(weight) is str, weight
+    circuit, f, Z_exp, method, weight, max_nfev, auto = args
+    assert isinstance(circuit, Circuit), circuit
+    assert isinstance(f, ndarray), f
+    assert isinstance(Z_exp, ndarray), Z_exp
+    assert isinstance(method, str), method
+    assert isinstance(weight, str), weight
     assert issubdtype(type(max_nfev), integer), max_nfev
-    assert type(auto) is bool, auto
-    weight_func: Callable = _weight_functions[weight]
+    assert isinstance(auto, bool), auto
+    weight_func: Callable = _WEIGHT_FUNCTIONS[weight]
+    identifiers: Dict[int, Element] = {
+        v: k for k, v in circuit.generate_element_identifiers(running=True).items()
+    }
     with warnings.catch_warnings():
         if auto:
             warnings.filterwarnings("error")
+            warnings.filterwarnings("ignore", category=DeprecationWarning)
         try:
             fit: MinimizerResult = minimize(
                 _residual,
-                _to_lmfit(circuit),
+                _to_lmfit(identifiers),
                 method,
-                args=(circuit, freq, Z_exp, weight_func),
+                args=(
+                    circuit,
+                    f,
+                    Z_exp,
+                    weight_func,
+                    identifiers,
+                ),
                 max_nfev=None if max_nfev < 1 else max_nfev,
             )
         except (Exception, Warning):
             return (
-                circuit.to_string(),
-                None,
+                circuit,
                 inf,
+                None,
                 method,
                 weight,
                 format_exc(),
             )
-    if fit.ndata < len(freq) and log(fit.chisqr) < -50:
-        return (circuit.to_string(), None, inf, method, weight, "Invalid result!")
-    circuit.set_parameters(_from_lmfit(fit.params))
-    Z_fit: ndarray = circuit.impedances(freq)
-    Xps: float = _calculate_pseudo_chisqr(Z_exp, Z_fit)
+    if fit.ndata < len(f) and log(fit.chisqr) < -50:
+        return (circuit, inf, None, method, weight, "Invalid result!")
+    _from_lmfit(fit.params, identifiers)
     return (
-        circuit.to_string(12),
+        circuit,
+        _calculate_pseudo_chisqr(Z_exp=Z_exp, Z_fit=circuit.get_impedances(f)),
         fit,
-        Xps,
         method,
         weight,
         "",
@@ -548,21 +704,26 @@ def _fit_process(args) -> Tuple[str, Optional[MinimizerResult], float, str, str,
 
 
 def validate_circuit(circuit: Circuit):
+    """
+    Validate circuits for circuit fitting.
+
+    Parameters
+    ----------
+    circuit: Circuit
+    """
     assert circuit.to_string() not in ["[]", "()"], "The circuit has no elements!"
-    element_labels: Set[str] = set()
-    for element in circuit.get_elements():
-        label: str = element.get_label()
-        assert (
-            label not in element_labels
-        ), f"Two or more elements of the same type have the same label ({label})!"
-        element_labels.add(label)
-
-
-def _calculate_residuals(Z_exp: ndarray, Z_fit: ndarray) -> Tuple[ndarray, ndarray]:
-    return (
-        (Z_exp.real - Z_fit.real) / abs(Z_exp),
-        (Z_exp.imag - Z_fit.imag) / abs(Z_exp),
+    identifiers: Dict[Element, int] = circuit.generate_element_identifiers(
+        running=False
     )
+    element_names: Set[str] = set()
+    element: Element
+    ident: int
+    for element, ident in identifiers.items():
+        name: str = circuit.get_element_name(element, identifiers)
+        assert (
+            name not in element_names
+        ), f"Two or more elements of the same type have the same name ({name})!"
+        element_names.add(name)
 
 
 def fit_circuit(
@@ -571,7 +732,7 @@ def fit_circuit(
     method: str = "auto",
     weight: str = "auto",
     max_nfev: int = -1,
-    num_procs: int = -1,
+    num_procs: int = 0,
 ) -> FitResult:
     """
     Fit a circuit to a data set.
@@ -584,47 +745,54 @@ def fit_circuit(
     data: DataSet
         The data set that the circuit will be fitted to.
 
-    method: str = "auto"
+    method: str, optional
         The iteration method used during fitting.
-        See lmfit's documentation for valid method names.
+        See `lmfit's documentation <https://lmfit.github.io/lmfit-py/>`_ for valid method names.
         Note that not all methods supported by lmfit are possible in the current implementation (e.g. some methods may require a function that calculates a Jacobian).
-        The "auto" value results in multiple methods being tested in parallel and the best result being returned based on the chi-squared values.
+        The "auto" value results in multiple methods being tested in parallel and the best result being returned based on |pseudo chi-squared|.
 
-    weight: str = "auto"
+    weight: str, optional
         The weight function to use when calculating residuals.
         Currently supported values: "modulus", "proportional", "unity", "boukamp", and "auto".
-        The "auto" value results in multiple weights being tested in parallel and the best result being returned based on the chi-squared values.
+        The "auto" value results in multiple weights being tested in parallel and the best result being returned based on |pseudo chi-squared|.
 
-    max_nfev: int = -1
+    max_nfev: int, optional
         The maximum number of function evaluations when fitting.
         A value less than one equals no limit.
 
-    num_procs: int = -1
-        The maximum number of parallel processes to use when method and/or weight is "auto".
+    num_procs: int, optional
+        The maximum number of parallel processes to use when method and/or weight are set to "auto".
+        A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
+        Additionally, a negative value can be used to reduce the number of processes by that much (e.g., to leave one core for a GUI thread).
 
     Returns
     -------
     FitResult
     """
-    assert type(circuit) is Circuit, (
+    from lmfit.minimizer import MinimizerResult
+
+    assert isinstance(circuit, Circuit), (
         type(circuit),
         circuit,
     )
-    assert isinstance(data, DataSet), (
-        type(data),
-        data,
-    )
-    assert data.get_num_points() > 0
-    assert type(method) is str, (
+    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
+    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
+    assert isinstance(method, str), (
         type(method),
         method,
     )
-    assert method in _methods or method == "auto", method
-    assert type(weight) is str, (
+    if not (method in _METHODS or method == "auto"):
+        raise FittingError(
+            "Valid method values: '" + "', '".join(_METHODS) + "', and 'auto'"
+        )
+    assert isinstance(weight, str), (
         type(weight),
         weight,
     )
-    assert weight in _weight_functions or weight == "auto", weight
+    if not (weight in _WEIGHT_FUNCTIONS or weight == "auto"):
+        raise FittingError(
+            "Valid weight values: '" + "', '".join(_WEIGHT_FUNCTIONS) + "', and 'auto'"
+        )
     assert issubdtype(type(max_nfev), integer), (
         type(max_nfev),
         max_nfev,
@@ -633,71 +801,74 @@ def fit_circuit(
         type(num_procs),
         num_procs,
     )
-    if num_procs < 1:
-        num_procs = cpu_count()
     validate_circuit(circuit)
-    cdc: str = circuit.to_string(12)
-    freq: ndarray = data.get_frequency()
-    Z_exp: ndarray = data.get_impedance()
-    fits: List[Tuple[str, Optional[MinimizerResult], float, str, str, str]] = []
-    methods: List[str] = [method] if method != "auto" else _methods
-    weights: List[str] = (
-        [weight] if weight != "auto" else list(_weight_functions.keys())
+    if num_procs < 1:
+        num_procs = _get_default_num_procs() - abs(num_procs)
+    num_steps: int = (len(_METHODS) if method == "auto" else 1) * (
+        len(_WEIGHT_FUNCTIONS) if weight == "auto" else 1
     )
-    i: int = 0
-    method_weight_combos: List[Tuple[str, str]] = []
-    for method in methods:
-        for weight in weights:
-            method_weight_combos.append((method, weight,))
-    args = (
-        (
-            parse_cdc(cdc),
-            freq,
-            Z_exp,
-            method,
-            weight,
-            max_nfev,
-            True,
-        ) for (method, weight) in method_weight_combos
-    )
-    progress_message = "Performing fit(s)"
-    progress.update_every_N_percent(0, message=progress_message)
-    try:
-        if num_procs > 1:
-            with Pool(num_procs) as pool:
-                for i, res in enumerate(pool.imap_unordered(_fit_process, args)):
-                    progress.update_every_N_percent(
-                        i + 1,
-                        total=len(method_weight_combos),
-                        message=progress_message,
-                    )
-                    fits.append(res)
-        else:
-            fits = list(map(_fit_process, args))
-        fits.sort(
-            key=lambda _: log(_[1].chisqr) + log(_[2]) if _[1] is not None else inf
+    prog: Progress
+    with Progress("Preparing to fit", total=num_steps + 1) as prog:
+        f: Frequencies = data.get_frequencies()
+        Z_exp: ComplexImpedances = data.get_impedances()
+        fits: List[
+            Tuple[Circuit, float, Optional["MinimizerResult"], str, str, str]
+        ] = []
+        methods: List[str] = [method] if method != "auto" else _METHODS
+        weights: List[str] = (
+            [weight] if weight != "auto" else list(_WEIGHT_FUNCTIONS.keys())
         )
-    except Exception:
-        raise FittingError(format_exc())
-    if not fits:
-        raise FittingError("No valid results generated!")
-    fit: Optional[MinimizerResult]
-    cdc, fit, Xps, method, weight, error_msg = fits[0]
-    if fit is None:
-        raise FittingError(error_msg)
-    # Return results
-    circuit = parse_cdc(cdc)
-    Z_fit: ndarray = circuit.impedances(freq)
+        method_weight_combos: List[Tuple[str, str]] = []
+        for method in methods:
+            for weight in weights:
+                method_weight_combos.append(
+                    (
+                        method,
+                        weight,
+                    )
+                )
+        args = (
+            (
+                deepcopy(circuit),
+                f,
+                Z_exp,
+                method,
+                weight,
+                max_nfev,
+                True,
+            )
+            for (method, weight) in method_weight_combos
+        )
+        prog.set_message("Performing fit(s)")
+        if len(method_weight_combos) > 1 and num_procs > 1:
+            with Pool(num_procs) as pool:
+                for res in pool.imap_unordered(_fit_process, args):
+                    fits.append(res)
+                    prog.increment()
+        else:
+            for res in map(_fit_process, args):
+                fits.append(res)
+                prog.increment()
+        fits.sort(key=lambda _: log(_[1]) if _[2] is not None else inf)
+        if not fits:
+            raise FittingError("No valid results generated!")
+        fit: Optional[MinimizerResult]
+        error_msg: str
+        Xps: float
+        circuit, Xps, fit, method, weight, error_msg = fits[0]
+        if fit is None:
+            raise FittingError(error_msg)
+        Z_fit: ComplexImpedances = circuit.get_impedances(f)
     return FitResult(
-        circuit,
-        _extract_parameters(circuit, fit),
-        Xps,
-        fit,
-        freq,
-        Z_fit,
+        circuit=circuit,
+        parameters=_extract_parameters(circuit, fit),
+        minimizer_result=fit,
+        frequencies=f,
+        impedances=Z_fit,
         # Residuals calculated according to eqs. 15 and 16
         # in Schönleber et al. (2014)
-        *_calculate_residuals(Z_exp, Z_fit),
-        method,
-        weight,
+        residuals=_calculate_residuals(Z_exp, Z_fit),
+        pseudo_chisqr=Xps,
+        method=method,
+        weight=weight,
     )

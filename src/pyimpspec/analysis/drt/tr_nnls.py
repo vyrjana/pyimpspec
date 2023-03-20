@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,199 +18,456 @@
 # the LICENSES folder.
 
 # This module uses Tikhonov regularization and non-negative least squares
-# 10.1016/j.ssi.2016.10.009
+# 10.1149/1945-7111/abf508
+# Based on code from https://github.com/akulikovsky/DRT-python-code.
 # DRT-python-code commit: 9663ed8b331f521a9fcdb0b58fb2b34693df938c
 
+from dataclasses import dataclass
 from typing import (
+    Dict,
     List,
+    Optional,
+    Tuple,
+    Union,
 )
 from numpy import (
     array,
-    float64,
     floating,
+    float64,
     identity,
-    integer,
-    int64,
     issubdtype,
+    int64,
     log as ln,
+    log10 as log,
     logspace,
-    ndarray,
     pi,
+    polyfit,
     sqrt,
     sum as array_sum,
     zeros,
 )
-from scipy.optimize import nnls
+from numpy.typing import NDArray
 from pyimpspec.data import DataSet
-from pyimpspec.analysis.fitting import _calculate_residuals
-from pyimpspec.analysis.drt.result import (
-    DRTResult,
-    _calculate_chisqr,
+from pyimpspec.exceptions import DRTError
+from pyimpspec.analysis.utility import (
+    _calculate_residuals,
+    _calculate_pseudo_chisqr,
 )
-import pyimpspec.progress as progress
+from pyimpspec.analysis.drt.result import DRTResult
+from pyimpspec.progress import Progress
+from pyimpspec.typing import (
+    ComplexImpedance,
+    ComplexImpedances,
+    Frequencies,
+    Gammas,
+    Indices,
+    TimeConstants,
+)
+
+
+@dataclass(frozen=True)
+class TRNNLSResult(DRTResult):
+    """
+    An object representing the results of calculating the distribution of relaxation times in a data set using Tikhonov regularization and non-negative least squares fitting (TR-NNLS).
+
+    Parameters
+    ----------
+    time_constants: |TimeConstants|
+        The time constants.
+
+    gammas: |Gammas|
+        The gamma values.
+
+    frequencies: |Frequencies|
+        The frequencies of the impedance spectrum.
+
+    impedances: |ComplexImpedances|
+        The impedance produced by the model.
+
+    residuals: |ComplexResiduals|
+        The residuals of the real and imaginary parts of the model and the data set.
+
+    pseudo_chisqr: float
+        The pseudo chi-squared value, |pseudo chi-squared|, of the modeled impedance (eq. 14 in Boukamp, 1995).
+
+    lambda_value: float
+        The lambda value that was used.
+    """
+
+    gammas: Gammas
+    lambda_value: float
+
+    def get_label(self) -> str:
+        return "TR-NNLS"
+
+    def get_gammas(self) -> Gammas:
+        """
+        Get the gamma values.
+
+        Returns
+        -------
+        |Gammas|
+        """
+        return self.gammas
+
+    def to_peaks_dataframe(
+        self,
+        threshold: float = 0.0,
+        columns: Optional[List[str]] = None,
+    ) -> "DataFrame":  # noqa: F821
+        from pandas import DataFrame
+
+        if columns is None:
+            columns = [
+                "tau (s)",
+                "gamma (ohm)",
+            ]
+        assert isinstance(columns, list), columns
+        assert len(columns) == 2
+        indices: Indices = self._get_peak_indices(
+            threshold,
+            self.gammas,  # type: ignore
+        )
+        return DataFrame.from_dict(
+            {
+                columns[0]: self.time_constants[indices],  # type: ignore
+                columns[1]: self.gammas[indices],  # type: ignore
+            }
+        )
+
+    def to_statistics_dataframe(
+        self,
+    ) -> "DataFrame":  # noqa: F821
+        from pandas import DataFrame
+
+        statistics: Dict[str, Union[int, float, str]] = {
+            "Log pseudo chi-squared": log(self.pseudo_chisqr),
+            "Lambda": self.lambda_value,
+        }
+        return DataFrame.from_dict(
+            {
+                "Label": list(statistics.keys()),
+                "Value": list(statistics.values()),
+            }
+        )
+
+    def get_peaks(self, threshold: float = 0.0) -> Tuple[TimeConstants, Gammas]:
+        """
+        Get the time constants (in seconds) and gamma (in ohms) of peaks with magnitudes greater than the threshold.
+        The threshold and the magnitudes are all relative to the magnitude of the highest peak.
+
+        Parameters
+        ----------
+        threshold: float, optional
+            The minimum peak height threshold (relative to the height of the tallest peak) for a peak to be included.
+
+        Returns
+        -------
+        Tuple[|TimeConstants|, |Gammas|]
+        """
+        indices: Indices = self._get_peak_indices(
+            threshold,
+            self.gammas,  # type: ignore
+        )
+        return (
+            self.time_constants[indices],  # type: ignore
+            self.gammas[indices],  # type: ignore
+        )
+
+    def get_drt_data(self) -> Tuple[TimeConstants, Gammas]:
+        """
+        Get the data necessary to plot this DRTResult as a DRT plot: the time constants and the corresponding gamma values.
+
+        Returns
+        -------
+        Tuple[|TimeConstants|, |Gammas|]
+        """
+        return (
+            self.time_constants,  # type: ignore
+            self.gammas,  # type: ignore
+        )
 
 
 _MODES: List[str] = ["real", "imaginary"]
 
 
-def _generate_tikhonov_matrix(A: ndarray, I: ndarray, lambda_value: float) -> ndarray:
-    return (A.T @ A) + lambda_value * I
-
-
-def _solve(A: ndarray, b: ndarray) -> ndarray:
-    return nnls(A, b)[0]
-
-
-def _suggest_lambda(
-    lambda_values: ndarray,
-    solution_norms: ndarray,
-) -> float:
-    a: ndarray = zeros(lambda_values.size - 1, dtype=float64)
-    for i in range(0, lambda_values.size - 1):
-        a[i] = solution_norms[i] - solution_norms[i + 1]
-    b: ndarray = zeros(a.size - 1, dtype=float64)
-    for i in range(0, b.size - 1):
-        b[i] = a[i] - a[i + 1]
-    c: float
-    for i, c in reversed(list(enumerate(b))):
-        if c < 0.0:
-            return lambda_values[(i + 1) if i < lambda_values.size - 2 else i]
-    return lambda_values[-1]
-
-
-def _calculate_drt_tr_nnls(
-    data: DataSet,
-    mode: str,
-    lambda_value: float,
-    num_procs: int,
-) -> DRTResult:
-    assert (
-        hasattr(data, "get_frequency")
-        and callable(data.get_frequency)
-        and hasattr(data, "get_impedance")
-        and callable(data.get_impedance)
-    ), data
-    assert (
-        type(mode) is str and mode in _MODES
-    ), f"Valid mode values: {', '.join(_MODES)}"
-    assert issubdtype(type(lambda_value), floating), lambda_value
-    assert issubdtype(type(num_procs), integer), num_procs
-    # This is simply to avoid locking up the GUI thread in DearEIS.
-    progress_message: str = "Preparing matrices"
-    num_matrices: int = 4
-    progress.update_every_N_percent(0, total=num_matrices, message=progress_message)
+def _calculate_delta_ln_tau(tau: TimeConstants) -> NDArray[float64]:
+    ln_tau: NDArray[float64] = ln(tau)
+    delta_ln_tau: NDArray[float64] = zeros(tau.size, dtype=float64)
     i: int
-    f: ndarray = data.get_frequency()
-    Z: ndarray = data.get_impedance()
-    omega: ndarray = 2 * pi * f
-    tau: ndarray = 1 / f
-    ln_tau: ndarray = ln(tau)
-    delta_ln_tau: ndarray = zeros(omega.size, dtype=float64)
-    for i in range(1, omega.size - 1):
+    for i in range(1, tau.size - 1):
         delta_ln_tau[i] = 0.5 * (ln_tau[i + 1] - ln_tau[i - 1])
     delta_ln_tau[0] = 0.5 * (ln_tau[1] - ln_tau[0])
     delta_ln_tau[-1] = 0.5 * (ln_tau[-1] - ln_tau[-2])
-    progress.update_every_N_percent(1, total=num_matrices, message=progress_message)
-    # Normalize the impedances by:
-    # - subtracting the high-frequency resistance
-    # - dividing by the polarization resistance
-    R_inf: float = Z[0].real
-    Z_norm: ndarray = Z - R_inf
+    return delta_ln_tau
+
+
+def _normalize_impedance(
+    Z: ComplexImpedances,
+) -> Tuple[ComplexImpedances, float, float]:
+    R_inf: float = Z[0].real  # High-frequency resistance
+    Z_norm: ComplexImpedances = Z - R_inf
     R_pol: float = Z_norm[-1].real - Z_norm[0].real
     Z_norm /= R_pol
-    # Prepare matrices and vectors
-    I: ndarray = identity(omega.size, dtype=int64)
-    progress.update_every_N_percent(2, total=num_matrices, message=progress_message)
-    A: ndarray = zeros(
+    return (
+        Z_norm,
+        R_inf,
+        R_pol,
+    )
+
+
+def _generate_A_matrix(
+    omega: NDArray[float64],
+    tau: TimeConstants,
+    delta_ln_tau: NDArray[float64],
+    is_imaginary: bool,
+) -> NDArray[float64]:
+    A: NDArray[float64] = zeros(
         (
             omega.size,
             omega.size,
         ),
         dtype=float64,
     )
-    product: ndarray
+    product: NDArray[float64]
     for i in range(0, omega.size):
         product = omega[i] * tau
-        A[i, :] = (
-            (product if mode == "imaginary" else 1) * delta_ln_tau / (1 + product**2)
-        )
-    progress.update_every_N_percent(3, total=num_matrices, message=progress_message)
-    b: ndarray = A.T @ (Z_norm.real if mode == "real" else -Z_norm.imag)
-    progress.update_every_N_percent(4, total=num_matrices, message=progress_message)
-    progress_message = "Calculating DRT"
-    progress.update_every_N_percent(0, message=progress_message)
-    A_tikh: ndarray
-    g_tau: ndarray
-    if lambda_value <= 0.0:
-        # Determine suitable regularization parameter if one hasn't been provided.
-        min_log_lambda: int = -15
-        max_log_lambda: int = 0
-        lambda_values = logspace(
-            min_log_lambda,
-            max_log_lambda,
-            # If the number of points is too high, then there is a risk of suggesting
-            # a lambda value that is unnecessarily high.
-            num=(max_log_lambda - min_log_lambda) * 1 + 1,
-        )
-        A_tikhs: List[ndarray] = []
-        g_taus: List[ndarray] = []
-        # residuals: ndarray = zeros(lambda_values.size, dtype=float64)
-        solution_norms: ndarray = zeros(lambda_values.size, dtype=float64)
+        A[i, :] = (product if is_imaginary else 1) * delta_ln_tau / (1 + product**2)
+    return A
+
+
+def _generate_b_vector(
+    A: NDArray[float64],
+    Z_norm: ComplexImpedances,
+    is_imaginary: bool,
+) -> NDArray[float64]:
+    return A.T @ (-Z_norm.imag if is_imaginary else Z_norm.real)
+
+
+def _generate_tikhonov_matrix(
+    A: NDArray[float64],
+    I: NDArray[float64],
+    lambda_value: float,
+) -> NDArray[float64]:
+    return (A.T @ A) + lambda_value * I
+
+
+def _solve(A: NDArray[float64], b: NDArray[float64]) -> NDArray[float64]:
+    from scipy.optimize import nnls
+
+    return nnls(A, b)[0]
+
+
+def _generate_lambda_values(
+    log_minimum: int,
+    log_maximum: int,
+    num_per_decade: int,
+) -> NDArray[float64]:
+    return logspace(
+        log_minimum,
+        log_maximum,
+        num=(log_maximum - log_minimum) * num_per_decade + 1,
+    )
+
+
+def _test_lambda_values(
+    A: NDArray[float64],
+    b: NDArray[float64],
+    I: NDArray[float64],
+    lambda_values: NDArray[float64],
+) -> Tuple[NDArray[float64], NDArray[float64]]:
+    prog: Progress
+    with Progress(
+        "Testing different lambda values",
+        total=len(lambda_values) + 1,
+    ) as prog:
+        solution_norms: NDArray[float64] = zeros(lambda_values.size, dtype=float64)
+        i: int
         for i, lambda_value in enumerate(lambda_values):
-            A_tikhs.append(_generate_tikhonov_matrix(A, I, lambda_value))
-            g_taus.append(_solve(A_tikhs[-1], b))
-            # residuals[i] = sqrt(array_sum(((A.T @ A) @ g_taus[-1] - b) ** 2))
-            solution_norms[i] = sqrt(array_sum(g_taus[-1] ** 2))
-            progress.update_every_N_percent(
-                i + 1,
-                total=len(lambda_values),
-                message=progress_message,
-            )
-        lambda_value = _suggest_lambda(lambda_values, solution_norms)
-        A_tikh = A_tikhs[-1]
-        g_tau = g_taus[-1]
-        for i, lv in enumerate(lambda_values):
-            if lv == lambda_value:
-                A_tikh = A_tikhs[i]
-                g_tau = g_taus[i]
-                break
-    else:
-        A_tikh = _generate_tikhonov_matrix(A, I, lambda_value)
-        g_tau = _solve(A_tikh, b)
-        progress.update_every_N_percent(1, message=progress_message)
-    R_pol_synthetic: float = array_sum(g_tau * delta_ln_tau)  # Should be (close to) 1.0
-    # W: ndarray = A_tikh @ g_tau
-    # res: float = sqrt(array_sum((W - b) ** 2))
-    # lhs: float = sqrt(array_sum(W**2))
-    Z_re_im: ndarray = zeros(omega.size, dtype=float64)
+            A_tikh: NDArray[float64] = _generate_tikhonov_matrix(A, I, lambda_value)
+            g_tau: NDArray[float64] = _solve(A_tikh, b)
+            solution_norms[i] = sqrt(array_sum(g_tau**2))
+            prog.increment()
+    return (
+        lambda_values,
+        solution_norms,
+    )
+
+
+def _reduce_points_by_radius(
+    x: NDArray[float64],
+    y: NDArray[float64],
+    r: float,
+) -> Tuple[NDArray[float64], NDArray[float64]]:
+    indices: Union[List[int], Indices] = [0]
+    i: int = 0
+    while i < x.size - 1:
+        i += 1
+        j = indices[-1]
+        if ((x[i] - x[j]) ** 2 + (y[i] - y[j]) ** 2) ** (1 / 2) < r:
+            continue
+        indices.append(i)
+    indices = array(indices, dtype=int64)
+    return (
+        x[indices],
+        y[indices],
+    )
+
+
+def _suggest_lambda(
+    lambda_values: NDArray[float64],
+    solution_norms: NDArray[float64],
+) -> float:
+    lambda_values, solution_norms = _reduce_points_by_radius(
+        lambda_values,
+        solution_norms,
+        r=2e-2,
+    )
+    n: int = 5
+    m1: float
+    c1: float
+    (m1, c1) = polyfit(lambda_values[:n], solution_norms[:n], deg=1)
+    m2: float
+    c2: float
+    (m2, c2) = polyfit(lambda_values[-n:], solution_norms[-n:], deg=1)
+    return (c2 - c1) / (m1 - m2)
+
+
+def _generate_model_impedance(
+    omega: NDArray[float64],
+    tau: TimeConstants,
+    delta_ln_tau: NDArray[float64],
+    A_tikh: NDArray[float64],
+    g_tau: NDArray[float64],
+    Z: ComplexImpedances,
+    R_inf: float,
+    R_pol: float,
+    is_imaginary: bool,
+) -> ComplexImpedances:
+    Z_re_im: NDArray[float64] = zeros(omega.size, dtype=float64)
     for i in range(0, omega.size):
         product = omega[i] * tau
         Z_re_im[i] = array_sum(
             delta_ln_tau
-            * ((product if mode == "imaginary" else 1) * g_tau / (1 + product**2))
+            * ((product if is_imaginary else 1) * g_tau / (1 + product**2))
         )
     Z_re_im = R_pol * Z_re_im
-    Z_fit: ndarray
-    if mode == "real":
-        Z_fit = array(list(map(lambda _: complex(*_), zip(Z_re_im + R_inf, Z.imag))))
+    if is_imaginary:
+        return array(
+            list(map(lambda _: complex(*_), zip(Z.real, -Z_re_im))),
+            dtype=ComplexImpedance,
+        )
     else:
-        Z_fit = array(list(map(lambda _: complex(*_), zip(Z.real, -Z_re_im))))
-    gamma: ndarray = g_tau * R_pol
-    return DRTResult(
-        "TR-NNLS",
-        tau,
-        gamma,
-        f,
-        Z_fit,
-        *_calculate_residuals(Z, Z_fit),
-        # "tr-rbf" method with credible_intervals
-        array([]),  # Mean
-        array([]),  # Lower bound
-        array([]),  # Upper bound
-        # "bht" method
-        array([]),  # Imaginary gamma
-        {},
-        # Stats
-        _calculate_chisqr(Z, Z_fit),
-        lambda_value,
+        return array(
+            list(map(lambda _: complex(*_), zip(Z_re_im + R_inf, Z.imag))),
+            dtype=ComplexImpedance,
+        )
+
+
+def calculate_drt_tr_nnls(
+    data: DataSet,
+    mode: str = "real",
+    lambda_value: float = -1.0,
+    **kwargs,
+) -> TRNNLSResult:
+    """
+    Calculates the distribution of relaxation times (DRT) for a given data set using Tikhonov regularization and non-negative least squares fitting (TR-NNLS method).
+
+    References:
+
+    - Kulikovsky, A., 2021, J. Electrochem. Soc., 168, 044512 (https://doi.org/10.1149/1945-7111/abf508)
+
+    Parameters
+    ----------
+    data: DataSet
+        The data set to use in the calculations.
+
+    mode: str, optional
+        Which parts of the data are to be included in the calculations.
+        Valid values include:
+        - "real"
+        - "imaginary"
+
+    lambda_value: float, optional
+        The Tikhonov regularization parameter.
+        If the value is equal to or below zero, then an attempt will be made to automatically find a suitable value.
+
+    Returns
+    -------
+    TRNNLSResult
+    """
+    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
+    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
+    assert (
+        hasattr(data, "get_frequencies")
+        and callable(data.get_frequencies)
+        and hasattr(data, "get_impedances")
+        and callable(data.get_impedances)
+    ), data
+    assert type(mode) is str, mode
+    if mode not in _MODES:
+        raise DRTError("Valid mode values: '" + "', '".join(_MODES))
+    assert issubdtype(type(lambda_value), floating), lambda_value
+    prog: Progress
+    with Progress("Preparing matrices", total=6) as prog:
+        is_imaginary: bool = mode == "imaginary"
+        f: Frequencies = data.get_frequencies()
+        Z_exp: ComplexImpedances = data.get_impedances()
+        omega: NDArray[float64] = 2 * pi * f
+        tau: TimeConstants = 1 / f
+        delta_ln_tau: NDArray[float64] = _calculate_delta_ln_tau(tau)
+        prog.increment()
+        Z_norm: ComplexImpedances
+        R_inf: float
+        R_pol: float
+        Z_norm, R_inf, R_pol = _normalize_impedance(Z_exp)
+        # Prepare matrices and vectors
+        I: NDArray[float64] = identity(omega.size, dtype=int64)
+        A: NDArray[float64] = _generate_A_matrix(omega, tau, delta_ln_tau, is_imaginary)
+        prog.increment()
+        b: NDArray[float64] = _generate_b_vector(A, Z_norm, is_imaginary)
+        prog.increment()
+        A_tikh: NDArray[float64]
+        g_tau: NDArray[float64]
+        if lambda_value <= 0.0:
+            # Try to determine a suitable regularization parameter if one hasn't
+            # been provided.
+            lambda_value = _suggest_lambda(
+                *_test_lambda_values(
+                    A,
+                    b,
+                    I,
+                    _generate_lambda_values(
+                        log_minimum=-7,
+                        log_maximum=0,
+                        num_per_decade=10,
+                    ),
+                ),
+            )
+        prog.set_message("Calculating DRT")
+        A_tikh = _generate_tikhonov_matrix(A, I, lambda_value)
+        prog.increment()
+        g_tau = _solve(A_tikh, b)
+        prog.increment()
+        # R_pol_synthetic: float = array_sum(g_tau * delta_ln_tau)  # Should be (close to) 1.0
+        Z_fit: ComplexImpedances = _generate_model_impedance(
+            omega,
+            tau,
+            delta_ln_tau,
+            A_tikh,
+            g_tau,
+            Z_exp,
+            R_inf,
+            R_pol,
+            is_imaginary,
+        )
+        gamma: Gammas = g_tau * R_pol
+    return TRNNLSResult(
+        time_constants=tau,
+        gammas=gamma,
+        frequencies=f,
+        impedances=Z_fit,
+        residuals=_calculate_residuals(Z_exp, Z_fit),
+        pseudo_chisqr=_calculate_pseudo_chisqr(Z_exp, Z_fit),
+        lambda_value=lambda_value,
     )

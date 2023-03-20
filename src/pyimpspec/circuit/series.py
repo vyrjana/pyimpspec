@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,13 +18,26 @@
 # the LICENSES folder.
 
 from typing import (
+    Dict,
     List,
-    Union,
+    Optional,
     Tuple,
+    Union,
 )
 from .base import (
     Connection,
+    Container,
     Element,
+)
+from sympy import (
+    Expr,
+    sympify,
+)
+from numpy import zeros
+from pyimpspec.typing import (
+    ComplexImpedance,
+    ComplexImpedances,
+    Frequencies,
 )
 
 
@@ -38,9 +51,6 @@ class Series(Connection):
         List of elements (and connections) that are connected in series.
     """
 
-    def __init__(self, elements: List[Union[Element, Connection]]):
-        super().__init__(elements)
-
     def to_stack(self, stack: List[Tuple[str, Union[Element, Connection]]]):
         stack.append(
             (
@@ -48,7 +58,7 @@ class Series(Connection):
                 self,
             )
         )
-        for element in reversed(self._elements):
+        for element in self._elements:
             if isinstance(element, Connection):
                 element.to_stack(stack)
             else:
@@ -68,26 +78,56 @@ class Series(Connection):
     def to_string(self, decimals: int = -1):
         return (
             "["
-            + "".join(
-                map(lambda _: _.to_string(decimals=decimals), reversed(self._elements))
-            )
+            + "".join(map(lambda _: _.to_string(decimals=decimals), self._elements))
             + "]"
         )
 
-    def get_label(self) -> str:
-        return "Series"
+    def __repr__(self) -> str:
+        return f"Series ({hex(id(self))})"
 
-    def impedance(self, f: float) -> complex:
-        return sum(map(lambda _: _.impedance(f), self._elements)) or complex(0, 0)
-
-    def _str_expr(self, substitute: bool = False) -> str:
+    def _impedance(
+        self,
+        f: Frequencies,
+    ) -> ComplexImpedances:
         if not self._elements:
-            return "0"
-        string: str = ""
-        for element in reversed(self._elements):
-            elem_str: str = element._str_expr(substitute=substitute)
-            if string == "":
-                string = elem_str
+            return complex(0, 0) * f
+        result: ComplexImpedances = zeros(f.shape, dtype=ComplexImpedance)
+        elem_con: Union[Element, Connection]
+        for elem_con in self._elements:
+            Z: ComplexImpedances
+            if isinstance(elem_con, Container):
+                Z = elem_con._impedance(
+                    f,
+                    **elem_con.get_values(),
+                    **elem_con.get_subcircuits(),
+                )
+            elif isinstance(elem_con, Element):
+                Z = elem_con._impedance(
+                    f,
+                    **elem_con.get_values(),
+                )
             else:
-                string += f" + ({elem_str})"
-        return string
+                Z = elem_con._impedance(f)
+            result += Z
+        return result
+
+    def to_sympy(
+        self,
+        substitute: bool = False,
+        identifiers: Optional[Dict[Element, int]] = None,
+    ) -> Expr:
+        expr: Expr = sympify("0")
+        if not self._elements:
+            return expr
+        assert isinstance(substitute, bool), substitute
+        if identifiers is None:
+            identifiers = self.generate_element_identifiers(running=False)
+        assert isinstance(identifiers, dict), identifiers
+        for element in self._elements:
+            if isinstance(element, Container) or isinstance(element, Connection):
+                expr += element.to_sympy(substitute=substitute, identifiers=identifiers)
+            elif isinstance(element, Element):
+                expr += element.to_sympy(
+                    substitute=substitute, identifier=identifiers[element]
+                )
+        return expr

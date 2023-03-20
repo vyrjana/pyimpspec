@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,7 +29,15 @@ from .kramers_kronig import (
     perform_test,
 )
 from .drt import (
+    BHTResult,
     DRTError,
     DRTResult,
+    MRQFitResult,
+    TRNNLSResult,
+    TRRBFResult,
     calculate_drt,
+)
+from .zhit import (
+    ZHITResult,
+    perform_zhit,
 )

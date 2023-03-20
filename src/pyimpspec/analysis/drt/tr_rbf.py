@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2022 pyimpspec developers
+# Copyright 2023 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,18 +19,22 @@
 
 # This module uses Tikhonov regularization and either radial basis function or piecewise linear discretization
 # 10.1016/j.electacta.2015.09.097
+# - 10.1016/j.electacta.2015.03.123
+# - 10.1016/j.electacta.2017.07.050
+# Based on code from https://github.com/ciuccislab/pyDRTtools.
 # pyDRTtools commit: 65ea54d9332a0c6594de852f0242a88e20ec4427
 
-from multiprocessing import (
-    Pool,
-    cpu_count,
-)
+from dataclasses import dataclass
+from multiprocessing import Pool
+from multiprocessing.context import TimeoutError as MPTimeoutError
+from time import sleep
 from typing import (
     Callable,
     Dict,
     List,
     Optional,
     Tuple,
+    Union,
 )
 from numpy import (
     abs as array_abs,
@@ -46,8 +50,10 @@ from numpy import (
     exp,
     eye,
     finfo,
+    float64,
     floating,
     inf,
+    int64,
     integer,
     issubdtype,
     log as ln,
@@ -55,7 +61,6 @@ from numpy import (
     logspace,
     mean,
     min as array_min,
-    ndarray,
     ones,
     pi,
     quantile,
@@ -71,59 +76,190 @@ from numpy import (
 from numpy.linalg import cholesky
 from numpy.matlib import repmat
 from numpy.random import randn
-from scipy import integrate
-from scipy.linalg import (
-    inv as invert,
-    solve as solve_linalg,
-    toeplitz,
+from numpy.typing import NDArray
+from pyimpspec.data import DataSet
+from pyimpspec.analysis.utility import (
+    _calculate_residuals,
+    _calculate_pseudo_chisqr,
+    _get_default_num_procs,
 )
-from scipy.optimize import (
-    fsolve,
+from pyimpspec.exceptions import DRTError
+from .result import DRTResult
+from pyimpspec.progress import Progress
+from pyimpspec.typing import (
+    ComplexImpedance,
+    ComplexImpedances,
+    Frequencies,
+    Indices,
+    Gamma,
+    Gammas,
+    TimeConstant,
+    TimeConstants,
 )
 
-IMPORTED_CONVEX_OPTIMIZER: bool = False
-try:
-    from kvxopt import (
-        matrix,
-        solvers as cvxopt_solvers,
-    )
+_SOLVER_IMPORTED: bool = False
 
-    IMPORTED_CONVEX_OPTIMIZER = True
-except ImportError:
-    try:
-        from cvxopt import (
-            matrix,
-            solvers as cvxopt_solvers,
+
+@dataclass(frozen=True)
+class TRRBFResult(DRTResult):
+    """
+    An object representing the results of calculating the distribution of relaxation times in a data set using Tikhonov regularization and radial basis function (or piecewise linear) discretization (TR-RBF).
+
+    Parameters
+    ----------
+    time_constants: |TimeConstants|
+        The time constants.
+
+    gammas: |Gammas|
+        The gamma values.
+
+    frequencies: |Frequencies|
+        The frequencies of the impedance spectrum.
+
+    impedances: |ComplexImpedances|
+        The impedance produced by the model.
+
+    residuals: |ComplexResiduals|
+        The residuals of the impedances of the model and the data set.
+
+    mean_gammas: |Gammas|
+        The mean gamma values of the Bayesian credible intervals.
+
+    lower_bounds: |Gammas|
+        The lower bound gamma values of the Bayesian credible intervals.
+
+    upper_bounds: |Gammas|
+        The upper bound gamma values of the Bayesian credible intervals.
+
+    pseudo_chisqr: float
+        The pseudo chi-squared value, |pseudo chi-squared|, of the modeled impedance (eq. 14 in Boukamp, 1995).
+
+    lambda_value: float
+        The lambda value that was ultimately used.
+    """
+
+    gammas: Gammas
+    mean_gammas: Gammas
+    lower_bounds: Gammas
+    upper_bounds: Gammas
+    lambda_value: float
+
+    def get_label(self) -> str:
+        return "TR-RBF"
+
+    def get_drt_credible_intervals_data(
+        self,
+    ) -> Tuple[TimeConstants, Gammas, Gammas, Gammas]:
+        """
+        Get the data necessary to plot the Bayesian credible intervals for this DRT result: the time constants, the mean gamma values, the lower bound gamma values, and the upper bound gamma values.
+
+        Returns
+        -------
+        Tuple[|TimeConstants|, |Gammas|, |Gammas|, |Gammas|]
+        """
+        if not self.mean_gammas.any():
+            return (
+                array([], dtype=TimeConstant),
+                array([], dtype=Gamma),
+                array([], dtype=Gamma),
+                array([], dtype=Gamma),
+            )
+        return (
+            self.time_constants,
+            self.mean_gammas,
+            self.lower_bounds,
+            self.upper_bounds,
         )
 
-        IMPORTED_CONVEX_OPTIMIZER = True
-    except ImportError:
-        pass
+    def get_gammas(self) -> Gammas:
+        """
+        Get the gamma values.
 
-try:
-    from cvxpy import (
-        Minimize,
-        Problem,
-        Variable,
-        quad_form,
-    )
+        Returns
+        -------
+        |Gammas|
+        """
+        return self.gammas
 
-    IMPORTED_CONVEX_OPTIMIZER = True
-except ImportError:
-    pass
+    def get_drt_data(self) -> Tuple[TimeConstants, Gammas]:
+        """
+        Get the data necessary to plot this DRTResult as a DRT plot: the time constants and the corresponding gamma values.
 
-from pyimpspec.data import DataSet
-from pyimpspec.analysis.fitting import _calculate_residuals
-from .result import (
-    DRTError,
-    DRTResult,
-    _calculate_chisqr,
-)
-from .tr_nnls import _suggest_lambda
-import pyimpspec.progress as progress
+        Returns
+        -------
+        Tuple[|TimeConstants|, |Gammas|]
+        """
+        return (
+            self.time_constants,  # type: ignore
+            self.gammas,  # type: ignore
+        )
+
+    def get_peaks(self, threshold: float = 0.0) -> Tuple[TimeConstants, Gammas]:
+        """
+        Get the time constants (in seconds) and gamma (in ohms) of peaks with magnitudes greater than the threshold.
+        The threshold and the magnitudes are all relative to the magnitude of the highest peak.
+
+        Parameters
+        ----------
+        threshold: float, optional
+            The minimum peak height threshold (relative to the height of the tallest peak) for a peak to be included.
+
+        Returns
+        -------
+        Tuple[|TimeConstants|, |Gammas|]
+        """
+        indices: Indices = self._get_peak_indices(
+            threshold,
+            self.gammas,  # type: ignore
+        )
+        return (
+            self.time_constants[indices],  # type: ignore
+            self.gammas[indices],  # type: ignore
+        )
+
+    def to_peaks_dataframe(
+        self,
+        threshold: float = 0.0,
+        columns: Optional[List[str]] = None,
+    ) -> "DataFrame":  # noqa: F821
+        from pandas import DataFrame
+
+        if columns is None:
+            columns = [
+                "tau (s)",
+                "gamma (ohm)",
+            ]
+        assert isinstance(columns, list), columns
+        assert len(columns) == 2
+        indices: Indices = self._get_peak_indices(
+            threshold,
+            self.gammas,  # type: ignore
+        )
+        return DataFrame.from_dict(
+            {
+                columns[0]: self.time_constants[indices],  # type: ignore
+                columns[1]: self.gammas[indices],  # type: ignore
+            }
+        )
+
+    def to_statistics_dataframe(
+        self,
+    ) -> "DataFrame":  # noqa: F821
+        from pandas import DataFrame
+
+        statistics: Dict[str, Union[int, float, str]] = {
+            "Log pseudo chi-squared": log(self.pseudo_chisqr),
+            "Lambda": self.lambda_value,
+        }
+        return DataFrame.from_dict(
+            {
+                "Label": list(statistics.keys()),
+                "Value": list(statistics.values()),
+            }
+        )
 
 
-RBF_TYPES: List[str] = [
+_RBF_TYPES: List[str] = [
     "c0-matern",
     "c2-matern",
     "c4-matern",
@@ -135,36 +271,36 @@ RBF_TYPES: List[str] = [
     "piecewise-linear",
 ]
 
-RBF_SHAPES: List[str] = ["fwhm", "factor"]
+_RBF_SHAPES: List[str] = ["fwhm", "factor"]
 
-MODES: List[str] = ["complex", "real", "imaginary"]
+_MODES: List[str] = ["complex", "real", "imaginary"]
 
 
 def _generate_truncated_multivariate_gaussians(
-    F: ndarray,  # m * d dimensions
-    g: ndarray,  # m * 1 dimensions
-    M: ndarray,  # d * d dimensions, symmetric and definite positive
-    mu_r: ndarray,  # d * 1 dimensions
-    initial_X: ndarray,  # d * 1 dimensions
+    F: NDArray[float64],  # m * d dimensions
+    g: NDArray[float64],  # m * 1 dimensions
+    M: NDArray[float64],  # d * d dimensions, symmetric and definite positive
+    mu_r: NDArray[float64],  # d * 1 dimensions
+    initial_X: NDArray[float64],  # d * 1 dimensions
     cov: bool = True,  # True -> M is the covariance and the mean is mu_r, False -> M is a precision matrix (log-density == -1/2 X'*M*X + r'*X)
     L: int = 1,  # Number of samples
-) -> ndarray:
+) -> NDArray[float64]:
     """
     Algorithm described in http://arxiv.org/abs/1208.4118
 
-    F: ndarray
+    F: NDArray[float64]
         m * d dimensions
 
-    g: ndarray
+    g: NDArray[float64]
         m * 1 dimensions
 
-    M: ndarray
+    M: NDArray[float64]
         d * d dimensions, symmetric and definite positive
 
-    mu_r: ndarray
+    mu_r: NDArray[float64]
         d * 1 dimensions
 
-    initial_X: ndarray
+    initial_X: NDArray[float64]
         d * 1 dimensions
 
     cov: bool = True
@@ -176,12 +312,14 @@ def _generate_truncated_multivariate_gaussians(
 
     Returns an array (d * L dimensions) where each column is a sample
     """
+    from scipy.linalg import solve as solve_linalg
+
     assert (
         g.shape[0] == F.shape[0]
     ), f"Constraint dimensions do not match: {g.shape[0]} != {F.shape[0]}"
-    R: ndarray = cholesky(M)  # .T?
+    R: NDArray[float64] = cholesky(M)  # .T?
     R = R.T  # change the lower matrix to upper matrix
-    mu: ndarray
+    mu: NDArray[float64]
     if cov is True:  # Using M as a covariance matrix
         mu = mu_r
         g = g + F @ mu
@@ -197,44 +335,41 @@ def _generate_truncated_multivariate_gaussians(
     d: int = initial_X.shape[0]
     near_zero: float = 1e-12
     # Squared Euclidean norm of constraint matrix columns
-    F2: ndarray = array_sum(square(F), axis=1)
-    Ft: ndarray = F.T
-    last_X: ndarray = initial_X
-    Xs: ndarray = zeros(
+    F2: NDArray[float64] = array_sum(square(F), axis=1)
+    Ft: NDArray[float64] = F.T
+    last_X: NDArray[float64] = initial_X
+    Xs: NDArray[float64] = zeros(
         (
             d,
             L,
-        )
+        ),
+        dtype=float64,
     )
     Xs[:, 0] = initial_X
-    progress_message: str = "Calculating credible intervals"
-    progress.update_every_N_percent(0, message=progress_message)
     # Generate samples
     i: int = 2
     while i <= L:
-        if i % 100 == 0:
-            progress.update_every_N_percent(i + 1, total=L, message=progress_message)
         stop: bool = False
         j: int = -1
         # Generate initial velocity from normal distribution
-        V0: ndarray = randn(d)
-        X: ndarray = last_X
+        V0: NDArray[float64] = randn(d)
+        X: NDArray[float64] = last_X
         T: float = pi / 2
         tt: float = 0.0
         while True:
-            a: ndarray = real(V0)
-            b: ndarray = X
-            fa: ndarray = F @ a
-            fb: ndarray = F @ b
-            U: ndarray = sqrt(square(fa) + square(fb))
+            a: NDArray[float64] = real(V0)
+            b: NDArray[float64] = X
+            fa: NDArray[float64] = F @ a
+            fb: NDArray[float64] = F @ b
+            U: NDArray[float64] = sqrt(square(fa) + square(fb))
             # Has to be arctan2 not arctan
-            phi: ndarray = arctan2(-fa, fb)
+            phi: NDArray[float64] = arctan2(-fa, fb)
             # Find the locations where the constraints were hit
-            pn: ndarray = array(array_abs(divide(g, U)) <= 1)
+            pn: NDArray[float64] = array(array_abs(divide(g, U)) <= 1)
             if pn.any():
-                inds: ndarray = where(pn)[0]
-                phn: ndarray = phi[pn]
-                t1: ndarray = array_abs(
+                inds: NDArray[int64] = where(pn)[0]
+                phn: NDArray[float64] = phi[pn]
+                t1: NDArray[float64] = array_abs(
                     -1.0 * phn + arccos(divide(-1.0 * g[pn], U[pn]))
                 )
                 # If there was a previous reflection (j > -1) and there is a potential
@@ -242,7 +377,7 @@ def _generate_truncated_multivariate_gaussians(
                 # at j is not found because of numerical error
                 if j > -1:
                     if pn[j] == 1:
-                        temp: ndarray = cumsum(pn)
+                        temp: NDArray[float64] = cumsum(pn)
                         indj = temp[j] - 1
                         tt1 = t1[indj]
                         if (
@@ -279,36 +414,48 @@ def _generate_truncated_multivariate_gaussians(
     return Xs
 
 
-def _calculate_credible_intervals(
-    num_RL: int,
-    num_samples: int,
-    mu: ndarray,
-    Sigma_inv: ndarray,
-    x: ndarray,
-    tau_fine: ndarray,
-    tau: ndarray,
-    epsilon: float,
-    rbf_type: str,
-) -> Tuple[ndarray, ndarray, ndarray]:
+def _calculate_credible_intervals(args) -> Tuple[Gammas, Gammas, Gammas]:
+    from scipy.linalg import inv as invert
+
+    num_RL: int
+    num_samples: int
+    mu: NDArray[float64]
+    Sigma_inv: NDArray[float64]
+    x: NDArray[float64]
+    tau_fine: TimeConstants
+    tau: TimeConstants
+    epsilon: float
+    rbf_type: str
+    (
+        num_RL,
+        num_samples,
+        mu,
+        Sigma_inv,
+        x,
+        tau_fine,
+        tau,
+        epsilon,
+        rbf_type,
+    ) = args
     # Calculation of credible interval according to Bayesian statistics
     mu = mu[num_RL:]
     Sigma_inv = Sigma_inv[num_RL:, num_RL:]
     # Cholesky transform instead of direct inverse
-    L_Sigma_inv: ndarray = cholesky(Sigma_inv)
-    L_Sigma_agm: ndarray = invert(L_Sigma_inv)
-    Sigma: ndarray = L_Sigma_agm.T @ L_Sigma_agm
+    L_Sigma_inv: NDArray[float64] = cholesky(Sigma_inv)
+    L_Sigma_agm: NDArray[float64] = invert(L_Sigma_inv)
+    Sigma: NDArray[float64] = L_Sigma_agm.T @ L_Sigma_agm
     # Using generate_tmg from HMC_exact.py to sample the truncated Gaussian distribution
-    Xs: ndarray = _generate_truncated_multivariate_gaussians(
-        eye(x.shape[0]),
-        finfo(float).eps * ones(mu.shape[0]),
+    Xs: NDArray[float64] = _generate_truncated_multivariate_gaussians(
+        eye(x.shape[0], dtype=float64),
+        finfo(float).eps * ones(mu.shape[0], dtype=float64),
         Sigma,
         mu,
         x,
         True,
         num_samples,
     )
-    lower_bound: ndarray
-    upper_bound: ndarray
+    lower_bound: Gammas
+    upper_bound: Gammas
     # map array to gamma
     _, lower_bound = _x_to_gamma(
         quantile(Xs[:, 501:], 0.005, axis=1),
@@ -355,7 +502,7 @@ def _rbf_epsilon_functions(func: Callable) -> Callable:
         "cauchy": lambda x: 1 / (1 + abs(x)) - 0.5,
         "piecewise-linear": lambda x: 0.0,
     }
-    assert set(RBF_TYPES) == set(switch.keys())
+    assert set(_RBF_TYPES) == set(switch.keys())
 
     def wrapper(*args, **kwargs):
         kwargs["rbf_functions"] = switch
@@ -366,7 +513,7 @@ def _rbf_epsilon_functions(func: Callable) -> Callable:
 
 @_rbf_epsilon_functions
 def _compute_epsilon(
-    f: ndarray,
+    f: Frequencies,
     rbf_shape: str,
     shape_coeff: float,
     rbf_type: str,
@@ -375,7 +522,9 @@ def _compute_epsilon(
     if rbf_type == "piecewise-linear":
         return 0.0
     elif rbf_shape == "fwhm":
-        FWHM_coeff: ndarray = 2 * fsolve(rbf_functions[rbf_type], 1)
+        from scipy.optimize import fsolve
+
+        FWHM_coeff: NDArray[float64] = 2 * fsolve(rbf_functions[rbf_type], 1)
         delta: float = mean(diff(ln(1 / f.reshape(f.shape[0]))))
         return (shape_coeff * FWHM_coeff / delta)[0]
     # "factor"
@@ -405,7 +554,7 @@ def _rbf_A_matrix_functions(func: Callable) -> Callable:
         "inverse-quadric": lambda x, epsilon: 1 / sqrt(1 + (epsilon * x) ** 2),
         "piecewise-linear": lambda x, epsilon: 0.0,
     }
-    assert set(RBF_TYPES) == set(switch.keys())
+    assert set(_RBF_TYPES) == set(switch.keys())
 
     def wrapper(*args, **kwargs):
         kwargs["rbf_functions"] = switch
@@ -423,6 +572,8 @@ def _A_matrix_element(
     rbf_type: str,
     rbf_functions: Dict[str, Callable],
 ) -> float:
+    from scipy.integrate import quad
+
     alpha: float = 2 * pi * f * tau
     rbf_func: Callable = rbf_functions[rbf_type]
     integrand: Callable
@@ -436,12 +587,12 @@ def _A_matrix_element(
             / (1.0 / exp(x) + (alpha**2) * exp(x))
             * rbf_func(x, epsilon)
         )
-    return integrate.quad(integrand, -50, 50, epsabs=1e-9, epsrel=1e-9)[0]
+    return quad(integrand, -50, 50, epsabs=1e-9, epsrel=1e-9)[0]
 
 
-def _assemble_A_matrix(args) -> ndarray:
-    f: ndarray
-    tau: ndarray
+def _assemble_A_matrix(args) -> NDArray[float64]:
+    f: Frequencies
+    tau: TimeConstants
     epsilon: float
     real: bool
     rbf_type: str
@@ -452,10 +603,10 @@ def _assemble_A_matrix(args) -> ndarray:
         real,
         rbf_type,
     ) = args
-    w: ndarray = 2 * pi * f
+    w: NDArray[float64] = 2 * pi * f
     num_freqs: int = f.shape[0]
     num_taus: int = tau.shape[0]
-    A: ndarray
+    A: NDArray[float64]
     i: int
     j: int
     # Check if the frequencies are ln-spaced
@@ -465,10 +616,12 @@ def _assemble_A_matrix(args) -> ndarray:
         and rbf_type != "piecewise-linear"
     ):
         # Use the Toeplitz trick
-        C: ndarray = zeros(num_freqs)
+        from scipy.linalg import toeplitz
+
+        C: NDArray[float64] = zeros(num_freqs, dtype=float64)
         for i in range(0, num_freqs):
             C[i] = _A_matrix_element(f[i], tau[0], epsilon, real, rbf_type)
-        R: ndarray = zeros(num_taus)
+        R: NDArray[float64] = zeros(num_taus, dtype=float64)
         for j in range(0, num_taus):
             R[j] = _A_matrix_element(f[0], tau[j], epsilon, real, rbf_type)
         A = toeplitz(C, R)
@@ -478,7 +631,8 @@ def _assemble_A_matrix(args) -> ndarray:
             (
                 num_freqs,
                 num_taus,
-            )
+            ),
+            dtype=float64,
         )
         for i in range(0, num_freqs):
             for j in range(0, num_taus):
@@ -636,6 +790,8 @@ def _inner_product_rbf(
                 / ((4 + a**2) ** 5)
             )
     elif rbf_type == "inverse-quadric":
+        from scipy.integrate import quad
+
         y_i: float = -ln(f_i)
         y_j: float = -ln(f_j)
         rbf_i: Callable = lambda y: 1 / sqrt(1 + (epsilon * (y - y_i)) ** 2)
@@ -662,21 +818,21 @@ def _inner_product_rbf(
                 / (delta**2)
                 * (rbf_j(y + delta) - 2 * rbf_j(y) + rbf_j(y - delta))
             )
-        return integrate.quad(sqr_drbf_dy, -50, 50, epsabs=1e-9, epsrel=1e-9)[0]
-    assert rbf_type not in RBF_TYPES, f"Unsupported RBF type: {rbf_type}"
+        return quad(sqr_drbf_dy, -50, 50, epsabs=1e-9, epsrel=1e-9)[0]
+    assert rbf_type not in _RBF_TYPES, f"Unsupported RBF type: {rbf_type}"
     return -1.0  # Just to satisfy mypy
 
 
 def _assemble_M_matrix(
-    tau: ndarray,
+    tau: TimeConstants,
     epsilon: float,
     derivative_order: int,
     rbf_type: str,
-) -> ndarray:
-    f: ndarray = 1 / tau
+) -> NDArray[float64]:
+    f: Frequencies = 1 / tau
     num_freqs: int = f.shape[0]
     num_taus: int = tau.shape[0]
-    M: ndarray
+    M: NDArray[float64]
     i: int
     j: int
     # Check if the collocation points are sufficiently ln-spaced
@@ -684,7 +840,9 @@ def _assemble_M_matrix(
         std(diff(ln(tau))) / mean(diff(ln(tau)))
     ) < 0.01 and rbf_type != "piecewise-linear":
         # Apply the Toeplitz trick to compute the M matrix
-        C: ndarray = zeros(num_taus)
+        from scipy.linalg import toeplitz
+
+        C: NDArray[float64] = zeros(num_taus, dtype=float64)
         for i in range(0, num_taus):
             C[i] = _inner_product_rbf(
                 f[0],
@@ -693,7 +851,7 @@ def _assemble_M_matrix(
                 derivative_order,
                 rbf_type,
             )  # TODO: Maybe use tau instead of freq (pyDRTtools comment)
-        R: ndarray = zeros(num_taus)
+        R: NDArray[float64] = zeros(num_taus, dtype=float64)
         for j in range(0, num_taus):
             R[j] = _inner_product_rbf(
                 f[j],
@@ -709,7 +867,8 @@ def _assemble_M_matrix(
                 (
                     num_freqs - 1,
                     num_freqs,
-                )
+                ),
+                dtype=float64,
             )
             for i in range(0, num_freqs - 1):
                 delta_loc: float = ln((1 / f[i + 1]) / (1 / f[i]))
@@ -720,7 +879,8 @@ def _assemble_M_matrix(
                 (
                     num_taus - 2,
                     num_taus,
-                )
+                ),
+                dtype=float64,
             )
             for i in range(0, num_taus - 2):
                 delta_loc = ln(tau[i + 1] / tau[i])
@@ -740,7 +900,8 @@ def _assemble_M_matrix(
             (
                 num_taus,
                 num_taus,
-            )
+            ),
+            dtype=float64,
         )
         for i in range(0, num_taus):
             for j in range(0, num_taus):
@@ -755,14 +916,14 @@ def _assemble_M_matrix(
 
 
 def _quad_format(
-    A: ndarray,
-    b: ndarray,
-    M: ndarray,
+    A: NDArray[float64],
+    b: NDArray[float64],
+    M: NDArray[float64],
     lambda_value: float,
-) -> Tuple[ndarray, ndarray]:
-    H: ndarray = 2 * (A.T @ A + lambda_value * M)
+) -> Tuple[NDArray[float64], NDArray[float64]]:
+    H: NDArray[float64] = 2 * (A.T @ A + lambda_value * M)
     H = (H.T + H) / 2
-    c: ndarray = -2 * b.T @ A
+    c: NDArray[float64] = -2 * b.T @ A
     return (
         H,
         c,
@@ -770,61 +931,94 @@ def _quad_format(
 
 
 def _quad_format_combined(
-    A_re: ndarray,
-    A_im: ndarray,
-    b_re: ndarray,
-    b_im: ndarray,
-    M: ndarray,
+    A_re: NDArray[float64],
+    A_im: NDArray[float64],
+    b_re: NDArray[float64],
+    b_im: NDArray[float64],
+    M: NDArray[float64],
     lambda_value: float,
-) -> Tuple[ndarray, ndarray]:
-    H: ndarray = 2 * ((A_re.T @ A_re + A_im.T @ A_im) + lambda_value * M)
+) -> Tuple[NDArray[float64], NDArray[float64]]:
+    H: NDArray[float64] = 2 * ((A_re.T @ A_re + A_im.T @ A_im) + lambda_value * M)
     H = (H.T + H) / 2
-    c: ndarray = -2 * (b_im.T @ A_im + b_re.T @ A_re)
+    c: NDArray[float64] = -2 * (b_im.T @ A_im + b_re.T @ A_re)
     return (
         H,
         c,
     )
 
 
-def _solve_qp(
-    H: ndarray,
-    c: ndarray,
-    G: Optional[ndarray] = None,
-    h: Optional[ndarray] = None,
-    A: Optional[ndarray] = None,
-    b: Optional[ndarray] = None,
-) -> ndarray:
+def _solve_qp_cvxpy(
+    H: NDArray[float64],
+    c: NDArray[float64],
+) -> NDArray[float64]:
+    from cvxpy import (
+        Minimize,
+        Problem,
+        Variable,
+        quad_form,
+    )
+
+    N_out: int = c.shape[0]
+    x: Variable = Variable(shape=N_out, value=ones(N_out, dtype=float64))
+    l: NDArray[float64] = zeros(N_out, dtype=float64)
+    prob: Problem = Problem(Minimize((1 / 2) * quad_form(x, H) + c @ x), [x >= l])
+    prob.solve(
+        # verbose=True,
+        eps_abs=1e-10,
+        eps_rel=1e-10,
+        sigma=1.00e-08,
+        max_iter=200000,
+        eps_prim_inf=1e-5,
+        eps_dual_inf=1e-5,
+    )
+    return x.value
+
+
+def _solve_qp_cvxopt(
+    H: NDArray[float64],
+    c: NDArray[float64],
+    G: Optional[NDArray[float64]] = None,
+    h: Optional[NDArray[float64]] = None,
+    A: Optional[NDArray[float64]] = None,
+    b: Optional[NDArray[float64]] = None,
+) -> NDArray[float64]:
     try:
-        # cvxpy (optional dependency)
-        N_out: int = c.shape[0]
-        x: Variable = Variable(shape=N_out, value=ones(N_out))
-        l: ndarray = zeros(N_out)
-        prob: Problem = Problem(Minimize((1 / 2) * quad_form(x, H) + c @ x), [x >= l])
-        prob.solve(
-            # verbose=True,
-            eps_abs=1e-10,
-            eps_rel=1e-10,
-            sigma=1.00e-08,
-            max_iter=200000,
-            eps_prim_inf=1e-5,
-            eps_dual_inf=1e-5,
+        from kvxopt import (
+            matrix,
+            solvers,
         )
-        return x.value
+    except ImportError:
+        from cvxopt import (
+            matrix,
+            solvers,
+        )
+    args: List[matrix] = [matrix(H), matrix(c)]
+    if G is not None:
+        assert h is not None
+        args.extend([matrix(G), matrix(h)])
+    if A is not None:
+        assert b is not None
+        args.extend([matrix(A), matrix(b)])
+    solvers.options["abstol"] = 1e-15
+    solvers.options["reltol"] = 1e-15
+    solution: dict = solvers.qp(*args)
+    if "optimal" not in solution["status"]:
+        raise DRTError("Failed to find optimal solution!")
+    return array(solution["x"]).reshape((H.shape[1],))
+
+
+def _solve_qp(
+    H: NDArray[float64],
+    c: NDArray[float64],
+    G: Optional[NDArray[float64]] = None,
+    h: Optional[NDArray[float64]] = None,
+    A: Optional[NDArray[float64]] = None,
+    b: Optional[NDArray[float64]] = None,
+) -> NDArray[float64]:
+    try:
+        return _solve_qp_cvxpy(H, c)
     except Exception:
-        # cvxopt
-        args: List[matrix] = [matrix(H), matrix(c)]
-        if G is not None:
-            assert h is not None
-            args.extend([matrix(G), matrix(h)])
-        if A is not None:
-            assert b is not None
-            args.extend([matrix(A), matrix(b)])
-        cvxopt_solvers.options["abstol"] = 1e-15
-        cvxopt_solvers.options["reltol"] = 1e-15
-        solution: dict = cvxopt_solvers.qp(*args)
-        if "optimal" not in solution["status"]:
-            raise DRTError("Failed to find optimal solution!")
-        return array(solution["x"]).reshape((H.shape[1],))
+        return _solve_qp_cvxopt(H, c, G, h, A, b)
 
 
 def _rbf_gamma_functions(func: Callable) -> Callable:
@@ -850,7 +1044,7 @@ def _rbf_gamma_functions(func: Callable) -> Callable:
         "inverse-quadric": lambda x, epsilon: 1 / sqrt(1 + (epsilon * x) ** 2),
         "piecewise-linear": lambda x, epsilon: 0.0,
     }
-    assert set(RBF_TYPES) == set(switch.keys())
+    assert set(_RBF_TYPES) == set(switch.keys())
 
     def wrapper(*args, **kwargs):
         kwargs["rbf_functions"] = switch
@@ -861,13 +1055,13 @@ def _rbf_gamma_functions(func: Callable) -> Callable:
 
 @_rbf_gamma_functions
 def _x_to_gamma(
-    x: ndarray,
-    tau_fine: ndarray,
-    tau: ndarray,
+    x: NDArray[float64],
+    tau_fine: TimeConstants,
+    tau: TimeConstants,
     epsilon: float,
     rbf_type: str,
     rbf_functions: Dict[str, Callable],
-) -> Tuple[ndarray, ndarray]:
+) -> Tuple[TimeConstants, Gammas]:
     # TODO: double check this to see if the function is correct (pyDRTtools comment)
     if rbf_type == "piecewise-linear":
         return (
@@ -876,11 +1070,12 @@ def _x_to_gamma(
         )
     num_taus: int = tau.shape[0]
     num_fine_taus: int = tau_fine.shape[0]
-    B: ndarray = zeros(
+    B: NDArray[float64] = zeros(
         (
             num_fine_taus,
             num_taus,
-        )
+        ),
+        dtype=float64,
     )
     rbf: Callable = rbf_functions[rbf_type]
     i: int
@@ -896,25 +1091,33 @@ def _x_to_gamma(
 
 
 def _prepare_complex_matrices(
-    A_re: ndarray,
-    A_im: ndarray,
-    b_re: ndarray,
-    b_im: ndarray,
-    M: ndarray,
+    A_re: NDArray[float64],
+    A_im: NDArray[float64],
+    b_re: NDArray[float64],
+    b_im: NDArray[float64],
+    M: NDArray[float64],
     lambda_value: float,
-    f: ndarray,
+    f: Frequencies,
     num_freqs: int,
     num_taus: int,
     inductance: bool,
-) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray, int]:
+) -> Tuple[
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    int,
+]:
     num_RL: int = 2 if inductance is True else 1
-    tmp: ndarray  # Used for temporary binding of matrices
+    tmp: NDArray[float64]  # Used for temporary binding of matrices
     tmp = A_re
     A_re = zeros(
         (
             num_freqs,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     A_re[:, num_RL:] = tmp
     A_re[:, 1 if inductance is True else 0] = 1
@@ -924,7 +1127,8 @@ def _prepare_complex_matrices(
         (
             num_freqs,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     A_im[:, num_RL:] = tmp
     if inductance is True:
@@ -935,7 +1139,8 @@ def _prepare_complex_matrices(
         (
             num_taus + num_RL,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     M[num_RL:, num_RL:] = tmp
 
@@ -958,23 +1163,31 @@ def _prepare_complex_matrices(
 
 
 def _prepare_real_matrices(
-    A_re: ndarray,
-    A_im: ndarray,
-    b_re: ndarray,
-    b_im: ndarray,
-    M: ndarray,
+    A_re: NDArray[float64],
+    A_im: NDArray[float64],
+    b_re: NDArray[float64],
+    b_im: NDArray[float64],
+    M: NDArray[float64],
     lambda_value: float,
     num_freqs: int,
     num_taus: int,
-) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray, int]:
+) -> Tuple[
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    int,
+]:
     num_RL: int = 1
-    tmp: ndarray  # Used for temporary binding of matrices
+    tmp: NDArray[float64]  # Used for temporary binding of matrices
     tmp = A_re
     A_re = zeros(
         (
             num_freqs,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     A_re[:, num_RL:] = tmp
     A_re[:, 0] = 1
@@ -984,7 +1197,8 @@ def _prepare_real_matrices(
         (
             num_freqs,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     A_im[:, num_RL:] = tmp
 
@@ -993,7 +1207,8 @@ def _prepare_real_matrices(
         (
             num_taus + num_RL,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     M[num_RL:, num_RL:] = tmp
 
@@ -1014,25 +1229,33 @@ def _prepare_real_matrices(
 
 
 def _prepare_imaginary_matrices(
-    A_re: ndarray,
-    A_im: ndarray,
-    b_re: ndarray,
-    b_im: ndarray,
-    M: ndarray,
+    A_re: NDArray[float64],
+    A_im: NDArray[float64],
+    b_re: NDArray[float64],
+    b_im: NDArray[float64],
+    M: NDArray[float64],
     lambda_value: float,
-    f: ndarray,
+    f: Frequencies,
     num_freqs: int,
     num_taus: int,
     inductance: bool,
-) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray, int]:
+) -> Tuple[
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    NDArray[float64],
+    int,
+]:
     num_RL: int = 1 if inductance is True else 0
-    tmp: ndarray  # Used for temporary binding of matrices
+    tmp: NDArray[float64]  # Used for temporary binding of matrices
     tmp = A_re
     A_re = zeros(
         (
             num_freqs,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     A_re[:, num_RL:] = tmp
 
@@ -1041,7 +1264,8 @@ def _prepare_imaginary_matrices(
         (
             num_freqs,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     A_im[:, num_RL:] = tmp
     if inductance is True:
@@ -1051,7 +1275,8 @@ def _prepare_imaginary_matrices(
         (
             num_taus + num_RL,
             num_taus + num_RL,
-        )
+        ),
+        dtype=float64,
     )
     M[num_RL:, num_RL:] = tmp
 
@@ -1077,24 +1302,24 @@ def _lambda_process(
     Tuple[
         float,
         float,
-        ndarray,
-        ndarray,
-        ndarray,
-        ndarray,
-        ndarray,
-        ndarray,
-        ndarray,
+        NDArray[float64],
+        ComplexImpedances,
+        NDArray[float64],
+        NDArray[float64],
+        NDArray[float64],
+        NDArray[float64],
+        NDArray[float64],
         int,
     ]
 ]:
-    A_re: ndarray
-    A_im: ndarray
-    Z: ndarray
-    M: ndarray
+    A_re: NDArray[float64]
+    A_im: NDArray[float64]
+    Z: ComplexImpedances
+    M: NDArray[float64]
     lambda_value: float
-    f: ndarray
-    tau: ndarray
-    tau_fine: ndarray
+    f: Frequencies
+    tau: TimeConstants
+    tau_fine: TimeConstants
     epsilon: float
     mode: str
     rbf_type: str
@@ -1118,8 +1343,8 @@ def _lambda_process(
     num_freqs: int = f.size
     num_taus: int = tau.size
     num_RL: int  # The number of R and/or L elements in series
-    H: ndarray
-    c: ndarray
+    H: NDArray[float64]
+    c: NDArray[float64]
     if mode == "complex":
         A_re, A_im, M, H, c, num_RL = _prepare_complex_matrices(
             A_re,
@@ -1158,18 +1383,19 @@ def _lambda_process(
             inductance,
         )
     try:
-        x: ndarray = _solve_qp(H, c)
+        x: NDArray[float64] = _solve_qp(H, c)
     except Exception:
         return None
-    gamma: ndarray
+    gamma: Gammas
     _, gamma = _x_to_gamma(x[num_RL:], tau_fine, tau, epsilon, rbf_type)
     min_gamma: float = abs(min(gamma))
     max_gamma: float = abs(max(gamma))
     score: float = 1.0 - ((max_gamma - min_gamma) / max(min_gamma, max_gamma))
     if score > maximum_symmetry:
         return None
-    Z_fit: ndarray = array(
-        list(map(lambda _: complex(_[0], _[1]), zip(A_re @ x, A_im @ x)))
+    Z_fit: ComplexImpedances = array(
+        list(map(lambda _: complex(_[0], _[1]), zip(A_re @ x, A_im @ x))),
+        dtype=ComplexImpedance,
     )
     return (
         lambda_value,
@@ -1185,117 +1411,241 @@ def _lambda_process(
     )
 
 
-def _calculate_drt_tr_rbf(
+def _suggest_lambda(
+    lambda_values: NDArray[float64],
+    solution_norms: NDArray[float64],
+) -> float:
+    a: NDArray[float64] = zeros(lambda_values.size - 1, dtype=float64)
+    for i in range(0, lambda_values.size - 1):
+        a[i] = solution_norms[i] - solution_norms[i + 1]
+    b: NDArray[float64] = zeros(a.size - 1, dtype=float64)
+    for i in range(0, b.size - 1):
+        b[i] = a[i] - a[i + 1]
+    c: float
+    for i, c in reversed(list(enumerate(b))):
+        if c < 0.0:
+            return lambda_values[(i + 1) if i < lambda_values.size - 2 else i]
+    return lambda_values[-1]
+
+
+def _attempt_importing_solver():
+    try:
+        import cvxpy
+    except ImportError:
+        try:
+            import kvxopt
+        except ImportError:
+            import cvxopt
+
+
+def calculate_drt_tr_rbf(
     data: DataSet,
     mode: str = "complex",
-    lambda_value: float = 1e-3,
+    lambda_value: float = -1.0,
     rbf_type: str = "gaussian",
     derivative_order: int = 1,
     rbf_shape: str = "fwhm",
     shape_coeff: float = 0.5,
     inductance: bool = False,
     credible_intervals: bool = False,
-    num_samples: int = 2000,
+    num_samples: int = 10000,
     maximum_symmetry: float = 0.3,
-    num_procs: int = -1,
-) -> DRTResult:
-    assert (
-        IMPORTED_CONVEX_OPTIMIZER is True
-    ), "Failed to import any convex optimizers! At least one of the following packages is required: cvxopt, cvxpy, or kvxopt."
-    assert type(mode) is str and mode in MODES, f"Valid mode values: {', '.join(MODES)}"
+    timeout: int = 60,
+    num_procs: int = 0,
+    **kwargs,
+) -> TRRBFResult:
+    """
+    Calculates the distribution of relaxation times (DRT) for a given data set using Tikhonov regularization and radial basis (or piecewise linear) discretization (TR-RBF method).
+
+    References:
+
+    - Wan, T. H., Saccoccio, M., Chen, C., and Ciucci, F., 2015, Electrochim. Acta, 184, 483-499 (https://doi.org/10.1016/j.electacta.2015.09.097)
+    - Ciucci, F. and Chen, C., 2015, Electrochim. Acta, 167, 439-454 (https://doi.org/10.1016/j.electacta.2015.03.123)
+    - Effat, M. B. and Ciucci, F., 2017, Electrochim. Acta, 247, 1117-1129 (https://doi.org/10.1016/j.electacta.2017.07.050)
+
+    Parameters
+    ----------
+    data: DataSet
+        The data set to use in the calculations.
+
+    mode: str, optional
+        Which parts of the data are to be included in the calculations.
+        Valid values include:
+
+        - "complex"
+        - "real"
+        - "imaginary"
+
+    lambda_value: float, optional
+        The Tikhonov regularization parameter.
+        If the value is equal to or below zero, then an attempt will be made to automatically find a suitable value.
+
+    rbf_type: str, optional
+        The type of function to use for discretization.
+        Valid values include:
+
+        - "gaussian"
+        - "c0-matern"
+        - "c2-matern"
+        - "c4-matern"
+        - "c6-matern"
+        - "inverse-quadratic"
+        - "inverse-quadric"
+        - "cauchy"
+
+    derivative_order: int, optional
+        The order of the derivative used during discretization.
+
+    rbf_shape: str, optional
+        The shape control of the radial basis functions.
+        Valid values include:
+
+        - "fwhm": full width half maximum
+        - "factor": `shape_coeff` is used directly
+
+    shape_coeff: float, optional
+        The full width at half maximum (FWHM) coefficient affecting the chosen shape type.
+
+    inductance: bool, optional
+        If true, then an inductive element is included in the calculations.
+
+    credible_intervals: bool, optional
+        If true, then the credible intervals are also calculated for the DRT results according to Bayesian statistics.
+
+    num_samples: int, optional
+        The number of samples drawn when calculating the Bayesian credible intervals.
+        A greater number provides better accuracy but requires more time.
+
+    maximum_symmetry: float, optional
+        A maximum limit (between 0.0 and 1.0) for the relative vertical symmetry of the DRT.
+        A high degree of symmetry is common for results where the gamma value oscillates wildly (e.g., due to a small regularization parameter).
+        The TR-RBF method only uses this limit when the regularization parameter (lambda) is not provided.
+
+    timeout: int, optional
+        The number of seconds to wait for the calculation of credible intervals to complete.
+
+    num_procs: int, optional
+        The maximum number of parallel processes to use.
+        A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
+        Additionally, a negative value can be used to reduce the number of processes by that much (e.g., to leave one core for a GUI thread).
+
+    Returns
+    -------
+    TRRBFResult
+    """
+    from scipy.linalg import solve as solve_linalg
+
+    global _SOLVER_IMPORTED
+    if _SOLVER_IMPORTED is False:
+        try:
+            _attempt_importing_solver()
+        except ImportError:
+            raise DRTError("Failed to import any of the supported convex optimizers!")
+        else:
+            _SOLVER_IMPORTED = True
+
+    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
+    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
+    assert isinstance(mode, str), mode
+    if mode not in _MODES:
+        raise DRTError("Valid mode values: '" + "', '".join(_MODES))
     assert issubdtype(type(lambda_value), floating), lambda_value
-    assert (
-        type(rbf_type) is str and rbf_type in RBF_TYPES
-    ), f"Valid rbf_type values: {', '.join(RBF_TYPES)}"
-    assert (
-        issubdtype(type(derivative_order), integer) and 1 <= derivative_order <= 2
-    ), "Valid derivative_order values: 1, 2"
-    assert (
-        type(rbf_shape) is str and rbf_shape in RBF_SHAPES
-    ), f"Valid rbf_shape values: {', '.join(RBF_SHAPES)}"
-    assert (
-        issubdtype(
-            type(shape_coeff),
-            floating,
-        )
-        and shape_coeff > 0.0
-    ), shape_coeff
-    assert type(inductance) is bool, inductance
-    assert type(credible_intervals) is bool, credible_intervals
-    if credible_intervals is True:
-        assert num_samples >= 1000, f"{num_samples} is not enough samples!"
-    assert issubdtype(type(num_samples), integer) and num_samples > 0, num_samples
-    assert (
-        issubdtype(
-            type(maximum_symmetry),
-            floating,
-        )
-        and 0.0 <= maximum_symmetry <= 1.0
-    ), maximum_symmetry
+    assert type(rbf_type) is str, rbf_type
+    if rbf_type not in _RBF_TYPES:
+        raise DRTError("Valid rbf_type values: '" + "', '".join(_RBF_TYPES))
+    assert issubdtype(type(derivative_order), integer), derivative_order
+    if not (1 <= derivative_order <= 2):
+        raise DRTError("Valid derivative_order values: 1, 2")
+    assert type(rbf_shape) is str, rbf_shape
+    if rbf_shape not in _RBF_SHAPES:
+        raise DRTError("Valid rbf_shape values: '" + "', '".join(_RBF_SHAPES))
+    assert issubdtype(type(shape_coeff), floating), shape_coeff
+    if shape_coeff <= 0.0:
+        raise DRTError("The shape coefficient must be greater than 0.0!")
+    assert isinstance(inductance, bool), inductance
+    assert isinstance(credible_intervals, bool), credible_intervals
+    assert issubdtype(type(num_samples), integer), num_samples
+    if credible_intervals is True and num_samples < 1000:
+        raise DRTError(f"{num_samples} is not enough samples!")
+    assert issubdtype(type(maximum_symmetry), floating), maximum_symmetry
+    if not (0.0 <= maximum_symmetry <= 1.0):
+        raise DRTError("The maximum symmetry must be between 0.0 and 1.0 (inclusive)!")
+    assert issubdtype(type(timeout), integer), timeout
+    if credible_intervals is True and timeout < 1:
+        raise DRTError("The timeout must be greater than 0!")
     assert issubdtype(type(num_procs), integer), num_procs
     if num_procs < 1:
-        num_procs = cpu_count()
-    min_log_lambda: float = -15.0
+        num_procs = _get_default_num_procs() - abs(num_procs)
+    # TODO: Switch over to using the new cross-validation-based method(s)?
+    min_log_lambda: float = -7.0
     max_log_lambda: float = 0.0
-    lambda_values: ndarray = (
+    lambda_values: NDArray[float64] = (
         logspace(
             min_log_lambda,
             max_log_lambda,
-            num=round((max_log_lambda - min_log_lambda)) * 1 + 1,
+            num=round(max_log_lambda - min_log_lambda) + 1,
         )
         if lambda_value <= 0.0
         else array([lambda_value])
     )
     # TODO: Figure out if f and Z need to be altered depending on the value
     # of the 'inductance' argument!
-    f: ndarray = data.get_frequency()
-    Z: ndarray = data.get_impedance()
-    tau: ndarray = 1 / f
-    tau_fine: ndarray = logspace(
+    f: Frequencies = data.get_frequencies()
+    Z_exp: ComplexImpedances = data.get_impedances()
+    tau: TimeConstants = 1 / f
+    tau_fine: TimeConstants = logspace(
         log(tau.min()) - 0.5, log(tau.max()) + 0.5, 10 * f.shape[0]
     )
     num_freqs: int = f.size
     epsilon: float = _compute_epsilon(f, rbf_shape, shape_coeff, rbf_type)
-    progress_message: str = "Preparing matrices"
-    progress.update_every_N_percent(0, total=3, message=progress_message)
-    A_re: ndarray
-    A_im: ndarray
-    i: int
-    with Pool(2 if num_procs > 1 else 1) as pool:
-        for i, res in enumerate(
-            pool.imap(
-                _assemble_A_matrix,
-                [
-                    (
-                        f,
-                        tau,
-                        epsilon,
-                        True,
-                        rbf_type,
-                    ),
-                    (
-                        f,
-                        tau,
-                        epsilon,
-                        False,
-                        rbf_type,
-                    ),
-                ],
-            )
-        ):
-            progress.update_every_N_percent(i + 1, total=3, message=progress_message)
-            if i == 0:
-                A_re = res
-            else:
-                A_im = res
-    M: ndarray = _assemble_M_matrix(tau, epsilon, derivative_order, rbf_type)
-    progress.update_every_N_percent(1, message=progress_message)
-    with Pool(num_procs) as pool:
+    num_steps: int = 0
+    num_steps += 3  # A_re, A_im, and M matrices
+    num_steps += len(lambda_values)
+    if credible_intervals is True:
+        num_steps += timeout
+    prog: Progress
+    with Progress("Preparing matrices", total=num_steps + 1) as prog:
+        A_re: NDArray[float64]
+        A_im: NDArray[float64]
+        i: int
+        args = [
+            (
+                f,
+                tau,
+                epsilon,
+                True,
+                rbf_type,
+            ),
+            (
+                f,
+                tau,
+                epsilon,
+                False,
+                rbf_type,
+            ),
+        ]
+        if num_procs > 1:
+            with Pool(2) as pool:
+                for i, res in enumerate(pool.imap(_assemble_A_matrix, args)):
+                    if i == 0:
+                        A_re = res
+                    else:
+                        A_im = res
+                    prog.increment()
+        else:
+            A_re = _assemble_A_matrix(args[0])
+            prog.increment()
+            A_im = _assemble_A_matrix(args[1])
+            prog.increment()
+        M: NDArray[float64] = _assemble_M_matrix(
+            tau, epsilon, derivative_order, rbf_type
+        )
+        prog.increment()
         args = (
             (
                 A_re,
                 A_im,
-                Z,
+                Z_exp,
                 M,
                 lambda_value,
                 f,
@@ -1309,66 +1659,72 @@ def _calculate_drt_tr_rbf(
             )
             for lambda_value in lambda_values
         )
+        prog.set_message("Calculating DRT")
         results: List[
             Tuple[
                 float,
                 float,
-                ndarray,
-                ndarray,
-                ndarray,
-                ndarray,
-                ndarray,
-                ndarray,
-                ndarray,
+                NDArray[float64],
+                ComplexImpedances,
+                NDArray[float64],
+                NDArray[float64],
+                NDArray[float64],
+                NDArray[float64],
+                NDArray[float64],
                 int,
             ]
         ] = []
-        progress_message = "Calculating DRT"
-        progress.update_every_N_percent(0, message=progress_message)
-        for i, res in enumerate(pool.imap_unordered(_lambda_process, args)):
-            progress.update_every_N_percent(
-                i + 1,
-                total=len(lambda_values),
-                message=progress_message,
-            )
-            if res is not None:
-                results.append(res)
+        if len(lambda_values) > 1 and num_procs > 1:
+            with Pool(num_procs) as pool:
+                for res in pool.imap_unordered(_lambda_process, args):
+                    if res is not None:
+                        results.append(res)
+                    prog.increment()
+        else:
+            for res in map(_lambda_process, args):
+                if res is not None:
+                    results.append(res)
+                prog.increment()
     if len(results) == 0:
         raise DRTError("Failed to perform calculations! Try tweaking the settings.")
     if len(results) > 1:
         results.sort(key=lambda _: _[0])
         lambda_value = _suggest_lambda(
-            array(list(map(lambda _: _[0], results))),
-            array(list(map(lambda _: _[1], results))),
+            array(list(map(lambda _: _[0], results)), dtype=float64),
+            array(list(map(lambda _: _[1], results)), dtype=float64),
         )
         results = list(filter(lambda _: _[0] == lambda_value, results))
     lambda_value, _, x, Z_fit, A_re, A_im, M, H, c, num_RL = results[0]
     sigma_re_im: float
     if mode == "complex":
-        sigma_re_im = std(concatenate([Z_fit.real - Z.real, Z_fit.imag - Z.imag]))
+        sigma_re_im = std(
+            concatenate([Z_fit.real - Z_exp.real, Z_fit.imag - Z_exp.imag])
+        )
     elif mode == "real":
-        sigma_re_im = std(Z_fit.real - Z.real)
+        sigma_re_im = std(Z_fit.real - Z_exp.real)
     elif mode == "imaginary":
-        sigma_re_im = std(Z_fit.imag - Z.imag)
-    inv_V: ndarray = 1 / sigma_re_im**2 * eye(num_freqs)
-    Sigma_inv: ndarray
-    mu_numerator: ndarray
+        sigma_re_im = std(Z_fit.imag - Z_exp.imag)
+    inv_V: NDArray[float64] = 1 / sigma_re_im**2 * eye(num_freqs)
+    Sigma_inv: NDArray[float64]
+    mu_numerator: NDArray[float64]
     if mode == "complex":
         Sigma_inv = (
             (A_re.T @ inv_V @ A_re)
             + (A_im.T @ inv_V @ A_im)
             + (lambda_value / sigma_re_im**2) * M
         )
-        mu_numerator = A_re.T @ inv_V @ Z.real + A_im.T @ inv_V @ Z.imag
+        mu_numerator = A_re.T @ inv_V @ Z_exp.real + A_im.T @ inv_V @ Z_exp.imag
     elif mode == "real":
         Sigma_inv = (A_re.T @ inv_V @ A_re) + (lambda_value / sigma_re_im**2) * M
-        mu_numerator = A_re.T @ inv_V @ Z.real
+        mu_numerator = A_re.T @ inv_V @ Z_exp.real
     elif mode == "imaginary":
         Sigma_inv = (A_im.T @ inv_V @ A_im) + (lambda_value / sigma_re_im**2) * M
-        mu_numerator = A_im.T @ inv_V @ Z.imag
+        mu_numerator = A_im.T @ inv_V @ Z_exp.imag
     Sigma_inv = (Sigma_inv + Sigma_inv.T) / 2
-    L_Sigma_inv: ndarray = cholesky(Sigma_inv)
-    mu: ndarray = solve_linalg(L_Sigma_inv.T, solve_linalg(L_Sigma_inv, mu_numerator))
+    L_Sigma_inv: NDArray[float64] = cholesky(Sigma_inv)
+    mu: NDArray[float64] = solve_linalg(
+        L_Sigma_inv.T, solve_linalg(L_Sigma_inv, mu_numerator)
+    )
     # TODO: Why were L and R defined only to not be used?
     L: float
     R: float
@@ -1382,36 +1738,55 @@ def _calculate_drt_tr_rbf(
     elif num_RL == 2:
         L, R = x[0:2]
     x = x[num_RL:]
-    return DRTResult(
-        "TR-RBF",
-        *_x_to_gamma(x, tau_fine, tau, epsilon, rbf_type),
-        f,
-        Z_fit,
-        *_calculate_residuals(Z, Z_fit),
-        # "tr-rbf" method with credible_intervals
-        *(
-            _calculate_credible_intervals(
-                num_RL,
-                num_samples,
-                mu,
-                Sigma_inv,
-                x,
-                tau_fine,
-                tau,
-                epsilon,
-                rbf_type,
+    time_constants: TimeConstants
+    time_constants, gamma = _x_to_gamma(x, tau_fine, tau, epsilon, rbf_type)
+    if credible_intervals is True:
+        prog.set_message("Calculating credible intervals")
+        args = (
+            num_RL,
+            num_samples,
+            mu,
+            Sigma_inv,
+            x,
+            tau_fine,
+            tau,
+            epsilon,
+            rbf_type,
+        )
+        pool = Pool(1)
+        async_result = pool.map_async(_calculate_credible_intervals, (args,))
+        while timeout > 0:
+            if async_result.ready():
+                prog.increment(step=timeout)
+                break
+            sleep(1.0)
+            prog.increment()
+            timeout -= 1
+        try:
+            (mean_gamma, lower_gamma, upper_gamma,) = async_result.get(
+                timeout=2
+            )[0]
+        except MPTimeoutError:
+            pool.close()
+            raise DRTError(
+                "Timed out while calculating credible intervals! Adjust the timeout limit and try again."
             )
-            if credible_intervals is True
-            else (
-                array([]),  # Mean
-                array([]),  # Lower bound
-                array([]),  # Upper bound
-            )
-        ),
-        # "bht" method
-        array([]),  # Imaginary gamma
-        {},
-        # Stats
-        _calculate_chisqr(Z, Z_fit),
-        lambda_value,
+        pool.close()
+    else:
+        mean_gamma, lower_gamma, upper_gamma = (
+            array([]),  # Mean
+            array([]),  # Lower bound
+            array([]),  # Upper bound
+        )
+    return TRRBFResult(
+        time_constants=time_constants,
+        gammas=gamma,
+        frequencies=f,
+        impedances=Z_fit,
+        residuals=_calculate_residuals(Z_exp, Z_fit),
+        mean_gammas=mean_gamma,
+        lower_bounds=lower_gamma,
+        upper_bounds=upper_gamma,
+        pseudo_chisqr=_calculate_pseudo_chisqr(Z_exp, Z_fit),
+        lambda_value=lambda_value,
     )

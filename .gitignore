@@ -131,3 +131,9 @@ dmypy.json
 docs/API*.md
 docs/API*.pdf
 docs/documentation
+src/pyimpspec/CHANGELOG.md
+src/pyimpspec/CONTRIBUTORS
+src/pyimpspec/COPYRIGHT
+src/pyimpspec/LICENSE
+src/pyimpspec/LICENSES/*
+src/pyimpspec/README.md
