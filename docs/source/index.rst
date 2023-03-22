@@ -29,23 +29,31 @@ Welcome to pyimpspec's documentation!
       :alt: PyPI
       :target: https://pypi.org/project/pyimpspec/
 
-
 Pyimpspec is a Python package for processing, analyzing, and visualizing impedance spectra.
+
+.. figure:: https://raw.githubusercontent.com/wiki/vyrjana/pyimpspec/images/kramers-kronig.png
+   :alt: Kramers-Kronig test results
+
+
 The primary interface for using pyimpspec is the application programming interface (API).
 
 .. doctest::
 
    >>> import pyimpspec
 
+
 A command-line interface (CLI) is also included to provide a way to, e.g., quickly plot some experimental data via a terminal.
 
 .. code:: bash
 
    # The CLI should be accessible in the terminal in the following ways
-   pyimpspec --version
-   python -m pyimpspec --version
+   pyimpspec
+   python -m pyimpspec
 
 
+If you would prefer to use a graphical user interface (GUI), then check out `DearEIS <https://vyrjana.github.io/DearEIS>`_.
+
+The source code for pyimpspec can be found `here <https://github.com/vyrjana/pyimpspec>`_.
 The changelog can be found `here <https://github.com/vyrjana/pyimpspec/blob/main/CHANGELOG.md>`_.
 If you encounter bugs or wish to request a feature, then please open an `issue on GitHub <https://github.com/vyrjana/pyimpspec/issues>`_.
 If you wish to contribute to the project, then please read the `readme <https://github.com/vyrjana/pyimpspec/blob/main/README.md>`_ before submitting a `pull request via GitHub <https://github.com/vyrjana/pyimpspec/pulls>`_.

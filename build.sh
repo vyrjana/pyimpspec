@@ -82,6 +82,13 @@ validate_wheel
 # Update documentation
 # - The contents of './docs/build/html' should be committed to the gh-pages branch
 # - ./docs/build/latex/latex/pyimpspec.pdf should be uploaded as an attachment to a release
+# Update documentation
+# - The contents of ./dist/html should be committed to the gh-pages branch
+#   - Run the reset.sh script found in gh-pages
+#   - Copy the files from ./dist/html
+#   - Commit
+#   - Force push
+# - ./dist/pyimpspec-X-Y-Z.pdf should be uploaded as an attachment to a release
 echo
 echo "Generating documentation..."
 # Generate HTML, run tests, and finally generate PDF

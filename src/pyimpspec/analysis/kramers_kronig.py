@@ -39,6 +39,7 @@ from numpy import (
     floating,
     inf,
     integer,
+    isinf,
     issubdtype,
     log10 as log,
     min,
@@ -1448,8 +1449,12 @@ def perform_exploratory_tests(
                 residuals=_calculate_residuals(Z_exp, Z_fit),
             )
         )
-    results.sort(
-        key=lambda _: _.calculate_score(mu_criterion),
-        reverse=True,
-    )
+    scores: List[float] = [_.calculate_score(mu_criterion) for _ in results]
+    if all(map(isinf, scores)):
+        results.sort(key=lambda _: abs(-6 - log(_.pseudo_chisqr)))
+    else:
+        results.sort(
+            key=lambda _: _.calculate_score(mu_criterion),
+            reverse=True,
+        )
     return results

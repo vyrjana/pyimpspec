@@ -1,3 +1,8 @@
+# 4.0.1 (2023/03/22)
+
+- Updated how `perform_exploratory_tests` handles cases where all mu values are greater than the mu-criterion.
+
+
 # 4.0.0 (2023/03/20)
 
 **THIS UPDATE CONTAINS SEVERAL CHANGES THAT ARE NOT BACKWARDS COMPATIBLE WITH CODE WRITTEN USING VERSION 3.x!**
