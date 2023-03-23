@@ -34,6 +34,12 @@ Pyimpspec is a Python package for processing, analyzing, and visualizing impedan
 .. figure:: https://raw.githubusercontent.com/wiki/vyrjana/pyimpspec/images/kramers-kronig.png
    :alt: Kramers-Kronig test results
 
+.. only:: html
+
+   .. note::
+
+      PDF copies of the documentation are available in the `releases section <https://github.com/vyrjana/pyimpspec/releases>`_.
+
 
 The primary interface for using pyimpspec is the application programming interface (API).
 
@@ -51,7 +57,10 @@ A command-line interface (CLI) is also included to provide a way to, e.g., quick
    python -m pyimpspec
 
 
-If you would prefer to use a graphical user interface (GUI), then check out `DearEIS <https://vyrjana.github.io/DearEIS>`_.
+.. note::
+
+   If you would prefer to use a graphical user interface (GUI), then check out `DearEIS <https://vyrjana.github.io/DearEIS>`_.
+
 
 The source code for pyimpspec can be found `here <https://github.com/vyrjana/pyimpspec>`_.
 The changelog can be found `here <https://github.com/vyrjana/pyimpspec/blob/main/CHANGELOG.md>`_.
@@ -59,10 +68,6 @@ If you encounter bugs or wish to request a feature, then please open an `issue o
 If you wish to contribute to the project, then please read the `readme <https://github.com/vyrjana/pyimpspec/blob/main/README.md>`_ before submitting a `pull request via GitHub <https://github.com/vyrjana/pyimpspec/pulls>`_.
 
 Pyimpspec is licensed under GPLv3_ or later.
-
-.. only:: html
-
-   PDF copies of the documentation are available in the `releases section <https://github.com/vyrjana/pyimpspec/releases>`_.
 
 
 .. toctree::
