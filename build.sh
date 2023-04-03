@@ -102,9 +102,6 @@ if [ "$1" == "distros" ]; then
 fi
 
 # Update documentation
-# - The contents of './docs/build/html' should be committed to the gh-pages branch
-# - ./docs/build/latex/latex/pyimpspec.pdf should be uploaded as an attachment to a release
-# Update documentation
 # - The contents of ./dist/html should be committed to the gh-pages branch
 #   - Run the reset.sh script found in gh-pages
 #   - Copy the files from ./dist/html
