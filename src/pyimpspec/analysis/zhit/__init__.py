@@ -286,6 +286,8 @@ def perform_zhit(
     )
     if num_procs < 1:
         num_procs = _get_default_num_procs() - abs(num_procs)
+        if num_procs < 1:
+            num_procs = 1
     if num_points < 1:
         raise ZHITError("The number of points must be greater than 0!")
     if smoothing == "auto" or smoothing == "savgol":

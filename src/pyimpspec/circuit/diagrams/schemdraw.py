@@ -20,12 +20,13 @@
 from typing import (
     Dict,
     List,
-    Union,
+    Optional,
     Type,
+    Union,
 )
 from pyimpspec.circuit.base import (
-    Element,
     Connection,
+    Element,
 )
 from pyimpspec.circuit.series import Series
 from pyimpspec.circuit.parallel import Parallel
@@ -45,6 +46,7 @@ def to_drawing(
     right_terminal_label: str = "",
     hide_labels: bool = False,
     running: bool = False,
+    custom_labels: Optional[Dict[Element, str]] = None,
 ) -> "Drawing":  # noqa: F821
     """
     Get a |Drawing| object for drawing a circuit diagram using, e.g., the matplotlib_ backend.
@@ -66,6 +68,10 @@ def to_drawing(
     running: bool, optional
         Whether or not to use running counts as the lower indices of elements.
 
+    custom_labels: Optional[Dict[Element, str]], optional
+        A mapping of elements to their custom labels that are used instead of the automatically generated labels.
+        The labels can make use of LaTeX's math mode.
+
     Returns
     -------
     |Drawing|
@@ -78,6 +84,7 @@ def to_drawing(
     assert isinstance(right_terminal_label, str), right_terminal_label
     assert isinstance(hide_labels, bool), hide_labels
     assert isinstance(running, bool), running
+    assert isinstance(custom_labels, dict) or custom_labels is None, custom_labels
     identifiers: Dict[Element, int] = self.generate_element_identifiers(running=running)
     lookup: Dict[Type[Element], Type[elm.Element]] = {
         Resistor: elm.ResistorIEEE,
@@ -91,9 +98,12 @@ def to_drawing(
     def draw_element(elem: Element, drawing: Drawing):
         element: elm.Element = lookup.get(type(elem), elm.ResistorIEC)()
         if not hide_labels:
-            symbol: str = elem.get_symbol()
-            label: str = elem.get_label() or str(identifiers[elem])
-            element.label(f"${symbol}_" + r"{\rm " + f"{label}}}$")
+            if custom_labels is not None and elem in custom_labels:
+                element.label(custom_labels[elem])
+            else:
+                symbol: str = elem.get_symbol()
+                label: str = elem.get_label() or str(identifiers[elem])
+                element.label(f"${symbol}_" + r"{\rm " + f"{label}}}$")
         drawing.add(element.right())
 
     def get_width(

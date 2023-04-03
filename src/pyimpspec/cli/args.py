@@ -21,6 +21,15 @@ from argparse import (
     ArgumentParser,
     SUPPRESS,
 )
+from pyimpspec.analysis.drt import _METHODS as DRT_METHODS
+from pyimpspec.analysis.drt.tr_rbf import (
+    _RBF_TYPES as RBF_TYPES,
+    _RBF_SHAPES as RBF_SHAPES,
+)
+from pyimpspec.analysis.fitting import (
+    _METHODS as FIT_METHODS,
+    _WEIGHT_FUNCTIONS as FIT_WEIGHTS,
+)
 
 
 def add_input_args(parser: ArgumentParser):
@@ -348,7 +357,9 @@ def drt_args(parser: ArgumentParser):
         metavar="STRING",
         type=str,
         default="tr-nnls",
-        help="The DRT method to use for the calculations. Valid values: 'bht', 'm(RQ)fit', 'tr-nnls', 'tr-rbf'. Defaults to 'tr-nnls'.",
+        help="The DRT method to use for the calculations. Valid values: "
+        + ", ".join(sorted(map(lambda _: f"'{_}'", DRT_METHODS)))
+        + ". Defaults to 'tr-nnls'.",
     )
     parser.add_argument(
         "--mode",
@@ -375,7 +386,9 @@ def drt_args(parser: ArgumentParser):
         metavar="STRING",
         type=str,
         default="gaussian",
-        help="The radial basis function type to use (TR-RBF and BHT methods only). Valid values: 'c0-matern', 'c2-matern', 'c4-matern', 'c6-matern', 'cauchy', 'gaussian', 'inverse-quadratic', 'inverse-quadric', 'piecewise-linear'. Defaults to 'gaussian'.",
+        help="The radial basis function type to use (TR-RBF and BHT methods only). Valid values: "
+        + ", ".join(sorted(map(lambda _: f"'{_}'", RBF_TYPES)))
+        + ". Defaults to 'gaussian'.",
     )
     parser.add_argument(
         "--derivative-order",
@@ -393,7 +406,7 @@ def drt_args(parser: ArgumentParser):
         metavar="STRING",
         type=str,
         default="fwhm",
-        help="The shape control of the radial basis functions. Valid values: 'fwhm', 'factor'. Defaults to 'fwhm'.",
+        help="The shape control of the radial basis functions. Valid values: " + ", ".join(sorted(map(lambda _: f"'{_}'", RBF_SHAPES))) + ". Defaults to 'fwhm'.",
     )
     parser.add_argument(
         "--shape-coeff",
@@ -527,7 +540,9 @@ def fit_args(parser: ArgumentParser):
         dest="method",
         type=str,
         default="auto",
-        help="The iterative method to use. If set to 'auto', then all supported methods are attempted. Valid values: 'leastsq', 'least_squares', 'nelder', 'lbfgsb', 'powell', 'cg', 'bfgs', 'tnc', 'slsqp'. Defaults to 'auto'.",
+        help="The iterative method to use. If set to 'auto', then all supported methods are attempted. Valid values: 'auto', "
+        + ", ".join(sorted(map(lambda _: f"'{_}'", FIT_METHODS)))
+        + ". Defaults to 'auto'.",
     )
     parser.add_argument(
         "--weight",
@@ -536,7 +551,9 @@ def fit_args(parser: ArgumentParser):
         dest="weight",
         type=str,
         default="auto",
-        help="The weight to use. If set to 'auto', then all supported weights are attempted. Valid values: 'auto', 'unity', 'modulus', 'proportional', 'boukamp'. Defaults to 'auto'.",
+        help="The weight to use. If set to 'auto', then all supported weights are attempted. Valid values: 'auto', "
+        + ", ".join(sorted(map(lambda _: f"'{_}'", FIT_WEIGHTS)))
+        + ". Defaults to 'auto'.",
     )
     parser.add_argument(
         "--max-nfev",
@@ -660,7 +677,7 @@ def test_args(parser: ArgumentParser):
         metavar="STRING",
         type=str,
         default="leastsq",
-        help="The iterative method that is used with the CNLS test. Valid values: 'leastsq', 'least_squares', 'nelder', 'lbfgsb', 'powell', 'cg', 'bfgs', 'tnc', 'slsqp'. Defaults to 'leastsq'.",
+        help="The iterative method that is used with the CNLS test. Valid values: " + ", ".join(sorted(map(lambda _: f"'{_}'", FIT_METHODS))) + ". Defaults to 'leastsq'.",
     )
     parser.add_argument(
         "--max-nfev",

@@ -2,6 +2,7 @@
 .. |lambda| replace:: :math:`\lambda`
 .. |chi-squared| replace:: :math:`\chi^2`
 .. |pseudo chi-squared| replace:: :math:`\chi^2_{ps.}`
+.. |ohm| replace:: :math:`\Omega`
 
 .. classes
    || replace:: :class:`~pyimpspec.`

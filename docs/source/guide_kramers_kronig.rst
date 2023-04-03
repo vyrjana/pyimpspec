@@ -13,16 +13,34 @@ The capacitor and inductor connected in series are necessary for impedance spect
 .. _`Boukamp (1995)`: https://doi.org/10.1149/1.2044210
 
 .. plot::
+   :alt: The type of circuit that is used to check for Kramers-Kronig compliance: a resistance, capacitance, and inductor connected in series to an arbitrary number of parallel RC elements that are also connected in series.
 
    from pyimpspec import parse_cdc
-   circuit = parse_cdc("R(RC)CL")
-   circuit.to_drawing(hide_labels=True).draw()
+   circuit = parse_cdc("R(RC)(RC)CL")
+   elements = circuit.get_elements()
+   custom_labels = {
+       elements[0]: r"$R_{\rm ser}$",
+       elements[1]: r"$R_i$",
+       elements[2]: r"$C_i$",
+       elements[3]: r"$R_n$",
+       elements[4]: r"$C_n$",
+       elements[5]: r"$C_{\rm ser}$",
+       elements[6]: r"$L_{\rm ser}$",
+   }
+   circuit.to_drawing(custom_labels=custom_labels).draw()
+
 
 A few things to keep in mind about this approach to KK testing:
 
 - The fitted circuit has no physical significance.
 - An appropriate number of parallel RC elements (i.e., the number of time constants) should be chosen to avoid over- and underfitting (i.e., fitting to the noise or not fitting at all, respectively).
 - Each parallel RC element is replaced with an element where the time constant, :math:`\tau=RC`, is fixed but the resistance, :math:`R`, is still variable (i.e., from :math:`Z=\frac{R}{1+j 2 \pi f R C}` to :math:`Z=\frac{R}{1+j 2 \pi f \tau}`).
+
+
+.. note::
+
+   Impedance data that include negative differential resistances cannot be validated directly using the included implementations of the linear Kramers-Kronig tests.
+   Adding a parallel resistance of suitable magnitude to the impedance data should produce impedance data that can be validated.
 
 There are three approaches available for selecting the number of parallel RC elements in pyimpspec:
 

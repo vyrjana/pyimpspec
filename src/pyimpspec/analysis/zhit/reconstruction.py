@@ -19,6 +19,7 @@
 
 from multiprocessing import Pool
 from typing import (
+    Any,
     Callable,
     Dict,
     List,
@@ -46,8 +47,8 @@ def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
     )
 
     ln_omega: NDArray[float64]
-    interpolator: Callable
-    derivator: Callable
+    interpolator: Any
+    derivator: Any
     smoothing: str
     interpolation: str
     (ln_omega, interpolator, derivator, smoothing, interpolation) = args
@@ -93,7 +94,7 @@ def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
 
 
 def _reconstruct_modulus_data(
-    interpolation_options: Dict[str, Dict[str, Callable]],
+    interpolation_options: Dict[str, Dict[str, Any]],
     simulated_phase: Dict[str, Dict[str, Phases]],
     ln_omega: NDArray[float64],
     num_procs: int,
@@ -101,11 +102,11 @@ def _reconstruct_modulus_data(
 ) -> List[Tuple[NDArray[float64], Phases, str, str]]:
     prog.set_message("Reconstructing modulus data")
     reconstructions: List[Tuple[NDArray[float64], Phases, str, str]] = []
-    args: List[Tuple[NDArray[float64], Callable, Callable, str, str]] = []
+    args: List[Tuple[NDArray[float64], Any, Any, str, str]] = []
     interpolation: str
     for interpolation in interpolation_options:
         smoothing: str
-        interpolator: Callable
+        interpolator: Any
         for smoothing, interpolator in interpolation_options[interpolation].items():
             args.append(
                 (

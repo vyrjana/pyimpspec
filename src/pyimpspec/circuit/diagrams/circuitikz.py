@@ -20,13 +20,14 @@
 from typing import (
     Dict,
     List,
-    Union,
+    Optional,
     Tuple,
     Type,
+    Union,
 )
 from pyimpspec.circuit.base import (
-    Element,
     Connection,
+    Element,
 )
 from pyimpspec.circuit.series import Series
 from pyimpspec.circuit.parallel import Parallel
@@ -47,6 +48,7 @@ def to_circuitikz(
     right_terminal_label: str = "",
     hide_labels: bool = False,
     running: bool = False,
+    custom_labels: Optional[Dict[Element, str]] = None,
 ) -> str:
     """
     Get the LaTeX source needed to draw a circuit diagram for this circuit using the CircuiTikZ_ package.
@@ -71,6 +73,10 @@ def to_circuitikz(
     running: bool, optional
         Whether or not to use running counts as the lower indices of elements.
 
+    custom_labels: Optional[Dict[Element, str]], optional
+        A mapping of elements to their custom labels that are used instead of the automatically generated labels.
+        The labels can make use of LaTeX's math mode.
+
     Returns
     -------
     str
@@ -84,6 +90,7 @@ def to_circuitikz(
         left_terminal_label = ""
         right_terminal_label = ""
     assert isinstance(running, bool), running
+    assert isinstance(custom_labels, dict) or custom_labels is None, custom_labels
     identifiers: Dict[Element, int] = self.generate_element_identifiers(running=running)
     # Phase 1 - figure out the dimensions of the connections and the positions of elements.
     short_counter: int = 0
@@ -299,11 +306,17 @@ def to_circuitikz(
                 symbol: str
                 label: str = ""
                 if not hide_labels:
-                    symbol = element_connection.get_symbol()
-                    label = element_connection.get_label() or str(
-                        identifiers[element_connection]
-                    )
-                    label = f"{symbol}_{{\\rm {label}}}"
+                    if (
+                        custom_labels is not None
+                        and element_connection in custom_labels
+                    ):
+                        label = custom_labels[element_connection]
+                    else:
+                        symbol = element_connection.get_symbol()
+                        label = element_connection.get_label() or str(
+                            identifiers[element_connection]
+                        )
+                        label = f"{symbol}_{{\\rm {label}}}"
                 symbol = symbols.get(type(element_connection), "generic")
                 lines.append(
                     replace_variables(

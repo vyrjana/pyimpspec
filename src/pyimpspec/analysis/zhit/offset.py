@@ -89,7 +89,7 @@ def _calculate_modulus_offset(
     return fit.params.valuesdict()["offset"]
 
 
-def _adjust_offset(args) -> Tuple[float, NDArray[float64], str, str, str]:
+def _adjust_offset(args) -> Tuple[float, ComplexImpedances, str, str, str]:
     (
         ln_modulus,
         phase,

@@ -22,11 +22,13 @@ from contextlib import (
     redirect_stdout,
 )
 from io import StringIO
+from re import finditer
 from unittest import TestCase
 from typing import (
     Callable,
     Dict,
     List,
+    Match,
     Tuple,
     Type,
     Union,
@@ -784,3 +786,109 @@ class TestCircuits(TestCase):
                 colored_axes=True,
             ),
         )
+
+
+class TestDiagrams(TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.circuit: Circuit = parse_cdc("R(RC)")
+        elements = cls.circuit.get_elements()
+        cls.custom_labels: Dict[Element, str] = {
+            elements[0]: "Foo",
+            elements[1]: "Bar",
+            elements[2]: "Baz",
+        }
+
+    def schemdraw(self, **kwargs) -> str:
+        svg: str = self.circuit.to_drawing(**kwargs).get_imagedata(fmt="svg").decode()
+        self.assertIsInstance(svg, str)
+        self.assertNotEqual(svg, "")
+        return svg
+
+    def circuitikz(self, **kwargs) -> str:
+        tex: str = self.circuit.to_circuitikz(**kwargs)
+        self.assertIsInstance(tex, str)
+        self.assertNotEqual(tex, "")
+        return tex
+
+    def test_default(self):
+        svg: str = self.schemdraw()
+        tex: str = self.circuitikz()
+        self.assertRegex(svg, r"<!-- \$R_{\\rm 1}\$ -->")
+        self.assertRegex(svg, r"<!-- \$R_{\\rm 2}\$ -->")
+        self.assertRegex(svg, r"<!-- \$C_{\\rm 1}\$ -->")
+        self.assertRegex(tex, r"to\[R=\$R_{\\rm 1}\$\]")
+        self.assertRegex(tex, r"to\[R=\$R_{\\rm 2}\$\]")
+        self.assertRegex(tex, r"to\[capacitor=\$C_{\\rm 1}\$\]")
+
+    def test_custom_labels(self):
+        kwargs = {"custom_labels": self.custom_labels}
+        svg: str = self.schemdraw(**kwargs)
+        tex: str = self.circuitikz(**kwargs)
+        self.assertRegex(svg, r"<!-- Foo -->")
+        self.assertRegex(svg, r"<!-- Bar -->")
+        self.assertRegex(svg, r"<!-- Baz -->")
+        self.assertRegex(tex, r"to\[R=\$Foo\$\]")
+        self.assertRegex(tex, r"to\[R=\$Bar\$\]")
+        self.assertRegex(tex, r"to\[capacitor=\$Baz\$\]")
+
+    def test_hide_labels(self):
+        kwargs = {"hide_labels": True}
+        svg: str = self.schemdraw(**kwargs)
+        tex: str = self.circuitikz(**kwargs)
+        self.assertNotRegex(svg, r"<!-- \$R_{\\rm 1}\$ -->")
+        self.assertNotRegex(svg, r"<!-- \$R_{\\rm 2}\$ -->")
+        self.assertNotRegex(svg, r"<!-- \$C_{\\rm 1}\$ -->")
+        self.assertNotRegex(tex, r"to\[R=\$R_{\\rm 1}\$\]")
+        self.assertNotRegex(tex, r"to\[R=\$R_{\\rm 2}\$\]")
+        self.assertNotRegex(tex, r"to\[capacitor=\$C_{\\rm 1}\$\]")
+
+    def test_left_terminal_label(self):
+        kwargs = {"left_terminal_label": "Foo"}
+        svg: str = self.schemdraw(**kwargs)
+        tex: str = self.circuitikz(**kwargs)
+        self.assertRegex(svg, r"<!-- Foo -->")
+        self.assertRegex(tex, r"node\[above\]{Foo} to\[short, o-\]")
+
+    def test_node_height(self):
+        def parse_svg_coordinates(svg: str) -> List[Tuple[float, float]]:
+            coordinates: List[Tuple[float, float]] = []
+            match: Match
+            for match in finditer(r"[LM] (?P<x>\d+.\d+) (?P<y>\d+.\d+)", svg):
+                coordinates.append((float(match.group("x")), float(match.group("y"))))
+            return coordinates
+
+        kwargs = {"node_height": 1.28}
+        default: List[Tuple[float, float]] = parse_svg_coordinates(self.schemdraw())
+        altered: List[Tuple[float, float]] = parse_svg_coordinates(
+            self.schemdraw(**kwargs)
+        )
+        self.assertEqual(len(default), len(altered))
+        for old, new in zip(default, altered):
+            self.assertAlmostEqual(old[0], new[0])
+            self.assertGreaterEqual(old[1], new[1])
+        tex: str = self.circuitikz(**kwargs)
+        self.assertRegex(tex, r"\\draw \(3.0,-1.28\)")
+
+    def test_node_width(self):
+        kwargs = {"node_width": 2.56}
+        tex: str = self.circuitikz(**kwargs)
+        self.assertRegex(tex, r"\\draw \(2.56,-0.0\)")
+
+    def test_right_terminal_label(self):
+        kwargs = {"right_terminal_label": "Bar"}
+        svg: str = self.schemdraw(**kwargs)
+        tex: str = self.circuitikz(**kwargs)
+        self.assertRegex(svg, r"<!-- Bar -->")
+        self.assertRegex(tex, r"\) node\[above\]{Bar};")
+
+    def test_running(self):
+        kwargs = {"running": True}
+        svg: str = self.schemdraw(**kwargs)
+        tex: str = self.circuitikz(**kwargs)
+        self.assertRegex(svg, r"<!-- \$R_{\\rm 0}\$ -->")
+        self.assertRegex(svg, r"<!-- \$R_{\\rm 1}\$ -->")
+        self.assertRegex(svg, r"<!-- \$C_{\\rm 2}\$ -->")
+        self.assertRegex(tex, r"to\[R=\$R_{\\rm 0}\$\]")
+        self.assertRegex(tex, r"to\[R=\$R_{\\rm 1}\$\]")
+        self.assertRegex(tex, r"to\[capacitor=\$C_{\\rm 2}\$\]")

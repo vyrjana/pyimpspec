@@ -1028,6 +1028,7 @@ def calculate_drt_bht(
         - "inverse-quadratic"
         - "inverse-quadric"
         - "cauchy"
+        - "piecewise-linear"
 
     derivative_order: int, optional
         The order of the derivative used during discretization.
@@ -1096,6 +1097,8 @@ def calculate_drt_bht(
     assert issubdtype(type(num_procs), integer), num_procs
     if num_procs < 1:
         num_procs = _get_default_num_procs() - abs(num_procs)
+        if num_procs < 1:
+            num_procs = 1
     prog: Progress
     with Progress("Preparing matrices", total=5) as prog:
         f: Frequencies = data.get_frequencies()

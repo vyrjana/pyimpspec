@@ -1175,6 +1175,8 @@ def perform_test(
     )
     if num_procs < 1:
         num_procs = _get_default_num_procs() - abs(num_procs)
+        if num_procs < 1:
+            num_procs = 1
     f: Frequencies = data.get_frequencies()
     Z_exp: ComplexImpedances = data.get_impedances()
     weight: NDArray[float64] = _boukamp_weight(Z_exp)
@@ -1395,6 +1397,8 @@ def perform_exploratory_tests(
     results: List[TestResult] = []
     if num_procs < 1:
         num_procs = _get_default_num_procs() - abs(num_procs)
+        if num_procs < 1:
+            num_procs = 1
     f: Frequencies = data.get_frequencies()
     Z_exp: ComplexImpedances = data.get_impedances()
     if len(num_RCs) == 0:

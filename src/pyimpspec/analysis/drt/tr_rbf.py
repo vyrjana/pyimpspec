@@ -73,7 +73,10 @@ from numpy import (
     where,
     zeros,
 )
-from numpy.linalg import cholesky
+from numpy.linalg import (
+    cholesky,
+    norm,
+)
 from numpy.matlib import repmat
 from numpy.random import randn
 from numpy.typing import NDArray
@@ -96,6 +99,7 @@ from pyimpspec.typing import (
     TimeConstant,
     TimeConstants,
 )
+from .utility import _l_curve_corner_search
 
 _SOLVER_IMPORTED: bool = False
 
@@ -385,7 +389,7 @@ def _generate_truncated_multivariate_gaussians(
                             or array_abs(tt1 - pi) < near_zero
                         ):
                             t1[indj] = inf
-                mt: float = array_min(t1)
+                mt: float64 = array_min(t1)
                 m_ind = argmin(t1)
                 j = inds[m_ind]
             else:
@@ -1438,6 +1442,60 @@ def _attempt_importing_solver():
             import cvxopt
 
 
+def _l_curve_P(
+    lambda_value: float,
+    A_re: NDArray[float64],
+    A_im: NDArray[float64],
+    Z_exp: ComplexImpedances,
+    M: NDArray[float64],
+    f: Frequencies,
+    tau: TimeConstants,
+    tau_fine: TimeConstants,
+    epsilon: float,
+    mode: str,
+    rbf_type: str,
+    inductance: bool,
+    maximum_symmetry: float,
+) -> Tuple[float64, float64]:
+    result: Optional[
+        Tuple[
+            float,
+            float,
+            NDArray[float64],
+            ComplexImpedances,
+            NDArray[float64],
+            NDArray[float64],
+            NDArray[float64],
+            NDArray[float64],
+            NDArray[float64],
+            int,
+        ]
+    ] = _lambda_process(
+        (
+            A_re,
+            A_im,
+            Z_exp,
+            M,
+            lambda_value,
+            f,
+            tau,
+            tau_fine,
+            epsilon,
+            mode,
+            rbf_type,
+            inductance,
+            maximum_symmetry,
+        )
+    )
+    if result is None:
+        return (inf, inf)
+    assert result is not None
+    return (
+        log(norm(result[3] - Z_exp)**2),
+        log(result[1] ** 2),
+    )
+
+
 def calculate_drt_tr_rbf(
     data: DataSet,
     mode: str = "complex",
@@ -1478,7 +1536,9 @@ def calculate_drt_tr_rbf(
 
     lambda_value: float, optional
         The Tikhonov regularization parameter.
-        If the value is equal to or below zero, then an attempt will be made to automatically find a suitable value.
+        If the value is equal to or less than zero, then an attempt will be made to automatically find a suitable value.
+        If the value is between -1.5 and 0.0, then a custom approach is used.
+        If the value is less than -1.5, then the L-curve corner search algorithm (DOI:10.1088/2633-1357/abad0d) is used.
 
     rbf_type: str, optional
         The type of function to use for discretization.
@@ -1492,6 +1552,7 @@ def calculate_drt_tr_rbf(
         - "inverse-quadratic"
         - "inverse-quadric"
         - "cauchy"
+        - "piecewise-linear"
 
     derivative_order: int, optional
         The order of the derivative used during discretization.
@@ -1576,6 +1637,8 @@ def calculate_drt_tr_rbf(
     assert issubdtype(type(num_procs), integer), num_procs
     if num_procs < 1:
         num_procs = _get_default_num_procs() - abs(num_procs)
+        if num_procs < 1:
+            num_procs = 1
     # TODO: Switch over to using the new cross-validation-based method(s)?
     min_log_lambda: float = -7.0
     max_log_lambda: float = 0.0
@@ -1585,7 +1648,7 @@ def calculate_drt_tr_rbf(
             max_log_lambda,
             num=round(max_log_lambda - min_log_lambda) + 1,
         )
-        if lambda_value <= 0.0
+        if -1.5 <= lambda_value <= 0.0
         else array([lambda_value])
     )
     # TODO: Figure out if f and Z need to be altered depending on the value
@@ -1638,9 +1701,32 @@ def calculate_drt_tr_rbf(
             A_im = _assemble_A_matrix(args[1])
             prog.increment()
         M: NDArray[float64] = _assemble_M_matrix(
-            tau, epsilon, derivative_order, rbf_type
+            tau,
+            epsilon,
+            derivative_order,
+            rbf_type,
         )
         prog.increment()
+        if len(lambda_values) == 1 and lambda_values[0] < -1.5:
+            lambda_values[0] = _l_curve_corner_search(
+                lambda _: _l_curve_P(
+                    _,
+                    A_re,
+                    A_im,
+                    Z_exp,
+                    M,
+                    f,
+                    tau,
+                    tau_fine,
+                    epsilon,
+                    mode,
+                    rbf_type,
+                    inductance,
+                    maximum_symmetry,
+                ),
+                minimum=1e-10,
+                maximum=1,
+            )
         args = (
             (
                 A_re,

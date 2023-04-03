@@ -126,6 +126,17 @@ The contents of ``parameters`` and ``statistics`` in the example above would be 
 
 .. note::
 
+   It may not always be possible to estimate errors for fitted parameters.
+   Common causes include:
+
+   - A parameter's fitted value is close to the parameter's lower or upper limit.
+   - An inappropriate equivalent circuit has been chosen.
+   - The maximum number of function evaluations is set too low.
+   - The data contains no noise and the equivalent circuit is very good at reproducing the data.
+
+
+.. note::
+
    As was mentioned in :doc:`/guide_circuit`, circuit elements and their variables are by default represented in different ways in SymPy_ expressions compared to circuit drawings and in this case also tables of fitted parameters.
    Calling ``fit.to_parameters_dataframe`` with ``running=True`` can be done to have the same running count as in the SymPy expression of the fitted circuit.
 

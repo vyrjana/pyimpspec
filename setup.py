@@ -40,7 +40,7 @@ optional_dependencies = {
     "dev": dev_dependencies,
 }
 
-version = "4.0.1"
+version = "4.1.0"
 
 if __name__ == "__main__":
     with open("requirements.txt", "w") as fp:

@@ -109,9 +109,9 @@ For example, let's redefine the Randles circuit using the extended syntax to set
 
 The new circuit now has:
 
-* A 20 ohm resistor with a fixed value and the label "sol" (solution resistance).
+* A 20 |ohm| resistor with a fixed value and the label "sol" (solution resistance).
 * A 25 microfarad capacitor with no lower limit and a 1 millifarad upper limit, and the label "dl" (double-layer capacitance).
-* A 100 ohm resistor with a 50 ohm lower limit and 200 ohm upper limit, and the label "ct" (charge-transfer resistance).
+* A 100 |ohm| resistor with a 50 |ohm| lower limit and 200 |ohm| upper limit, and the label "ct" (charge-transfer resistance).
 * A Warburg impedance with an "admittance" of 2.357 millisiemens*seconds^(1/2), no lower limit, and an upper limit of 1.5 times the initial value, and the label "diff" (diffusion).
 
 Below are the updated SymPy expression and circuit diagram:

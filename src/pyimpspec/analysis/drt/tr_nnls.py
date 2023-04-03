@@ -46,6 +46,7 @@ from numpy import (
     sum as array_sum,
     zeros,
 )
+from numpy.linalg import norm
 from numpy.typing import NDArray
 from pyimpspec.data import DataSet
 from pyimpspec.exceptions import DRTError
@@ -63,6 +64,7 @@ from pyimpspec.typing import (
     Indices,
     TimeConstants,
 )
+from .utility import _l_curve_corner_search
 
 
 @dataclass(frozen=True)
@@ -299,15 +301,15 @@ def _reduce_points_by_radius(
     y: NDArray[float64],
     r: float,
 ) -> Tuple[NDArray[float64], NDArray[float64]]:
-    indices: Union[List[int], Indices] = [0]
+    raw_indices: List[int] = [0]
     i: int = 0
     while i < x.size - 1:
         i += 1
-        j = indices[-1]
+        j = raw_indices[-1]
         if ((x[i] - x[j]) ** 2 + (y[i] - y[j]) ** 2) ** (1 / 2) < r:
             continue
-        indices.append(i)
-    indices = array(indices, dtype=int64)
+        raw_indices.append(i)
+    indices: Indices = array(raw_indices, dtype=int64)
     return (
         x[indices],
         y[indices],
@@ -364,6 +366,20 @@ def _generate_model_impedance(
         )
 
 
+def _l_curve_P(
+    lambda_value: float,
+    A: NDArray[float64],
+    b: NDArray[float64],
+    I: NDArray[float64],
+) -> Tuple[float64, float64]:
+    A_tikh: NDArray[float64] = _generate_tikhonov_matrix(A, I, lambda_value)
+    g_tau: NDArray[float64] = _solve(A_tikh, b)
+    return (
+        log(norm(A_tikh @ g_tau - b) ** 2),
+        log(norm(g_tau) ** 2),
+    )
+
+
 def calculate_drt_tr_nnls(
     data: DataSet,
     mode: str = "real",
@@ -390,7 +406,9 @@ def calculate_drt_tr_nnls(
 
     lambda_value: float, optional
         The Tikhonov regularization parameter.
-        If the value is equal to or below zero, then an attempt will be made to automatically find a suitable value.
+        If the value is equal to or less than zero, then an attempt will be made to automatically find a suitable value.
+        If the value is between -1.5 and 0.0, then a custom approach is used.
+        If the value is less than -1.5, then the L-curve corner search algorithm (DOI:10.1088/2633-1357/abad0d) is used.
 
     Returns
     -------
@@ -429,9 +447,15 @@ def calculate_drt_tr_nnls(
         prog.increment()
         A_tikh: NDArray[float64]
         g_tau: NDArray[float64]
-        if lambda_value <= 0.0:
-            # Try to determine a suitable regularization parameter if one hasn't
-            # been provided.
+        # Try to determine a suitable regularization parameter if one hasn't
+        # been provided.
+        if lambda_value < -1.5:
+            lambda_value = _l_curve_corner_search(
+                lambda _: _l_curve_P(_, A, b, I),
+                minimum=1e-10,
+                maximum=1,
+            )
+        elif lambda_value <= 0.0:
             lambda_value = _suggest_lambda(
                 *_test_lambda_values(
                     A,

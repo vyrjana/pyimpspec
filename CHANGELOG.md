@@ -1,3 +1,12 @@
+# 4.1.0 (2023/04/03)
+
+- Added the L-curve corner search algorithm described in DOI:10.1088/2633-1357/abad0d as an approach for automatically finding the optimal regularization parameter in DRT methods that use Tikhonov regularization.
+- Added optional `custom_labels` keyword arguments to the `Circuit.to_circuitikz` and `Circuit.to_drawing` methods.
+- Updated descriptions for the command-line arguments with multiple valid string values.
+- Updated docstrings for the DRT calculation functions for the BHT and TR-RBF methods.
+- Fixed a bug where large negative `num_procs` arguments were not handled properly.
+
+
 # 4.0.1 (2023/03/22)
 
 - Updated how `perform_exploratory_tests` handles cases where all mu values are greater than the mu-criterion.

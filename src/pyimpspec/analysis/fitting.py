@@ -804,6 +804,8 @@ def fit_circuit(
     validate_circuit(circuit)
     if num_procs < 1:
         num_procs = _get_default_num_procs() - abs(num_procs)
+        if num_procs < 1:
+            num_procs = 1
     num_steps: int = (len(_METHODS) if method == "auto" else 1) * (
         len(_WEIGHT_FUNCTIONS) if weight == "auto" else 1
     )
