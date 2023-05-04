@@ -45,6 +45,7 @@ from .formats import (
     parse_spreadsheet,
     parse_z,
     parse_pssession,
+    parse_par,
 )
 from .formats.helpers import _validate_path
 
@@ -71,6 +72,7 @@ def get_parsers() -> Dict[str, Callable]:
         ".xlsx": parse_spreadsheet,
         ".txt": parse_csv,
         ".csv": parse_csv,
+        ".par": parse_par,
     }
 
 
