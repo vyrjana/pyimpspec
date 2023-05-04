@@ -43,6 +43,7 @@ from .formats import (
     parse_mpt,
     parse_p00,
     parse_spreadsheet,
+    parse_par,
 )
 
 
@@ -66,6 +67,7 @@ def get_parsers() -> Dict[str, Callable]:
         ".xlsx": parse_spreadsheet,
         ".txt": parse_csv,
         ".csv": parse_csv,
+        ".par": parse_par,
     }
 
 

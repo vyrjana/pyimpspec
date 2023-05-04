@@ -25,3 +25,4 @@ from .ids import parse_ids
 from .mpt import parse_mpt
 from .p00 import parse_p00
 from .spreadsheet import parse_spreadsheet
+from .par import parse_par
