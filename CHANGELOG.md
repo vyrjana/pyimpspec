@@ -1,3 +1,12 @@
+# 4.1.1 (2024/03/14)
+
+- Maintenance release that updates the version requirements for dependencies.
+- Support for Python 3.8 has been dropped due to minimum requirements set by one or more dependencies.
+- Support for Python 3.11 and 3.12 has been added.
+- Added Jinja2 as an explicit dependency.
+- Updated the automated determination of how many parallel processes to use.
+
+
 # 4.1.0 (2023/04/03)
 
 - Added the L-curve corner search algorithm described in DOI:10.1088/2633-1357/abad0d as an approach for automatically finding the optimal regularization parameter in DRT methods that use Tikhonov regularization.

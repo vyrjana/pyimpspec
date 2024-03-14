@@ -479,7 +479,7 @@ class KramersKronigImaginaryManualWithCapacitanceInductance(
 class KramersKronigCNLS(KramersKronigComplex):
     arg_test: str = "cnls"
     cmp_cdc: str = "[RKKKKKKKKKKKKKK]"
-    cmp_mu: float = 0.8309531383631978
+    cmp_mu: float = 0.8320354036592371
     cmp_num_RC: int = 14
     cmp_pseudo_chisqr: float = 0.0013382040618625823
 
@@ -515,7 +515,7 @@ class KramersKronigCNLSWithCapacitanceInductance(KramersKronigCNLS):
 class KramersKronigCNLSManual(KramersKronigCNLS):
     arg_num_RC: int = 16
     cmp_cdc: str = "[RKKKKKKKKKKKKKKKK]"
-    cmp_mu: float = 0.5071129711073297
+    cmp_mu: float = 0.5273614432492131
     cmp_num_RC: int = 16
     cmp_pseudo_chisqr: float = 0.00147272884582866392
 
@@ -810,7 +810,7 @@ class ExploratoryImaginaryManualWithCapacitanceInductance(ExploratoryImaginaryMa
 class ExploratoryCNLS(ExploratoryComplex):
     arg_test: str = "cnls"
     cmp_cdc: str = "[RKKKKKKKKKKKKKK]"
-    cmp_mu: float = 0.830916902923411
+    cmp_mu: float = 0.8320354036592371
     cmp_num_RC: int = 14
     cmp_pseudo_chisqr: float = 0.0013382191152589255
 
@@ -846,7 +846,7 @@ class ExploratoryCNLSWithCapacitanceInductance(ExploratoryCNLS):
 class ExploratoryCNLSManual(ExploratoryCNLS):
     arg_num_RCs: List[int] = list(range(2, DATA.get_num_points()))
     cmp_cdc: str = "[RKKKKKKKKKKKKKK]"
-    cmp_mu: float = 0.830916902923411
+    cmp_mu: float = 0.8320354036592371
     cmp_num_RC: int = 14
     cmp_pseudo_chisqr: float = 0.0013382191152589255
 

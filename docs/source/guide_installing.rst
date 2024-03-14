@@ -19,6 +19,7 @@ Requirements
 - `Python <https://www.python.org>`_ (3.8, 3.9, or 3.10)
 - The following Python packages
 
+  - `Jinja <https://jinja.palletsprojects.com/>`_
   - `lmfit <https://lmfit.github.io/lmfit-py/>`_
   - matplotlib_ 
   - `numdifftools <https://numdifftools.readthedocs.io/en/latest/>`_
