@@ -33,6 +33,11 @@
 - License: BSD 3-clause
 - Optional dependency of _pandas_ for generating formatted strings (e.g., LaTeX).
 
+# Jinja
+- https://github.com/pallets/jinja/
+- License: BSD 3-clause
+- Optional dependency of _pandas_ for generating formatted strings (e.g., LaTeX).
+
 # kvxopt
 - https://github.com/sanurielf/kvxopt
 - License: GPLv3 or later
