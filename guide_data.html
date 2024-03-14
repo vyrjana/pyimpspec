@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Data parsing &mdash; pyimpspec 4.1.1 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=e6a937a4"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Kramers-Kronig testing" href="guide_kramers_kronig.html" />
+    <link rel="prev" title="Installing" href="guide_installing.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyimpspec
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="guide.html">Getting started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="guide_installing.html">Installing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Data parsing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#plotting-data">Plotting data</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#masking-data-points">Masking data points</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#custom-parsers">Custom parsers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide_kramers_kronig.html">Kramers-Kronig testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_zhit.html">Z-HIT analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_drt.html">Distribution of relaxation times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_circuit.html">Equivalent circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_fitting.html">Circuit fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_cli.html">Command-line interface (CLI)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyimpspec</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guide.html">Getting started</a></li>
+      <li class="breadcrumb-item active">Data parsing</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/guide_data.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="data-parsing">
+<h1>Data parsing<a class="headerlink" href="#data-parsing" title="Link to this heading"></a></h1>
+<p>Individual impedance spectra are represented in pyimpspec as <a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a> objects.
+The <a class="reference internal" href="apidocs_data.html#pyimpspec.parse_data" title="pyimpspec.parse_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_data()</span></code></a> function acts as a wrapper for the various parsing functions available for different file formats:</p>
+<ul class="simple">
+<li><p>BioLogic: <code class="docutils literal notranslate"><span class="pre">.mpt</span></code></p></li>
+<li><p>Eco Chemie: <code class="docutils literal notranslate"><span class="pre">.dfr</span></code></p></li>
+<li><p>Gamry: <code class="docutils literal notranslate"><span class="pre">.dta</span></code></p></li>
+<li><p>Ivium: <code class="docutils literal notranslate"><span class="pre">.idf</span></code> and <code class="docutils literal notranslate"><span class="pre">.ids</span></code></p></li>
+<li><p>Spreadsheets: <code class="docutils literal notranslate"><span class="pre">.xlsx</span></code> and <code class="docutils literal notranslate"><span class="pre">.ods</span></code></p></li>
+<li><p>Plain-text character-separated values (CSV)</p></li>
+</ul>
+<p>The parsing functions and <a class="reference internal" href="apidocs_data.html#pyimpspec.parse_data" title="pyimpspec.parse_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_data()</span></code></a> always return a list of <a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a> objects since some files may contain multiple impedance spectra:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyimpspec</span> <span class="kn">import</span> <span class="n">DataSet</span><span class="p">,</span> <span class="n">parse_data</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parse_data</span><span class="p">(</span><span class="s2">&quot;./tests/data.dta&quot;</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="c1"># Do something with &#39;data&#39;.</span>
+<span class="gp">... </span>  <span class="k">pass</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The data points are sorted from highest to lowest frequency when a <a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a> object is created.</p>
+</div>
+<section id="plotting-data">
+<h2>Plotting data<a class="headerlink" href="#plotting-data" title="Link to this heading"></a></h2>
+<p>A number of functions are included for plotting data (and various analysis results) using <a class="reference external" href="https://matplotlib.org">matplotlib</a> as the backend.
+Below is a Nyquist plot of some example data (test circuit 1 or TC-1 from <a class="reference external" href="https://doi.org/10.1149/1.2044210">Boukamp (1995)</a>).</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyimpspec</span> <span class="kn">import</span> <span class="n">DataSet</span><span class="p">,</span> <span class="n">parse_data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyimpspec</span> <span class="kn">import</span> <span class="n">mpl</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">parse_data</span><span class="p">(</span><span class="s2">&quot;./tests/data.dta&quot;</span><span class="p">):</span>
+<span class="gp">... </span>  <span class="n">figure</span><span class="p">,</span> <span class="n">axes</span> <span class="o">=</span> <span class="n">mpl</span><span class="o">.</span><span class="n">plot_nyquist</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="_downloads/8d9b713214ef6c52b5b0fef1c72cd302/guide_data-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_data-1.svg" class="plot-directive" src="_images/guide_data-1.svg" /></figure>
+<p>More information and examples about these functions can be found in the API documentation (<a class="reference internal" href="apidocs_plot_mpl.html"><span class="doc">Plotting - matplotlib</span></a>).</p>
+</section>
+<section id="masking-data-points">
+<h2>Masking data points<a class="headerlink" href="#masking-data-points" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a> objects support non-destructive masking of data points.
+Masking a data point means that the data point will not be processed when analyzing or plotting the <a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a> object.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyimpspec</span> <span class="kn">import</span> <span class="n">DataSet</span><span class="p">,</span> <span class="n">parse_data</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">parse_data</span><span class="p">(</span><span class="s2">&quot;./tests/data.dta&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">()</span>  <span class="c1"># Included points</span>
+<span class="go">29</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Apply a low-pass filter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">low_pass</span><span class="p">(</span><span class="mf">1e3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">()</span>
+<span class="go">22</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Apply a high-pass filter as well on top of the low-pass filter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">high_pass</span><span class="p">(</span><span class="mf">1e1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">()</span>
+<span class="go">15</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Check how many points are included or excluded</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">(</span><span class="n">masked</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>  <span class="c1"># Included points</span>
+<span class="go">15</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">(</span><span class="n">masked</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>  <span class="c1"># Excluded points</span>
+<span class="go">14</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">(</span><span class="n">masked</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>  <span class="c1"># All points</span>
+<span class="go">29</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Get the current mask</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">get_mask</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Include the highest frequency point again</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mask</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="kc">False</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">set_mask</span><span class="p">(</span><span class="n">mask</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">()</span>
+<span class="go">16</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># Clear the mask</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">set_mask</span><span class="p">({})</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">()</span>
+<span class="go">29</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a> objects have various methods for getting certain types of values while taking the applied mask into account (e.g., <a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet.get_frequencies" title="pyimpspec.DataSet.get_frequencies"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_frequencies()</span></code></a>  or <a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet.get_phases" title="pyimpspec.DataSet.get_phases"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_phases()</span></code></a>).</p>
+<p>Below are two Bode plots of the example above from just before and after the low- and high-pass filters was applied.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/5b495b89b76ed56903717c1050ecf415/guide_data-2.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_data-2_00.svg" class="plot-directive" src="_images/guide_data-2_00.svg" /></figure>
+<figure class="align-default">
+<img alt="_images/guide_data-2_01.svg" class="plot-directive" src="_images/guide_data-2_01.svg" /></figure>
+</section>
+<section id="custom-parsers">
+<h2>Custom parsers<a class="headerlink" href="#custom-parsers" title="Link to this heading"></a></h2>
+<p>Adding support for parsing additional file formats is quite easy.
+Simply write a function that parses a file and returns a <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">pandas.DataFrame</a> object, and then pass that object to the <a class="reference internal" href="apidocs_data.html#pyimpspec.dataframe_to_data_sets" title="pyimpspec.dataframe_to_data_sets"><code class="xref py py-func docutils literal notranslate"><span class="pre">dataframe_to_data_sets()</span></code></a> function.
+The <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.read_json.html">pandas.read_json</a> function is used in the example below, but one could also turn a dictionary into a DataFrame using the <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.from_dict.html">pandas.DataFrame.from_dict</a> method.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pyimpspec</span> <span class="kn">import</span> <span class="n">DataSet</span><span class="p">,</span> <span class="n">dataframe_to_data_sets</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">read_json</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">parse_json</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">DataSet</span><span class="p">]:</span>
+<span class="gp">... </span>  <span class="k">return</span> <span class="n">dataframe_to_data_sets</span><span class="p">(</span><span class="n">df</span><span class="o">=</span><span class="n">read_json</span><span class="p">(</span><span class="n">path</span><span class="p">),</span> <span class="n">path</span><span class="o">=</span><span class="n">path</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">parse_json</span><span class="p">(</span><span class="s2">&quot;./tests/data.json&quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="o">.</span><span class="n">get_num_points</span><span class="p">()</span>
+<span class="go">29</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">to_dataframe</span><span class="p">()</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<span class="go">|      f (Hz) |   Re(Z) (ohm) |   Im(Z) (ohm) |   Mod(Z) (ohm) |   Phase(Z) (deg.) |</span>
+<span class="go">|------------:|--------------:|--------------:|---------------:|------------------:|</span>
+<span class="go">| 10000       |       109.009 |      -26.5557 |        112.197 |         -13.6911  |</span>
+<span class="go">|  7196.86    |       112.058 |      -35.1662 |        117.446 |         -17.423   |</span>
+<span class="go">|  5179.47    |       116.906 |      -46.4664 |        125.802 |         -21.6762  |</span>
+<span class="go">|  3727.59    |       124.835 |      -60.8523 |        138.876 |         -25.9875  |</span>
+<span class="go">|  2682.7     |       137.77  |      -78.0894 |        158.362 |         -29.5449  |</span>
+<span class="go">|  1930.7     |       157.972 |      -96.4806 |        185.104 |         -31.4143  |</span>
+<span class="go">|  1389.5     |       186.637 |     -112.205  |        217.769 |         -31.014   |</span>
+<span class="go">|  1000       |       221.691 |     -120.399  |        252.275 |         -28.5062  |</span>
+<span class="go">|   719.686   |       257.437 |     -118.651  |        283.464 |         -24.7446  |</span>
+<span class="go">|   517.947   |       288.118 |     -109.31   |        308.157 |         -20.7764  |</span>
+<span class="go">|   372.759   |       311.563 |      -97.2957 |        326.402 |         -17.3427  |</span>
+<span class="go">|   268.27    |       328.959 |      -86.554  |        340.155 |         -14.7413  |</span>
+<span class="go">|   193.07    |       342.639 |      -78.8887 |        351.603 |         -12.9657  |</span>
+<span class="go">|   138.95    |       354.649 |      -74.5879 |        362.408 |         -11.877   |</span>
+<span class="go">|   100       |       366.4   |      -73.2559 |        373.651 |         -11.3063  |</span>
+<span class="go">|    71.9686  |       378.778 |      -74.2957 |        385.996 |         -11.0974  |</span>
+<span class="go">|    51.7947  |       392.326 |      -77.1022 |        399.831 |         -11.1184  |</span>
+<span class="go">|    37.2759  |       407.37  |      -81.1148 |        415.368 |         -11.2613  |</span>
+<span class="go">|    26.827   |       424.086 |      -85.8173 |        432.682 |         -11.4398  |</span>
+<span class="go">|    19.307   |       442.528 |      -90.7275 |        451.733 |         -11.5863  |</span>
+<span class="go">|    13.895   |       462.638 |      -95.3932 |        472.371 |         -11.6508  |</span>
+<span class="go">|    10       |       484.246 |      -99.3993 |        494.342 |         -11.5998  |</span>
+<span class="go">|     7.19686 |       507.068 |     -102.385  |        517.302 |         -11.4155  |</span>
+<span class="go">|     5.17947 |       530.727 |     -104.069  |        540.835 |         -11.0943  |</span>
+<span class="go">|     3.72759 |       554.773 |     -104.271  |        564.487 |         -10.6447  |</span>
+<span class="go">|     2.6827  |       578.721 |     -102.924  |        587.802 |         -10.0845  |</span>
+<span class="go">|     1.9307  |       602.093 |     -100.083  |        610.354 |          -9.43768 |</span>
+<span class="go">|     1.3895  |       624.462 |      -95.9026 |        631.783 |          -8.73106 |</span>
+<span class="go">|     1       |       645.479 |      -90.6181 |        651.809 |          -7.99147 |</span>
+</pre></div>
+</div>
+<p>If you wish for pyimpspec to include support for additional file formats, then you can either:</p>
+<ul class="simple">
+<li><p>Open an issue on <a class="reference external" href="https://github.com/vyrjana/pyimpspec">GitHub</a> and provide an example of a data file.</p></li>
+<li><p>Submit a pull request on <a class="reference external" href="https://github.com/vyrjana/pyimpspec">GitHub</a>. Note that pyimpspec is licensed under <a class="reference external" href="https://www.gnu.org/licenses/gpl-3.0.en.html">GPLv3</a> or later.</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="guide_installing.html" class="btn btn-neutral float-left" title="Installing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="guide_kramers_kronig.html" class="btn btn-neutral float-right" title="Kramers-Kronig testing" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2023, pyimpspec developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
