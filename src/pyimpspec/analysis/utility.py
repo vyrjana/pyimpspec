@@ -158,19 +158,25 @@ def _get_default_num_procs() -> int:
         "mkl": "MKL_NUM_THREADS",
     }
     libraries: Set[str] = set()
-    key: str
-    for key in [_ for _ in map(str.lower, dir(numpy_config)) if "_info" in _]:
-        obj: Any = getattr(numpy_config, key)
-        if not isinstance(obj, dict):
-            continue
-        elif "libraries" not in obj:
-            continue
-        elif len(obj["libraries"]) == 0:
-            continue
-        libraries.update(set(obj["libraries"]))
+
+    if hasattr(numpy_config, "CONFIG"):
+        key: str
+        obj: Any
+        for key, obj in numpy_config.CONFIG.items():
+            if not isinstance(obj, dict):
+                continue
+
+            blas_config: dict = obj.get("blas", {})
+            if not blas_config or not blas_config.get("found", False):
+                continue
+
+            lib: str
+            for lib in multithreaded:
+                if lib in blas_config.get("name", ""):
+                    libraries.add(lib)
+
     name: str
     for name in libraries:
-        lib: str
         env: str
         for lib, env in multithreaded.items():
             if lib in name:
@@ -184,4 +190,5 @@ def _get_default_num_procs() -> int:
                 else:
                     num_procs: int = num_cores // num_threads
                     return num_procs if num_procs > 1 else 1
+
     return num_cores
