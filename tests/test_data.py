@@ -577,3 +577,13 @@ class TestFormatParsers(TestCase):
         self.assertEqual(len(parse_data("./case-multiple-spectra.mpt")), 3)
         for data in parse_data("./case-multiple-spectra.mpt"):
             self.validate(data, control, atol=1e-1)
+
+    def test_par(self):
+        control: DataSet = get_control_data()
+        paths: List[str] = get_test_files(".par")
+        self.assertTrue(len(paths) > 0)
+        path: str
+        for path in paths:
+            data: DataSet
+            for data in parse_data(path):
+                self.validate(data, control)
