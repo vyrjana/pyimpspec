@@ -88,7 +88,7 @@ class ZHIT(TestCase):
             window="boxcar",
         )
         self.assertIsInstance(zhit, ZHITResult)
-        self.assertNotEqual(zhit.smoothing, "lowess")
+        self.assertNotEqual(zhit.smoothing, "auto")
         self.assertEqual(zhit.interpolation, "cubic")
         self.assertEqual(zhit.window, "boxcar")
 
