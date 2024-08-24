@@ -8,6 +8,7 @@ A package for parsing, validating, analyzing, and simulating impedance spectra.
 [![GitHub](https://img.shields.io/github/license/vyrjana/pyimpspec)](https://www.gnu.org/licenses/gpl-3.0.html)
 [![PyPI](https://img.shields.io/pypi/v/pyimpspec)](https://pypi.org/project/pyimpspec/)
 
+**Version 5.0.0 will be released soon. See [this branch](https://github.com/vyrjana/pyimpspec/tree/dev-5-0-0-rc) for the code (will eventually be merged into the main branch) and [this issue](https://github.com/vyrjana/pyimpspec/issues/9) for status updates.**
 
 ## Table of contents
 
