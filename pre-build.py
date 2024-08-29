@@ -70,7 +70,7 @@ if __name__ == "__main__":
     
     path: Path
     for path in PARENT_DIRECTORY.joinpath("LICENSES").glob("*"):
-        data_files.append(path)
+        data_files.append(path.relative_to(PARENT_DIRECTORY))
     
     assert all(map(lambda path: path.is_file(), data_files))
     
