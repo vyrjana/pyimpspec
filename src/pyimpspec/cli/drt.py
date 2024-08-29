@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,25 +21,23 @@ from argparse import (
     ArgumentParser,
     Namespace,
 )
-from typing import (
+from matplotlib import get_backend
+import matplotlib.pyplot as plt
+from pyimpspec.progress import clear_default_handler_output
+from pyimpspec.typing.helpers import (
     Callable,
     Dict,
     IO,
     List,
     Tuple,
 )
-from matplotlib import get_backend
-import matplotlib.pyplot as plt
-from numpy import log10 as log
 from .utility import (
     apply_filters,
-    clear_progress,
     format_text,
     get_color,
-    get_mock_data,
     get_output_path,
+    parse_inputs,
     set_figure_size,
-    validate_input_paths,
 )
 
 
@@ -56,16 +54,20 @@ def overlay_plot(
         parse_cdc,
     )
 
-    assert args.output_name[0] != "" or not args.output, "Expected an output name!"
+    if not (args.output_name[0] != "" or not args.output):
+        raise ValueError("Expected an output name")
+
     drts: List[Tuple[DataSet, DRTResult]] = []
     fragments: List[str] = []
     num_paths: int = len(all_data_sets)
     num_paths_remaining: int = num_paths
+
     path: str
     data_sets: List[DataSet]
     for path, data_sets in all_data_sets.items():
         list(map(lambda _: apply_filters(_, args), data_sets))
         num_data: int = len(data_sets)
+
         i: int
         data: DataSet
         for i, data in enumerate(data_sets):
@@ -75,6 +77,7 @@ def overlay_plot(
                 method=args.method,
                 mode=args.mode,
                 lambda_value=args.lambda_value,
+                cross_validation=args.cross_validation,
                 rbf_type=args.rbf_type,
                 derivative_order=args.derivative_order,
                 rbf_shape=args.rbf_shape,
@@ -97,7 +100,8 @@ def overlay_plot(
                     drt,
                 )
             )
-            clear_progress()
+            clear_default_handler_output()
+
             fragments.append(label)
             fragments.append(format_text(drt.to_statistics_dataframe(), args))
             if args.peak_threshold >= 0.0:
@@ -107,11 +111,15 @@ def overlay_plot(
                         args,
                     )
                 )
+
             if args.method == "bht":
                 fragments.append(format_text(drt.to_scores_dataframe(), args))
+
             if num_paths_remaining > 0 or i < num_data - 1:
                 fragments.append("\n")
+
             num_paths_remaining -= 1
+
     report: str = "\n".join(fragments)
     data, drt = drts.pop(0)
     color: str = get_color(args.plot_color)
@@ -122,8 +130,9 @@ def overlay_plot(
         peak_threshold=args.peak_threshold,
         colors={"gamma": color},
     )
+
     axis = axes[0]
-    for (data, drt) in drts:
+    for data, drt in drts:
         color = get_color(args.plot_color)
         mpl.plot_gamma(
             drt,
@@ -134,9 +143,12 @@ def overlay_plot(
             figure=figure,
             axes=axes,
         )
+
     if not args.plot_no_legend:
         axis.legend()
+
     figure.tight_layout()
+
     if args.output:
         output_path: str = get_output_path(
             data=data,
@@ -145,6 +157,7 @@ def overlay_plot(
             args=args,
         )
         figure.savefig(output_path, dpi=args.plot_dpi)
+
         output_path = get_output_path(
             data=data,
             result=drt,
@@ -154,9 +167,11 @@ def overlay_plot(
         fp: IO
         with open(output_path, "w") as fp:
             fp.write(report)
+
     else:
         print_func(report)
         plt.show()
+
     plt.close()
 
 
@@ -172,25 +187,52 @@ def individual_plots(
         mpl,
         parse_cdc,
     )
+    from pyimpspec.plot.colors import COLOR_BLACK
+    from pyimpspec.plot.mpl.helpers import _color_axis
 
     agg_backend: bool = get_backend().lower() == "agg"
     num_paths: int = len(all_data_sets)
     num_paths_remaining: int = num_paths
+
+    plot_types: Dict[str, Callable] = {
+        "bode": mpl.plot_bode,
+        "drt": mpl.plot_drt,
+        "gamma": mpl.plot_gamma,
+        "imaginary": mpl.plot_imaginary,
+        "magnitude": mpl.plot_magnitude,
+        "nyquist": mpl.plot_nyquist,
+        "phase": mpl.plot_phase,
+        "real": mpl.plot_real,
+        "real-imaginary": mpl.plot_real_imaginary,
+    }
+    plot: Callable = plot_types[args.plot_type]
+    kwargs = {
+        "legend": not args.plot_no_legend,
+        "colored_axes": args.plot_colored_axes,
+        "admittance": args.plot_admittance,
+    }
+
     path: str
     data_sets: List[DataSet]
     for path, data_sets in all_data_sets.items():
         list(map(lambda _: apply_filters(_, args), data_sets))
         num_data = len(data_sets)
+
         i: int
         data: DataSet
         for i, data in enumerate(data_sets):
             if num_paths > 1 or num_data > 1:
-                print_func(f"{path}: {data.get_label() or i}")
+                if len(data_sets) > 1:
+                    print_func(f"{path}: {data.get_label() or i}")
+                else:
+                    print_func(f"{path}")
+
             drt: DRTResult = calculate_drt(
                 data,
                 method=args.method,
                 mode=args.mode,
                 lambda_value=args.lambda_value,
+                cross_validation=args.cross_validation,
                 rbf_type=args.rbf_type,
                 derivative_order=args.derivative_order,
                 rbf_shape=args.rbf_shape,
@@ -207,17 +249,91 @@ def individual_plots(
                 max_nfev=args.max_nfev,
                 num_procs=args.num_procs,
             )
-            clear_progress()
+            clear_default_handler_output()
+
             label: str = f"{data.get_label()}\n{drt.get_label()}"
-            figure, axes = mpl.plot_drt(
-                drt,
-                data=data,
-                title=label if args.plot_title else "",
-                legend=not args.plot_no_legend,
-                colored_axes=args.plot_colored_axes,
-                peak_threshold=args.peak_threshold,
-            )
+            if plot is mpl.plot_gamma:
+                figure, axes = mpl.plot_gamma(
+                    drt,
+                    title=label if args.plot_title else "",
+                    peak_threshold=args.peak_threshold,
+                    **kwargs,
+                )
+            else:
+                figure, axes = mpl.plot_drt(
+                    drt,
+                    data=data,
+                    title=label if args.plot_title else "",
+                    peak_threshold=args.peak_threshold,
+                    **kwargs,
+                )
+
+            if plot not in (mpl.plot_drt, mpl.plot_gamma):
+                subset_axes = [axes[0], axes[1]]
+                for ax in subset_axes:
+                    ax.set_xlim(None, None)
+                    ax.set_xscale("linear")
+                    ax.set_ylim(None, None)
+                    ax.set_yscale("linear")
+
+                subset_axes[0].clear()
+                subset_axes[1].clear()
+                if plot in (
+                    mpl.plot_nyquist,
+                    mpl.plot_magnitude,
+                    mpl.plot_phase,
+                    mpl.plot_real,
+                    mpl.plot_imaginary,
+                ):
+                    figure.delaxes(subset_axes.pop(1))
+
+                if len(subset_axes) == 2:
+                    subset_axes[1].yaxis.set_label_position("right")
+
+                if plot is mpl.plot_nyquist:
+                    _color_axis(subset_axes[0], COLOR_BLACK, left=True, right=False)
+
+                plot(
+                    drt,
+                    label="",
+                    line=False,
+                    markers={
+                        "magnitude": ".",
+                        "phase": ".",
+                        "real": ".",
+                        "imaginary": ".",
+                        "impedance": ".",
+                    },
+                    admittance=args.plot_admittance,
+                    legend=False,
+                    figure=figure,
+                    axes=subset_axes,
+                )
+                plot(
+                    data,
+                    label="Data" if args.plot_title else None,
+                    colors={
+                        "magnitude": COLOR_BLACK,
+                        "phase": COLOR_BLACK,
+                        "real": COLOR_BLACK,
+                        "imaginary": COLOR_BLACK,
+                        "impedance": COLOR_BLACK,
+                    },
+                    figure=figure,
+                    axes=subset_axes,
+                    **kwargs,
+                )
+                plot(
+                    drt,
+                    label="Fit" if args.plot_title else None,
+                    line=True,
+                    figure=figure,
+                    axes=subset_axes,
+                    **kwargs,
+                )
+
             figure.tight_layout()
+
             fragments: List[str] = []
             fragments.append(format_text(drt.to_statistics_dataframe(), args))
             if args.peak_threshold >= 0.0:
@@ -226,8 +342,10 @@ def individual_plots(
                         drt.to_peaks_dataframe(threshold=args.peak_threshold), args
                     )
                 )
+
             if args.method == "bht":
                 fragments.append(format_text(drt.to_scores_dataframe(), args))
+
             report: str = "\n\n".join(fragments)
             if args.output:
                 output_path: str = get_output_path(
@@ -238,6 +356,7 @@ def individual_plots(
                     i=i,
                 )
                 figure.savefig(output_path, dpi=args.plot_dpi)
+
                 output_path = get_output_path(
                     data=data,
                     result=drt,
@@ -248,36 +367,34 @@ def individual_plots(
                 fp: IO
                 with open(output_path, "w") as fp:
                     fp.write(report)
+
             elif not agg_backend:
                 print_func(report)
                 plt.show()
+
             else:
                 print_func(report)
+
             plt.close()
+
             if (num_paths_remaining > 1 or i < num_data - 1) and not args.output:
                 print_func("")
             num_paths_remaining -= 1
 
 
 def command(parser: ArgumentParser, args: Namespace, print_func: Callable = print):
-    validate_input_paths(args.input)
-
-    from pyimpspec import (
-        DataSet,
-        parse_data,
-    )
+    from pyimpspec import DataSet
 
     set_figure_size(args.plot_width, args.plot_height, args.plot_dpi)
+
     if args.method == "mrq-fit":
-        assert args.circuit.strip() != "", "Expected a circuit description code!"
-    all_data_sets: Dict[str, List[DataSet]] = {}
-    i: int
-    path: str
-    for i, path in enumerate(args.input):
-        if path.startswith("<") and path.endswith(">"):
-            all_data_sets[path] = [get_mock_data(path[1:-1])]
-        else:
-            all_data_sets[path] = parse_data(path)
+        if args.circuit.strip() == "":
+            raise ValueError(
+                f"Expected a non-empty string for the circuit description code instead of {args.circuit=}"
+            )
+
+    all_data_sets: Dict[str, List[DataSet]] = parse_inputs(args)
+
     if args.plot_overlay:
         overlay_plot(all_data_sets, args, print_func)
     else:

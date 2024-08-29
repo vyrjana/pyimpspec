@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,27 +17,31 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Tuple,
-)
-from numpy import ndarray
 from pyimpspec.circuit import Circuit
 from pyimpspec.data import DataSet
 from pyimpspec.typing import (
     ComplexImpedances,
     Frequencies,
 )
+from pyimpspec.typing.helpers import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    _is_boolean,
+)
 from pyimpspec.plot.colors import (
+    COLOR_BLACK,
     COLOR_BLUE,
     COLOR_ORANGE,
-    COLOR_RED,
 )
 from pyimpspec.analysis.utility import _interpolate
 from .bode import plot_bode
 from .nyquist import plot_nyquist
+from .helpers import (
+    _initialize_figure,
+    _validate_figure,
+)
 
 
 def plot_circuit(
@@ -99,49 +103,54 @@ def plot_circuit(
     -------
     Tuple[|Figure|, List[|Axes|]]
     """
-    import matplotlib.pyplot as plt
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
+    if figure is None:
+        figure, axes = _initialize_figure(
+            num_rows=1,
+            num_cols=2,
+        )
+        axes = [axes[0], axes[1], axes[1].twinx()]
+    assert axes is not None
 
-    assert hasattr(circuit, "get_impedances") and callable(
-        circuit.get_impedances
-    ), circuit
-    assert isinstance(frequencies, ndarray), frequencies
-    assert len(frequencies) >= 2, len(frequencies)
+    _validate_figure(figure, axes, num_axes=3)
+
     if colors is None:
         colors = {}
-    if markers is None:
-        markers = {}
-    assert isinstance(colors, dict), colors
-    assert isinstance(markers, dict), markers
-    assert isinstance(label, str) or label is None, label
-    assert isinstance(title, str) or title is None, title
-    assert isinstance(figure, Figure) or figure is None, figure
-    assert isinstance(adjust_axes, bool), adjust_axes
-    if figure is None:
-        assert axes is None
-        figure, tmp = plt.subplots(1, 2)
-        axes = [
-            tmp[0],
-            tmp[1],
-            tmp[1].twinx(),
-        ]
-        if title is None:
-            title = circuit.to_string()
-        if title != "":
-            figure.suptitle(title)
-    assert isinstance(axes, list), axes
-    assert len(axes) == 3, axes
-    assert all(map(lambda _: isinstance(_, Axes), axes))
-    color_nyquist: str = colors.get("impedance", COLOR_RED)
+    elif not isinstance(colors, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {colors=}")
+    color_nyquist: str = colors.get("impedance", COLOR_BLACK)
     color_bode_magnitude: str = colors.get("magnitude", COLOR_BLUE)
     color_bode_phase: str = colors.get("phase", COLOR_ORANGE)
-    spectrum: DataSet
+
+    if markers is None:
+        markers = {}
+    elif not isinstance(markers, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {markers=}")
+
+    if not _is_boolean(adjust_axes):
+        raise TypeError(f"Expected a boolean instead of {adjust_axes=}")
+
+    if title is None:
+        title = circuit.to_string()
+    elif not isinstance(title, str):
+        raise TypeError(f"Expected a string or None instead of {title=}")
+
+    if title != "":
+        figure.suptitle(title)
+
     frequencies = _interpolate([max(frequencies), min(frequencies)], 100)
     Z: ComplexImpedances = circuit.get_impedances(frequencies)
-    spectrum = DataSet(
-        frequencies=frequencies, impedances=Z, label=label or str(circuit)
+
+    if label is None:
+        label = circuit.to_string()
+    elif not isinstance(label, str):
+        raise TypeError(f"Expected a string or None instead of {label=}")
+
+    spectrum: DataSet = DataSet(
+        frequencies=frequencies,
+        impedances=Z,
+        label=label,
     )
+
     plot_nyquist(
         spectrum,
         colors={"impedance": color_nyquist},
@@ -152,6 +161,7 @@ def plot_circuit(
         axes=[axes[0]],
         adjust_axes=adjust_axes,
     )
+
     plot_bode(
         spectrum,
         colors={
@@ -165,6 +175,7 @@ def plot_circuit(
         adjust_axes=adjust_axes,
         colored_axes=colored_axes,
     )
+
     return (
         figure,
         axes,

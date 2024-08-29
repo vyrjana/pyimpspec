@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,11 +19,7 @@
 
 from pyimpspec.data import DataSet
 from pyimpspec.analysis.drt import DRTResult
-from numpy import (
-    floating,
-    issubdtype,
-)
-from typing import (
+from pyimpspec.typing.helpers import (
     Dict,
     List,
     Optional,
@@ -34,13 +30,15 @@ from pyimpspec.plot.colors import (
     COLOR_MAGENTA,
     COLOR_TEAL,
 )
-from pyimpspec.plot.mpl.markers import (
+from .markers import (
     MARKER_CIRCLE,
+    MARKER_DOT,
     MARKER_SQUARE,
 )
-from .complex import plot_complex
+from .real_imaginary import plot_real_imaginary
 from .gamma import plot_gamma
 from .residuals import plot_residuals
+from .helpers import _validate_figure
 
 
 def plot_drt(
@@ -48,6 +46,7 @@ def plot_drt(
     data: DataSet,
     peak_threshold: float = -1.0,
     label: Optional[str] = None,
+    admittance: bool = False,
     colors: Optional[Dict[str, str]] = None,
     markers: Optional[Dict[str, str]] = None,
     figure: Optional["Figure"] = None,  # noqa: F821
@@ -75,6 +74,9 @@ def plot_drt(
 
     label: Optional[str], optional
         The optional label to use in the legend.
+
+    admittance: bool, optional
+        Plot the admittance representation of the immittance data.
 
     colors: Optional[Dict[str, str]], optional
         The colors of the markers or lines. Valid keys: 'gamma', 'real', 'imaginary', 'data_real', 'data_imaginary'.
@@ -108,32 +110,8 @@ def plot_drt(
     Tuple[|Figure|, List[|Axes|]]
     """
     import matplotlib.pyplot as plt
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
 
-    assert hasattr(drt, "get_label") and callable(drt.get_label)
-    assert hasattr(drt, "get_frequencies") and callable(drt.get_frequencies)
-    assert hasattr(drt, "get_impedances") and callable(drt.get_impedances)
-    assert hasattr(drt, "get_residuals_data") and callable(drt.get_residuals_data)
-    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
-    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
-    assert (
-        issubdtype(type(peak_threshold), floating) and peak_threshold <= 1.0
-    ), peak_threshold
-    if colors is None:
-        colors = {}
-    if markers is None:
-        markers = {}
-    assert isinstance(colors, dict), colors
-    assert isinstance(markers, dict), markers
-    assert isinstance(title, str) or title is None, title
-    assert isinstance(label, str) or label is None, label
-    assert isinstance(legend, bool), legend
-    assert isinstance(colored_axes, bool), colored_axes
-    assert isinstance(figure, Figure) or figure is None, figure
-    assert isinstance(adjust_axes, bool), adjust_axes
     if figure is None:
-        assert axes is None
         figure, tmp = plt.subplot_mosaic(
             [["upper left", "upper right"], ["bottom", "bottom"]],
             gridspec_kw={
@@ -149,27 +127,60 @@ def plot_drt(
             tmp["bottom"],
             tmp["bottom"].twinx(),
         ]
-        if title is None:
-            title = f"{data.get_label()}\n{drt.get_label()}"  # type: ignore
-        if title != "":
-            figure.suptitle(title)
-    assert isinstance(axes, list)
-    assert len(axes) == 5, axes
-    assert all(map(lambda _: isinstance(_, Axes), axes))
-    if label is None:
-        if hasattr(drt, "get_label") and callable(drt.get_label):
-            label = drt.get_label()
+    assert axes is not None
+
+    _validate_figure(figure, axes, num_axes=5)
+
+    if title is None:
+        title = f"{data.get_label()}\n{drt.get_label()}"  # type: ignore
+    elif not isinstance(title, str):
+        raise TypeError(f"Expected a string or None instead of {title=}")
+
+    if title != "":
+        figure.suptitle(title)
+
+    if colors is None:
+        colors = {}
+    elif not isinstance(colors, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {colors=}")
     color_gamma: str = colors.get("gamma", COLOR_BLACK)
     color_real: str = colors.get("real", COLOR_TEAL)
     color_imaginary: str = colors.get("imaginary", COLOR_MAGENTA)
     color_data_real: str = colors.get("data_real", COLOR_BLACK)
     color_data_imaginary: str = colors.get("data_imaginary", COLOR_BLACK)
-    marker_real: str = markers.get("real", MARKER_CIRCLE)
-    marker_imaginary: str = markers.get("imaginary", MARKER_SQUARE)
+
+    if markers is None:
+        markers = {}
+    elif not isinstance(markers, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {markers=}")
+    marker_real: str = markers.get("real", MARKER_DOT)
+    marker_imaginary: str = markers.get("imaginary", MARKER_DOT)
     marker_data_real: str = markers.get("data_real", MARKER_CIRCLE)
     marker_data_imaginary: str = markers.get("data_imaginary", MARKER_SQUARE)
-    plot_complex(
+
+    plot_real_imaginary(
+        drt,
+        admittance=admittance,
+        colors={
+            "real": color_real,
+            "imaginary": color_imaginary,
+        },
+        markers={
+            "real": marker_real,
+            "imaginary": marker_imaginary,
+        },
+        line=False,
+        label="",
+        legend=False,
+        colored_axes=colored_axes,
+        figure=figure,
+        axes=axes[0:2],
+        adjust_axes=adjust_axes,
+    )
+
+    plot_real_imaginary(
         data,
+        admittance=admittance,
         colors={
             "real": color_data_real,
             "imaginary": color_data_imaginary,
@@ -184,8 +195,10 @@ def plot_drt(
         axes=axes[0:2],
         adjust_axes=adjust_axes,
     )
-    plot_complex(
+
+    plot_real_imaginary(
         drt,
+        admittance=admittance,
         colors={
             "real": color_real,
             "imaginary": color_imaginary,
@@ -198,6 +211,7 @@ def plot_drt(
         axes=axes[0:2],
         adjust_axes=adjust_axes,
     )
+
     plot_gamma(
         drt,
         peak_threshold=peak_threshold,
@@ -211,15 +225,12 @@ def plot_drt(
         axes=[axes[2]],
         adjust_axes=adjust_axes,
     )
+
     plot_residuals(
         drt,
         colors={
             "real": color_real,
             "imaginary": color_imaginary,
-        },
-        markers={
-            "real": marker_real,
-            "imaginary": marker_imaginary,
         },
         legend=legend,
         colored_axes=colored_axes,
@@ -227,6 +238,7 @@ def plot_drt(
         axes=[axes[3], axes[4]],
         adjust_axes=adjust_axes,
     )
+
     return (
         figure,
         axes,

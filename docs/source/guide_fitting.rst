@@ -26,11 +26,12 @@ The |fit_circuit| function performs the fitting and returns a |FitResult| object
    ...   FitResult,
    ...   fit_circuit,
    ...   parse_cdc,
+   ...   generate_mock_data,
    ... )
-   >>> from pyimpspec.mock_data import EXAMPLE
    >>>
+   >>> data: DataSet = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
    >>> circuit: Circuit = parse_cdc("R(RC)(RW)")
-   >>> fit: FitResult = fit_circuit(circuit, EXAMPLE)
+   >>> fit: FitResult = fit_circuit(circuit, data)
 
 |fit_circuit| tries various combinations of iteration methods and weights by default to achieve the best fit.
 It may still be necessary to adjust the initial values and/or the limits of the various parameters of the circuit elements.
@@ -41,19 +42,20 @@ The two figures below show the impedance spectrum and the fitted circuit as a Ny
 .. plot::
 
    from pyimpspec import (
-     Circuit,
-     DataSet,
      FitResult,
      fit_circuit,
      parse_cdc,
+     generate_mock_data,
    )
    from pyimpspec import mpl
-   from pyimpspec.mock_data import EXAMPLE
-   circuit: Circuit = parse_cdc("R(RC)(RW)")
-   fit: FitResult = fit_circuit(circuit, EXAMPLE)
-   figure, axes = mpl.plot_nyquist(EXAMPLE, colors={"impedance": "black"})
-   _ = mpl.plot_nyquist(fit, line=True, figure=figure, axes=axes)
+   data = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+   circuit = parse_cdc("R(RC)(RW)")
+   fit = fit_circuit(circuit, data)
+
+   figure, axes = mpl.plot_nyquist(data, colors={"impedance": "black"})
+   mpl.plot_nyquist(fit, line=True, figure=figure, axes=axes)
    figure.tight_layout()
+   
    figure, axes = mpl.plot_residuals(fit)
    figure.tight_layout()
 
@@ -73,11 +75,17 @@ Thus, it is quite easy to generate a table containing the fitted parameter value
 
    >>> from schemdraw import Drawing
    >>> from pandas import DataFrame
-   >>> from pyimpspec import Circuit, FitResult, fit_circuit
-   >>> from pyimpspec.mock_data import EXAMPLE
+   >>> from pyimpspec import (
+   ...   Circuit,
+   ...   DataSet,
+   ...   FitResult,
+   ...   fit_circuit,
+   ...   generate_mock_data,
+   ... )
    >>>
+   >>> data: DataSet = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
    >>> circuit: Circuit = parse_cdc("R(RC)(RW)")
-   >>> fit: FitResult = fit_circuit(circuit, EXAMPLE)
+   >>> fit: FitResult = fit_circuit(circuit, data)
    >>>
    >>> fit.circuit.to_sympy()
    R_0 + 1/(2*I*pi*C_2*f + 1/R_1) + 1/(sqrt(2)*sqrt(pi)*Y_4*sqrt(I*f) + 1/R_3)
@@ -144,11 +152,17 @@ The contents of ``parameters`` and ``statistics`` in the example above would be 
 
    >>> from schemdraw import Drawing
    >>> from pandas import DataFrame
-   >>> from pyimpspec import Circuit, FitResult, fit_circuit
-   >>> from pyimpspec.mock_data import EXAMPLE
+   >>> from pyimpspec import (
+   ...   Circuit,
+   ...   DataSet,
+   ...   FitResult,
+   ...   fit_circuit,
+   ...   generate_mock_data,
+   ... )
    >>>
+   >>> data: DataSet = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
    >>> circuit: Circuit = parse_cdc("R(RC)(RW)")
-   >>> fit: FitResult = fit_circuit(circuit, EXAMPLE)
+   >>> fit: FitResult = fit_circuit(circuit, data)
    >>>
    >>> fit.circuit.to_sympy()
    R_0 + 1/(2*I*pi*C_2*f + 1/R_1) + 1/(sqrt(2)*sqrt(pi)*Y_4*sqrt(I*f) + 1/R_3)

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -52,6 +52,7 @@ from pyimpspec import (
     HavriliakNegamiAlternative,
     Inductor,
     KramersKronigRC,
+    KramersKronigAdmittanceRC,
     ModifiedInductor,
     ParameterDefinition,
     Resistor,
@@ -65,12 +66,15 @@ from pyimpspec import (
     Warburg,
     WarburgOpen,
     WarburgShort,
+    ZARC,
     get_elements,
     register_element,
 )
 from pyimpspec.circuit.registry import (
-    _ELEMENTS,
     _validate_impedances,
+    remove_elements,
+    reset as reset_registry,
+    reset_default_parameter_values,
 )
 from pyimpspec.circuit.base import InfiniteLimit
 from pyimpspec.typing import (
@@ -81,7 +85,7 @@ from pyimpspec.typing import (
 
 def redirect_output(func: Callable, stderr: bool = False) -> List[str]:
     buffer: StringIO = StringIO()
-    if stderr is True:
+    if stderr:
         with redirect_stderr(buffer):
             func()
     else:
@@ -373,9 +377,9 @@ class TestElement(TestCase):
                 element.get_symbol(),
                 msg=symbol,
             )
-            with self.assertRaises(AssertionError, msg=symbol):
+            with self.assertRaises(TypeError, msg=symbol):
                 element.set_label(26)
-            with self.assertRaises(AssertionError, msg=symbol):
+            with self.assertRaises(ValueError, msg=symbol):
                 element.set_label("26")
             element.set_label("test")
             self.assertEqual(
@@ -466,6 +470,9 @@ class TestElement(TestCase):
             symbols.remove(symbol)
             self.assertEqual(elements[symbol], Class)
 
+        with self.assertRaises(TypeError):
+            get_elements(default_only="test")
+
         elements: Dict[str, Type[Element]] = get_elements()
         symbols: List[str] = list(elements.keys())
         check(symbols, elements, "C", Capacitor)
@@ -473,6 +480,7 @@ class TestElement(TestCase):
         check(symbols, elements, "H", HavriliakNegami)
         check(symbols, elements, "Ha", HavriliakNegamiAlternative)
         check(symbols, elements, "K", KramersKronigRC)
+        check(symbols, elements, "Ky", KramersKronigAdmittanceRC)
         check(symbols, elements, "L", Inductor)
         check(symbols, elements, "La", ModifiedInductor)
         check(symbols, elements, "Ls", DeLevieFiniteLength)
@@ -488,6 +496,7 @@ class TestElement(TestCase):
         check(symbols, elements, "W", Warburg)
         check(symbols, elements, "Wo", WarburgOpen)
         check(symbols, elements, "Ws", WarburgShort)
+        check(symbols, elements, "Zarc", ZARC)
         self.assertEqual(len(symbols), 0, msg=symbols)
 
 
@@ -508,8 +517,9 @@ class UserDefined(Element):
 # TODO: Refactor
 class TestRegistry(TestCase):
     def test_user_defined_element(self):
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(TypeError):
             register_element(UserDefined)
+
         kwargs: Dict[str, Any] = {
             "symbol": "U",
             "name": "User-defined element",
@@ -527,6 +537,7 @@ class TestRegistry(TestCase):
                 ),
                 stderr=True,
             )
+
         # The equation is only a placeholder (i.e., 'todo')
         lines: List[str] = redirect_output(
             lambda: register_element(
@@ -539,6 +550,7 @@ class TestRegistry(TestCase):
             stderr=True,
         )
         self.assertTrue("The equation is missing!" in "\n".join(lines))
+
         # Equation cannot be turned into SymPy expression
         with self.assertRaises(TypeError):
             register_element(
@@ -547,6 +559,7 @@ class TestRegistry(TestCase):
                     **kwargs,
                 ),
             )
+
         # The equation is not correct since there are no parameters
         kwargs["equation"] = "R"
         with self.assertRaises(TypeError):
@@ -556,6 +569,7 @@ class TestRegistry(TestCase):
                     **kwargs,
                 ),
             )
+
         # Adding parameters but the output of the equation does not match
         # the output of the _impedance method
         kwargs["parameters"].append(
@@ -569,6 +583,7 @@ class TestRegistry(TestCase):
                 fixed=False,
             )
         )
+
         with self.assertRaises(TypeError):
             register_element(
                 ElementDefinition(
@@ -576,6 +591,7 @@ class TestRegistry(TestCase):
                     **kwargs,
                 ),
             )
+
         with self.assertRaises(TypeError):
             ParameterDefinition(
                 symbol="R",
@@ -586,7 +602,8 @@ class TestRegistry(TestCase):
                 upper_limit=10.0,
                 fixed=False,
             ),
-        with self.assertRaises(AssertionError):
+
+        with self.assertRaises(ValueError):
             ParameterDefinition(
                 symbol="R",
                 unit="ohm",
@@ -596,7 +613,8 @@ class TestRegistry(TestCase):
                 upper_limit=10.0,
                 fixed=False,
             ),
-        with self.assertRaises(AssertionError):
+
+        with self.assertRaises(ValueError):
             ParameterDefinition(
                 symbol="R",
                 unit="ohm",
@@ -606,6 +624,7 @@ class TestRegistry(TestCase):
                 upper_limit=10.0,
                 fixed=False,
             ),
+
         # Duplicate symbols
         kwargs["parameters"].append(
             ParameterDefinition(
@@ -618,7 +637,7 @@ class TestRegistry(TestCase):
                 fixed=False,
             ),
         )
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(KeyError):
             register_element(
                 ElementDefinition(
                     Class=UserDefinedInvalid,
@@ -626,6 +645,7 @@ class TestRegistry(TestCase):
                 )
             )
         kwargs["parameters"].pop()
+
         # Switching to the correct _impedance implementation
         kwargs["parameters"].append(
             ParameterDefinition(
@@ -638,31 +658,70 @@ class TestRegistry(TestCase):
                 fixed=False,
             )
         )
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             register_element(
                 ElementDefinition(
                     Class=UserDefined,
                     **kwargs,
                 )
             )
+
         # Fixing the equation but UserDefinedInvalid was successfully registered
         # when validate_impedances was set to False
         kwargs["equation"] = "R + X*I*f"
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(KeyError):
             register_element(
                 ElementDefinition(
                     Class=UserDefined,
                     **kwargs,
                 ),
             )
+
         # Removing the previous registration of UserDefinedInvalid
-        del _ELEMENTS[kwargs["symbol"]]
+        with self.assertRaises(KeyError):
+            register_element(
+                ElementDefinition(
+                    Class=UserDefined,
+                    **kwargs,
+                )
+            )
+
+        reset_registry()
         register_element(
             ElementDefinition(
                 Class=UserDefined,
                 **kwargs,
             )
         )
+
+        self.assertLess(len(get_elements(default_only=True)), len(get_elements()))
+
+        with self.assertRaises(ValueError):
+            remove_elements(Resistor)
+
+        with self.assertRaises(ValueError):
+            remove_elements([Resistor, Capacitor])
+
+        remove_elements(UserDefined)
+        self.assertEqual(len(get_elements(default_only=True)), len(get_elements()))
+
+    def test_reset_default_parameter_values(self):
+        self.assertAlmostEqual(Resistor.get_default_value("R"), 1000.0)
+        self.assertAlmostEqual(Capacitor.get_default_value("C"), 1.0e-6)
+
+        Resistor.set_default_values(R=5.3)
+        Capacitor.set_default_values(C=2.51e-3)
+        self.assertAlmostEqual(Resistor.get_default_value("R"), 5.3)
+        self.assertAlmostEqual(Capacitor.get_default_value("C"), 2.51e-3)
+
+        reset_default_parameter_values(elements=[Resistor])
+        self.assertAlmostEqual(Resistor.get_default_value("R"), 1000.0)
+        self.assertAlmostEqual(Capacitor.get_default_value("C"), 2.51e-3)
+
+        Resistor.set_default_values(R=42.0)
+        reset_default_parameter_values()
+        self.assertAlmostEqual(Resistor.get_default_value("R"), 1000.0)
+        self.assertAlmostEqual(Capacitor.get_default_value("C"), 1.0e-6)
 
 
 # TODO: Implement more tests

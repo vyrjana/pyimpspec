@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,11 +17,7 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    List,
-    Optional,
-    Type,
-)
+from pyimpspec.typing.helpers import List
 
 
 class ImpedanceError(Exception):
@@ -83,7 +79,7 @@ class InsufficientTokens(ParsingError):
 
 
 class UnexpectedToken(ParsingError):
-    def __init__(self, token, Class = None):
+    def __init__(self, token, Class=None):
         super().__init__(f"Unexpected token '{token.value}'!")
         self.token = token
         self.expected = Class

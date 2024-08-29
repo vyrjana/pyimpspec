@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@ from numpy.typing import NDArray
 from pyimpspec.exceptions import ZHITError
 from pyimpspec.typing import Phases
 from pyimpspec.progress import Progress
+from .modified_sinc import _smooth_like_savgol as modsinc
+from .whittaker_henderson import _smooth as whithend
 
 
 def _smooth_phase(
@@ -35,6 +37,7 @@ def _smooth_phase(
 ) -> Phases:
     if smoothing == "none":
         return phase
+
     elif smoothing == "savgol":
         from scipy.signal import savgol_filter
 
@@ -43,8 +46,15 @@ def _smooth_phase(
             window_length=num_points,
             polyorder=polynomial_order,
         )
+
     elif smoothing == "lowess":
-        from statsmodels.nonparametric.smoothers_lowess import lowess
+        try:
+            from statsmodels.nonparametric.smoothers_lowess import lowess
+        except ImportError:
+            raise ImportError(
+                "The optional dependency 'statsmodels' could not be imported! "
+                + "Consider installing the dependency if LOWESS smoothing is required."
+            )
 
         return lowess(
             phase,
@@ -53,6 +63,22 @@ def _smooth_phase(
             frac=num_points / len(phase),
             it=num_iterations,
         )
+
+    elif smoothing == "whithend":
+        return whithend(
+            phase,
+            degree=polynomial_order,
+            m=num_points,
+        )
+
+    elif smoothing == "modsinc":
+        return modsinc(
+            phase,
+            degree=polynomial_order,
+            m=num_points,
+            is_MS1=False,
+        )
+
     raise ZHITError(f"Unsupported smoothing: '{smoothing}'!")
 
 
@@ -66,9 +92,18 @@ def _generate_smoothing_options(
     prog: Progress,
 ) -> Dict[str, Phases]:
     prog.set_message("Smoothing phase data")
+
     smoothing_options: Dict[str, Phases] = {}
     for smoothing in (
-        ["none", "lowess", "savgol"] if smoothing == "auto" else [smoothing]
+        [
+            "none",
+            "lowess",
+            "modsinc",
+            "savgol",
+            "whithend",
+        ]
+        if smoothing == "auto"
+        else [smoothing]
     ):
         smoothing_options[smoothing] = _smooth_phase(
             smoothing,
@@ -79,4 +114,5 @@ def _generate_smoothing_options(
             phase_exp,
         )
         prog.increment()
+
     return smoothing_options

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -46,12 +46,14 @@ def _interpolate_phase(
 
     ln_omega = flip(ln_omega)
     phase = flip(phase)
+
     if interpolation == "akima":
         return Akima1DInterpolator(ln_omega, phase)
     elif interpolation == "cubic":
         return CubicSpline(ln_omega, phase)
     elif interpolation == "pchip":
         return PchipInterpolator(ln_omega, phase)
+
     raise ZHITError(f"Unsupported interpolation: '{interpolation}'!")
 
 
@@ -62,8 +64,10 @@ def _generate_interpolation_options(
     prog: Progress,
 ) -> Tuple[Dict[str, Dict[str, Callable]], Dict[str, Dict[str, Phases]]]:
     prog.set_message("Interpolating phase data")
+
     interpolation_options: Dict[str, Dict[str, Callable]] = {}
     simulated_phase: Dict[str, Dict[str, Phases]] = {}
+
     phase: Phases
     interpolator: Callable
     for interpolation in (
@@ -71,6 +75,7 @@ def _generate_interpolation_options(
     ):
         interpolation_options[interpolation] = {}
         simulated_phase[interpolation] = {}
+
         for smoothing, phase in smoothing_options.items():
             interpolator = _interpolate_phase(
                 interpolation,
@@ -78,8 +83,11 @@ def _generate_interpolation_options(
                 phase,
             )
             interpolation_options[interpolation][smoothing] = interpolator
+
             simulated_phase[interpolation][smoothing] = array(
                 list(map(interpolator, ln_omega))
             )
+
             prog.increment()
+
     return (interpolation_options, simulated_phase)

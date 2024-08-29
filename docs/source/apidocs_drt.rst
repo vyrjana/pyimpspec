@@ -16,37 +16,37 @@ Method functions and classes
 
 BHT method
 ~~~~~~~~~~
-.. automodule:: pyimpspec
+.. automodule:: pyimpspec.analysis.drt
    :members: calculate_drt_bht
 
-.. automodule:: pyimpspec
+.. automodule:: pyimpspec.analysis.drt
    :members: BHTResult
 
 
 m(RQ)fit method
 ~~~~~~~~~~~~~~~
-.. automodule:: pyimpspec
+.. automodule:: pyimpspec.analysis.drt
    :members: calculate_drt_mrq_fit
 
-.. automodule:: pyimpspec
+.. automodule:: pyimpspec.analysis.drt
    :members: MRQFitResult
 
 
 TR-NNLS method
 ~~~~~~~~~~~~~~
-.. automodule:: pyimpspec
+.. automodule:: pyimpspec.analysis.drt
    :members: calculate_drt_tr_nnls
 
-.. automodule:: pyimpspec
+.. automodule:: pyimpspec.analysis.drt
    :members: TRNNLSResult
 
 
 TR-RBF method
 ~~~~~~~~~~~~~
-.. automodule:: pyimpspec
+.. automodule:: pyimpspec.analysis.drt
    :members: calculate_drt_tr_rbf
 
-.. automodule:: pyimpspec
+.. automodule:: pyimpspec.analysis.drt
    :members: TRRBFResult
 
 .. raw:: latex

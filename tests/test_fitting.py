@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,13 +17,6 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-)
 from unittest import TestCase
 from lmfit.minimizer import MinimizerResult
 from numpy import (
@@ -31,7 +24,6 @@ from numpy import (
     angle,
     array,
     float64,
-    isnan,
 )
 from numpy.random import (
     seed,
@@ -52,11 +44,16 @@ from pyimpspec.analysis.fitting import validate_circuit
 from pyimpspec.typing import (
     ComplexImpedance,
     ComplexImpedances,
-    ComplexResiduals,
     Frequencies,
     Impedances,
     Phases,
     Residuals,
+)
+from pyimpspec.typing.helpers import (
+    Callable,
+    List,
+    Optional,
+    Tuple,
 )
 from pyimpspec import progress as PROGRESS
 from test_matplotlib import (
@@ -334,9 +331,7 @@ class Fitting(TestCase):
             )
             self.assertEqual(
                 columns[6],
-                "Yes"
-                if self.result.parameters[columns[1]][columns[2]].fixed is True
-                else "No",
+                "Yes" if self.result.parameters[columns[1]][columns[2]].fixed else "No",
             )
             i += 1
         markdown: str = self.result.to_parameters_dataframe(running=True).to_markdown()
@@ -403,7 +398,6 @@ class Fitting(TestCase):
                 if self.result.parameters[columns[1].replace(r"\_", "_")][
                     columns[2]
                 ].fixed
-                is True
                 else "No",
             )
             i += 1
@@ -415,7 +409,7 @@ class Fitting(TestCase):
     def test_circuit_validation(self):
         self.assertEqual(validate_circuit(parse_cdc("RR")), None)
         self.assertEqual(validate_circuit(parse_cdc("R{:a}R{:b}")), None)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             validate_circuit(parse_cdc("R{:a}R{:a}"))
 
     def test_labeled_elements(self):
@@ -435,5 +429,5 @@ class Fitting(TestCase):
             check_mpl_return_values(self, *plotter(data=self.result))
         check_mpl_return_values(self, *mpl.plot_residuals(self.result))
         check_mpl_return_values(self, *mpl.plot_fit(self.result, data=DATA))
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(AttributeError):
             mpl.plot_fit(DATA, data=DATA)

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,38 +19,43 @@
 
 from pyimpspec.data import DataSet
 from pyimpspec.analysis import (
-    TestResult,
+    KramersKronigResult,
     FitResult,
 )
 from pyimpspec.analysis.drt import DRTResult
-from typing import (
+from pyimpspec.typing.helpers import (
     Dict,
     List,
     Optional,
     Tuple,
     Union,
+    _is_boolean,
 )
 from pyimpspec.plot.colors import (
     COLOR_BLUE,
     COLOR_ORANGE,
 )
-from pyimpspec.plot.mpl.markers import (
+from .markers import (
     MARKER_CIRCLE,
     MARKER_SQUARE,
 )
-from pyimpspec.plot.mpl.utility import (
+from .helpers import (
     _color_axis,
     _combine_legends,
     _configure_log_limits,
     _configure_log_scale,
+    _format_coord_two_y_axes,
+    _initialize_figure,
+    _validate_figure,
 )
 from .magnitude import plot_magnitude
 from .phase import plot_phase
 
 
 def plot_bode(
-    data: Union[DataSet, TestResult, FitResult, DRTResult],
+    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult],
     label: Optional[str] = None,
+    admittance: bool = False,
     colors: Optional[Dict[str, str]] = None,
     markers: Optional[Dict[str, str]] = None,
     line: bool = False,
@@ -67,11 +72,14 @@ def plot_bode(
 
     Parameters
     ----------
-    data: Union[DataSet, TestResult, FitResult, DRTResult]
+    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult]
         The data to plot.
 
     label: Optional[str], optional
         The optional label to use in the legend.
+
+    admittance: bool, optional
+        Plot the admittance representation of the immittance data.
 
     colors: Optional[Dict[str, str]], optional
         The colors of the markers or lines. Valid keys: 'magnitude', 'phase'.
@@ -83,7 +91,7 @@ def plot_bode(
         Whether or not lines should be used instead of markers.
 
     num_per_decade: int, optional
-        If the data being plotted is not a DataSet instance (e.g. a TestResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
+        If the data being plotted is not a DataSet instance (e.g. a KramersKronigResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
 
     figure: Optional[|Figure|], optional
         The matplotlib.figure.Figure instance to use when plotting the data.
@@ -106,46 +114,54 @@ def plot_bode(
     -------
     Tuple[|Figure|, List[|Axes|]]
     """
-    import matplotlib.pyplot as plt
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
-
-    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
-    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
-    if colors is None:
-        colors = {}
-    if markers is None:
-        markers = {}
-    assert isinstance(colors, dict), colors
-    assert isinstance(markers, dict), markers
-    assert isinstance(line, bool), line
-    assert isinstance(label, str) or label is None, label
-    assert isinstance(legend, bool), legend
-    assert isinstance(colored_axes, bool), colored_axes
-    assert isinstance(figure, Figure) or figure is None, figure
     if figure is None:
-        assert axes is None
-        axis: Axes
-        figure, axis = plt.subplots()
-        axes = [axis, axis.twinx()]
-    assert isinstance(axes, list), axes
-    assert len(axes) == 2, axes
-    assert all(map(lambda _: isinstance(_, Axes), axes))
-    mag_suffix: str = r"Mod($Z$)"
-    phase_suffix: str = r"Phase($Z$)"
+        figure, axes = _initialize_figure(num_rows=1, num_cols=1)
+        axes = [axes[0], axes[0].twinx()]
+    assert axes is not None
+
+    _validate_figure(figure, axes, num_axes=2)
+
     if label is None:
         if hasattr(data, "get_label") and callable(data.get_label):
             label = data.get_label()
         else:
             label = ""
-    label_1: str = f"{label}, {mag_suffix}" if label != "" else mag_suffix
-    label_2: str = f"{label}, {phase_suffix}" if label != "" else phase_suffix
+    elif not isinstance(label, str):
+        raise TypeError(f"Expected a string or None instead of {label=}")
+
+    if not _is_boolean(admittance):
+        raise TypeError(f"Expected a boolean instead of {admittance=}")
+
+    mag_suffix: str = r"Mod($Y$)" if admittance else r"Mod($Z$)"
+    phase_suffix: str = r"Phase($Y$)" if admittance else r"Phase($Z$)"
+
+    if colors is None:
+        colors = {}
+    elif not isinstance(colors, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {colors=}")
     color_magnitude: str = colors.get("magnitude", COLOR_BLUE)
     color_phase: str = colors.get("phase", COLOR_ORANGE)
+
+    if markers is None:
+        markers = {}
+    elif not isinstance(markers, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {markers=}")
     marker_magnitude: str = markers.get("magnitude", MARKER_CIRCLE)
     marker_phase: str = markers.get("phase", MARKER_SQUARE)
+
+    if not _is_boolean(legend):
+        raise TypeError(f"Expected a boolean instead of {legend=}")
+
+    label_1: str = (
+        f"{label}, {mag_suffix}" if label != "" else (mag_suffix if legend else "")
+    )
+    label_2: str = (
+        f"{label}, {phase_suffix}" if label != "" else (phase_suffix if legend else "")
+    )
+
     plot_magnitude(
         data,
+        admittance=admittance,
         colors={
             "magnitude": color_magnitude,
         },
@@ -162,6 +178,7 @@ def plot_bode(
     )
     plot_phase(
         data,
+        admittance=admittance,
         colors={
             "phase": color_phase,
         },
@@ -176,15 +193,27 @@ def plot_bode(
         adjust_axes=adjust_axes,
         num_per_decade=num_per_decade,
     )
-    if adjust_axes:
+
+    if not _is_boolean(adjust_axes):
+        raise TypeError(f"Expected a boolean instead of {adjust_axes=}")
+    elif adjust_axes:
         _configure_log_scale(axes[0], x=True, y=True)
         _configure_log_limits(axes[0], x=True, y=True)
-    if legend is True:
+        axes[1].format_coord = _format_coord_two_y_axes(
+            ax1=axes[0],
+            ax2=axes[1],
+        )
+
+    if legend:
         axes[1].legend(*_combine_legends(axes))
-    if colored_axes is True:
+
+    if not _is_boolean(colored_axes):
+        raise TypeError(f"Expected a boolean instead of {colored_axes=}")
+    elif colored_axes:
         _color_axis(axes[0], color_magnitude, left=True)
         _color_axis(axes[1], color_magnitude, left=True)
         _color_axis(axes[1], color_phase, right=True)
+
     return (
         figure,
         axes,

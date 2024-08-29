@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -85,7 +85,9 @@ class TestArguments(TestCase):
             "config",
             "show",
         ]
+
         COMMAND_LINE_ARGUMENTS.update({_: [] for _ in cls.commands})
+
         cls.parser: ArgumentParser = get_argument_parser()
         cls.parsers: Dict[str, Callable] = {
             "parse": lambda *a: cls.parser.parse_args(["parse", *a]),
@@ -114,18 +116,23 @@ class TestArguments(TestCase):
             set(),
             msg=set(self.parsers.keys()) - set(skip),
         )
+
         command: str
         parser: Callable
         for command, parser in self.parsers.items():
             if command in skip:
                 continue
+
             args: Namespace
             # Defaults
             args = parser(*self.data_paths)
+
             self.assertTrue(args.input == self.data_paths)
             self.assertEqual(args.low_pass_cutoff, -1.0)
             self.assertEqual(args.high_pass_cutoff, -1.0)
+
             COMMAND_LINE_ARGUMENTS[command].append(args)
+
             for args in [
                 # Long names
                 parser(
@@ -147,6 +154,7 @@ class TestArguments(TestCase):
                 self.assertTrue(args.input == self.data_paths)
                 self.assertEqual(args.low_pass_cutoff, 7.1e3)
                 self.assertEqual(args.high_pass_cutoff, 5.21)
+
             COMMAND_LINE_ARGUMENTS[command].append(args)
 
     def test_output(self):
@@ -164,10 +172,12 @@ class TestArguments(TestCase):
         for command, parser in self.parsers.items():
             if command in skip:
                 continue
+
             paths: List[str] = self.data_paths if command != "circuit" else []
             args: Namespace
             # Defaults
             args = parser(*paths)
+
             if command != "circuit":
                 self.assertTrue(args.input == self.data_paths)
             self.assertEqual(args.output, False)
@@ -175,7 +185,9 @@ class TestArguments(TestCase):
             self.assertEqual(args.output_name, [""])
             self.assertEqual(args.output_significant_digits, 6)
             self.assertEqual(args.output_dir, ".")
+
             COMMAND_LINE_ARGUMENTS[command].append(args)
+
             for args in [
                 # Long names
                 parser(
@@ -211,6 +223,7 @@ class TestArguments(TestCase):
                 self.assertEqual(args.output_name, ["foo"])
                 self.assertEqual(args.output_significant_digits, 3)
                 self.assertEqual(args.output_dir, self.output_dir)
+
             COMMAND_LINE_ARGUMENTS[command].append(args)
 
     def test_plot(self):
@@ -229,10 +242,12 @@ class TestArguments(TestCase):
         for command, parser in self.parsers.items():
             if command in skip:
                 continue
+
             paths: List[str] = self.data_paths if command != "circuit" else []
             args: Namespace
             # Defaults
             args = parser(*paths)
+
             if command != "circuit":
                 self.assertTrue(args.input == self.data_paths)
             self.assertEqual(args.plot_width, "12.8in")
@@ -246,6 +261,7 @@ class TestArguments(TestCase):
             self.assertEqual(args.plot_color, [])
             self.assertEqual(args.plot_marker, [])
             COMMAND_LINE_ARGUMENTS[command].append(args)
+
             for args in [
                 # Long names
                 parser(
@@ -285,7 +301,7 @@ class TestArguments(TestCase):
                     "-po",
                     "-pnl",
                     "-pca",
-                    "-pt",
+                    "-pT",
                     "-pc",
                     "black",
                     "blue",
@@ -308,6 +324,7 @@ class TestArguments(TestCase):
                 self.assertEqual(args.plot_title, True)
                 self.assertEqual(args.plot_color, ["black", "blue", "red"])
                 self.assertEqual(args.plot_marker, ["o", "s", "+"])
+
             COMMAND_LINE_ARGUMENTS[command].append(args)
 
 
@@ -339,18 +356,18 @@ class TestPlot(TestCase):
         parser: Callable = lambda *a: self.parser.parse_args(
             ["plot", *self.data_paths, *a]
         )
-        args: Namespace = parser("--type", "bode")
-        self.assertEqual(args.type, "bode")
+        args: Namespace = parser("--plot-type", "bode")
+        self.assertEqual(args.plot_type, "bode")
         COMMAND_LINE_ARGUMENTS["plot"].extend(
             [
                 args,
-                parser("-t", "nyquist"),
-                parser("-t", "data"),
-                parser("-t", "magnitude"),
-                parser("-t", "phase"),
-                parser("-t", "complex"),
-                parser("-t", "real"),
-                parser("-t", "imaginary"),
+                parser("-pt", "nyquist"),
+                parser("-pt", "data"),
+                parser("-pt", "magnitude"),
+                parser("-pt", "phase"),
+                parser("-pt", "real-imaginary"),
+                parser("-pt", "real"),
+                parser("-pt", "imaginary"),
             ]
         )
         for args in COMMAND_LINE_ARGUMENTS["plot"]:
@@ -379,32 +396,66 @@ class TestTest(TestCase):
         short: str
         dest: str
         value: Any
-        for (long, short, dest, value) in [
+        for long, short, dest, value in [
             ("--num-RC", "-n", "num_RC", 6),
-            ("--automatic", "-a", "automatic", True),
             ("--max-num-RC", "-N", "max_num_RC", 8),
-            ("--mu-criterion", "-u", "mu_criterion", 0.3),
-            ("--add-capacitance", "-C", "add_capacitance", True),
-            ("--add-inductance", "-L", "add_inductance", True),
-            ("--test", "-t", "test", "cnls"),
-            ("--method", "-me", "method", "least_squares"),
-            ("--max-nfev", "", "max_nfev", 3),
-            ("--num-procs", "", "num_procs", 2),
+            ("--mu-criterion", "--mu-criterion", "mu_criterion", 0.3),
+            ("--beta", "--beta", "beta", 0.91),
+            ("--suggestion-methods", "-sm", "suggestion_methods", [3]),
+            ("--mean", "--mean", "use_mean", True),
+            ("--sum", "--sum", "use_sum", True),
+            ("--ranking", "--ranking", "use_ranking", True),
+            ("--no-capacitance", "-C", "no_capacitance", True),
+            ("--no-inductance", "-L", "no_inductance", True),
+            ("--admittance", "-Y", "admittance", True),
+            ("--impedance", "-Z", "impedance", True),
+            ("--min-log-F-ext", "-mlFe", "min_log_F_ext", -0.4),
+            ("--max-log-F-ext", "-MlFe", "max_log_F_ext", 0.6),
+            ("--log-F-ext", "-lFe", "log_F_ext", 0.1),
+            ("--num-F-ext-evaluations", "-nFee", "num_F_ext_evaluations", 15),
+            (
+                "--no-rapid-F-ext-evaluations",
+                "-nrFe",
+                "no_rapid_F_ext_evaluations",
+                True,
+            ),
+            ("--lower-limit", "-ll", "lower_limit", 2),
+            ("--upper-limit", "-ul", "upper_limit", 12),
+            ("--test", "-t", "test", "real"),
+            ("--cnls-method", "--cnls-method", "cnls_method", "least_squares"),
+            ("--max-nfev", "--max-nfev", "max_nfev", 2),
+            ("--timeout", "-T", "timeout", 32),
+            ("--num-procs", "--num-procs", "num_procs", 3),
+            ("--plot-pseudo-chi-squared", "-ppcs", "plot_pseudo_chi_squared", True),
+            ("--plot-moving-average-width", "-pmaw", "moving_average_width", 7),
+            ("--plot-immittance", "-pX", "plot_immittance", True),
+            ("--plot-estimated-noise", "-pen", "plot_estimated_noise", True),
+            ("--plot-log-F-ext-3d", "-plFe3d", "plot_log_F_ext_3d", True),
+            ("--plot-log-F-ext-2d", "-plFe2d", "plot_log_F_ext_2d", True),
         ]:
             args_long: Namespace
             if isinstance(value, bool):
                 args_long = parser(long)
+            elif isinstance(value, list):
+                args_long = parser(long, " ".join((str(v) for v in value)))
             else:
                 args_long = parser(long, str(value))
+
             self.assertEqual(getattr(args_long, dest), value)
+
             if short != "":
                 args_short: Namespace
                 if isinstance(value, bool):
                     args_short = parser(short)
+                elif isinstance(value, list):
+                    args_short = parser(short, " ".join((str(v) for v in value)))
                 else:
                     args_short = parser(short, str(value))
+
                 self.assertEqual(getattr(args_long, dest), getattr(args_short, dest))
+
             COMMAND_LINE_ARGUMENTS["test"].append(args_long)
+
         args: Namespace
         for args in COMMAND_LINE_ARGUMENTS["test"]:
             lines: List[str] = []
@@ -432,15 +483,15 @@ class TestZHIT(TestCase):
         short: str
         dest: str
         value: Any
-        for (long, short, dest, value) in [
-            ("--type", "-t", "type", "nyquist"),
+        for long, short, dest, value in [
+            ("--plot-type", "-pt", "plot_type", "nyquist"),
             ("--smoothing", "-s", "smoothing", "savgol"),
             ("--interpolation", "-i", "interpolation", "cubic"),
             ("--window", "-w", "weights_window", "hann"),
             ("--window-center", "-wc", "weights_center", 2.0),
             ("--window-width", "-ww", "weights_width", 1.0),
             ("--num-points", "-np", "num_points", 3),
-            ("--polynomial-order", "-p", "polynomial_order", 1),
+            ("--polynomial-order", "-p", "polynomial_order", 2),
             ("--num-iterations", "-ni", "num_iterations", 5),
             ("--num-procs", "", "num_procs", 2),
         ]:
@@ -486,7 +537,7 @@ class TestDRT(TestCase):
         short: str
         dest: str
         value: Any
-        for (long, short, dest, value) in [
+        for long, short, dest, value in [
             ("--method", "-me", "method", "tr-rbf"),
             ("--mode", "-mo", "mode", "real"),
             ("--lambda-value", "-lv", "lambda_value", 1e-5),
@@ -549,7 +600,7 @@ class TestFit(TestCase):
         short: str
         dest: str
         value: Any
-        for (long, short, dest, value) in [
+        for long, short, dest, value in [
             ("--method", "-me", "method", "least_squares"),
             ("--weight", "-we", "weight", "proportional"),
             ("--max-nfev", "", "max_nfev", 5),
@@ -591,7 +642,7 @@ class TestCircuit(TestCase):
         short: str
         dest: str
         value: Any
-        for (long, short, dest, value) in [
+        for long, short, dest, value in [
             # ("circuit", "", "circuit", []),
             # ("--element", "-e", "element", []),
             ("--simulate", "-s", "simulate", True),
@@ -604,7 +655,7 @@ class TestCircuit(TestCase):
             ("--left-terminal-label", "-ltl", "left_terminal_label", "LEFT"),
             ("--right-terminal-label", "-rtl", "right_terminal_label", "RIGHT"),
             ("--hide-labels", "-H", "hide_labels", True),
-            ("--type", "-t", "plot_type", "phase"),
+            ("--plot-type", "-pt", "plot_type", "phase"),
             ("--sympy", "-S", "sympy", True),
             ("--latex", "-L", "latex", True),
             ("--running-count", "-rc", "running_count", True),
@@ -645,7 +696,7 @@ class TestConfig(TestCase):
         short: str
         dest: str
         value: Any
-        for (long, short, dest, value) in [
+        for long, short, dest, value in [
             ("--save", "", "save_file", True),
             ("--update", "", "update_file", True),
         ]:

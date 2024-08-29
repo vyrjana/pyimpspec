@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,18 +51,30 @@ def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
     derivator: Any
     smoothing: str
     interpolation: str
-    (ln_omega, interpolator, derivator, smoothing, interpolation) = args
+    admittance: bool
+    (
+        ln_omega,
+        interpolator,
+        derivator,
+        smoothing,
+        interpolation,
+        admittance,
+    ) = args
+
     ln_modulus = []
     ln_w_s: float = ln_omega[0]
+    gamma = -pi / 6
+
     i: int
     ln_w_0: float
     for i, ln_w_0 in enumerate(ln_omega):
-        gamma = -pi / 6
         attempts: int = 10
         epsabs: float = 1e-9
         limit: int = 100
+
         with catch_warnings():
             filterwarnings("error", category=IntegrationWarning)
+
             while True:
                 try:
                     integral = quad(
@@ -73,6 +85,7 @@ def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
                         limit=limit,
                     )[0]
                     break
+
                 except IntegrationWarning as e:
                     attempts -= 1
                     if attempts <= 0:
@@ -85,11 +98,16 @@ def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
                     else:
                         print(e)
                         break
+
         derivative = derivator(ln_w_0)
         if isnan(derivative):
             derivative = 0
-        mod: float = 2 / pi * integral + gamma * derivative
-        ln_modulus.append(mod)
+
+        if admittance:
+            ln_modulus.append(-(-2 / pi * integral - gamma * derivative))
+        else:
+            ln_modulus.append(2 / pi * integral + gamma * derivative)
+
     return (array(ln_modulus), smoothing, interpolation)
 
 
@@ -97,12 +115,15 @@ def _reconstruct_modulus_data(
     interpolation_options: Dict[str, Dict[str, Any]],
     simulated_phase: Dict[str, Dict[str, Phases]],
     ln_omega: NDArray[float64],
+    admittance: bool,
     num_procs: int,
     prog: Progress,
 ) -> List[Tuple[NDArray[float64], Phases, str, str]]:
     prog.set_message("Reconstructing modulus data")
+
     reconstructions: List[Tuple[NDArray[float64], Phases, str, str]] = []
-    args: List[Tuple[NDArray[float64], Any, Any, str, str]] = []
+    args: List[Tuple[NDArray[float64], Any, Any, str, str, bool]] = []
+
     interpolation: str
     for interpolation in interpolation_options:
         smoothing: str
@@ -115,12 +136,14 @@ def _reconstruct_modulus_data(
                     interpolator.derivative(1),
                     smoothing,
                     interpolation,
+                    admittance,
                 )
             )
+
     ln_modulus: NDArray[float64]
     if len(args) > 1 and num_procs > 1:
         with Pool(num_procs) as pool:
-            for (ln_modulus, smoothing, interpolation) in pool.imap_unordered(
+            for ln_modulus, smoothing, interpolation in pool.imap_unordered(
                 _reconstruct,
                 args,
             ):
@@ -133,8 +156,9 @@ def _reconstruct_modulus_data(
                     )
                 )
                 prog.increment()
+
     else:
-        for (ln_modulus, smoothing, interpolation) in map(_reconstruct, args):
+        for ln_modulus, smoothing, interpolation in map(_reconstruct, args):
             reconstructions.append(
                 (
                     ln_modulus,
@@ -144,4 +168,5 @@ def _reconstruct_modulus_data(
                 )
             )
             prog.increment()
+
     return reconstructions

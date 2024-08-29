@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,6 +48,7 @@ from pyimpspec.typing import (
     Frequencies,
     Indices,
 )
+from pyimpspec.typing.helpers import _is_boolean
 
 
 class Parallel(Connection):
@@ -67,6 +68,7 @@ class Parallel(Connection):
                 self,
             )
         )
+
         for element in self._elements:
             if isinstance(element, Connection):
                 element.to_stack(stack)
@@ -77,6 +79,7 @@ class Parallel(Connection):
                         element,
                     )
                 )
+
         stack.append(
             (
                 ")",
@@ -97,9 +100,11 @@ class Parallel(Connection):
     def _impedance(self, f: Frequencies) -> ComplexImpedances:
         if not self._elements:
             return complex(0, 0) * f
+
         shorted: NDArray[bool_] = full(f.shape, False, dtype=bool_)
         path_impedances: List[ComplexImpedances] = []
         num_open_paths: int = 0
+
         elem_con: Union[Element, Connection]
         for elem_con in self._elements:
             # Calculate the impedances of this element/connection at all of the
@@ -118,6 +123,7 @@ class Parallel(Connection):
                 )
             else:  # Connection
                 Z = elem_con._impedance(f)
+
             # Check for open paths.
             inf_indices: Indices = where(isinf(Z))[0]
             if inf_indices.size == f.size:
@@ -132,6 +138,7 @@ class Parallel(Connection):
                 # are probably caused by some bug in the implementation
                 # of an element or connection.
                 raise InfiniteImpedance()
+
             # Check for shorted paths.
             zero_indices: Indices = where(Z == 0.0)[0]
             if zero_indices.size == f.size:
@@ -144,21 +151,29 @@ class Parallel(Connection):
                 shorted[zero_indices] = True
                 if shorted.all():
                     return complex(0, 0) * f
+
             path_impedances.append(Z)
+
         if shorted.all():
             return complex(0, 0) * f
         elif num_open_paths == len(self._elements):
             raise InfiniteImpedance()
+
         results: ComplexImpedances = zeros(f.shape, dtype=ComplexImpedance)
+
         if shorted.any():
-            non_shorted_indices: Indices = where(shorted is False)[0]
+            non_shorted_indices: Indices = where(~shorted)[0]
+
             for Z in path_impedances:
                 results[non_shorted_indices] += 1 / Z[non_shorted_indices]
+
             results[non_shorted_indices] = 1 / results[non_shorted_indices]
         else:
             for Z in path_impedances:
                 results += 1 / Z
+
             results = 1 / results
+
         return results
 
     def to_sympy(
@@ -167,12 +182,19 @@ class Parallel(Connection):
         identifiers: Optional[Dict[Element, int]] = None,
     ) -> Expr:
         expr: Expr = sympify("0")
+
         if not self._elements:
             return expr
-        assert isinstance(substitute, bool), substitute
+
+        if not _is_boolean(substitute):
+            raise TypeError(f"Expected a boolean instead of {substitute=}")
+
         if identifiers is None:
             identifiers = self.generate_element_identifiers(running=False)
-        assert isinstance(identifiers, dict), identifiers
+
+        if not isinstance(identifiers, dict):
+            raise TypeError(f"Expected identifiers to be a dictionary instead of {identifiers=}")
+
         for element in self._elements:
             if isinstance(element, Container) or isinstance(element, Connection):
                 expr += 1 / element.to_sympy(
@@ -182,4 +204,5 @@ class Parallel(Connection):
                 expr += 1 / element.to_sympy(
                     substitute=substitute, identifier=identifiers[element]
                 )
+
         return 1 / expr

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@ from typing import (
     List,
 )
 from pyimpspec.plot import mpl
-from pyimpspec.plot.mpl.utility import (
+from pyimpspec.plot.mpl.helpers import (
     _UNFILLED_MARKERS as UNFILLED_MARKERS,
     _get_marker_color_args,
 )
@@ -49,7 +49,7 @@ def check_mpl_return_values(self, figure, axes):
 primitive_mpl_plotters: List[Callable] = [
     mpl.plot_real,
     mpl.plot_imaginary,
-    mpl.plot_complex,
+    mpl.plot_real_imaginary,
     mpl.plot_magnitude,
     mpl.plot_phase,
     mpl.plot_bode,

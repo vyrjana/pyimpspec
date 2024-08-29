@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,68 +17,71 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    List,
-    IO,
-)
-from os import (
-    makedirs,
-    walk,
-)
-from os.path import (
-    exists,
-    isfile,
-    isdir,
-    join,
-)
+from pathlib import Path
 from shutil import rmtree
+from typing import (
+    IO,
+    List,
+)
 
 
-def update_file(src: str, dst: str):
-    if not isfile(src):
+PARENT_DIRECTORY: Path = Path(__file__).parent
+
+
+def update_file(src: Path, dst: Path):
+    if not src.is_file():
         return
+
     src_contents: str = ""
+    
     fp: IO
     with open(src, "r") as fp:
         src_contents = fp.read()
-    if isfile(dst):
+    
+    if dst.is_file():
         with open(dst, "r") as fp:
             if fp.read() == src_contents:
                 return
+    
     with open(dst, "w") as fp:
         fp.write(src_contents)
 
 
-def copy_additional_files(files):
-    src_dir: str = "."
-    dst_dir: str = join(".", "src", "pyimpspec")
-    licenses_dir: str = join(dst_dir, "LICENSES")
-    if not isdir(licenses_dir):
-        makedirs(licenses_dir)
-    path: str
+def copy_additional_files(files: List[Path]):
+    src_dir: Path = PARENT_DIRECTORY
+    dst_dir: Path = src_dir.joinpath("src", "pyimpspec")
+    licenses_dir: Path = dst_dir.joinpath("LICENSES")
+    if not licenses_dir.is_dir():
+        licenses_dir.mkdir(parents=True)
+    
+    path: Path
     for path in files:
-        update_file(join(src_dir, path), join(dst_dir, path))
+        update_file(src_dir.joinpath(path), dst_dir.joinpath(path))
 
 
 if __name__ == "__main__":
-    data_files: List[str] = [
+    data_files: List[Path] = list(map(Path, (
         "CHANGELOG.md",
         "CONTRIBUTORS",
         "COPYRIGHT",
         "LICENSE",
         "README.md",
-    ]
-    files: List[str]
-    for _, _, files in walk("LICENSES"):
-        data_files.extend(map(lambda _: join("LICENSES", _), files))
-        break
-    assert all(map(lambda _: isfile(_), data_files))
+    )))
+    
+    path: Path
+    for path in PARENT_DIRECTORY.joinpath("LICENSES").glob("*"):
+        data_files.append(path)
+    
+    assert all(map(lambda path: path.is_file(), data_files))
+    
     copy_additional_files(data_files)
+    
     # Remove old dist files
-    dist_output: str = "./dist"
-    if exists(dist_output):
+    dist_output: Path = PARENT_DIRECTORY.joinpath("dist")
+    if dist_output.is_dir():
         rmtree(dist_output)
+    
     # Remove old documentation files to force a rebuild
-    docs_output: str = "./docs/build"
-    if exists(docs_output):
+    docs_output: Path = PARENT_DIRECTORY.joinpath("docs", "build")
+    if docs_output.is_dir():
         rmtree(docs_output)

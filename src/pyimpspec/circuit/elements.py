@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +30,10 @@ from .inductor import (
     Inductor,
     ModifiedInductor,
 )
-from .kramers_kronig import KramersKronigRC
+from .kramers_kronig import (
+    KramersKronigRC,
+    KramersKronigAdmittanceRC,
+)
 from .resistor import Resistor
 from .transmission_line_model import (
     TransmissionLineModel,
@@ -46,10 +49,12 @@ from .warburg import (
     WarburgOpen,
     WarburgShort,
 )
+from .zarc import ZARC
 
 # Enable validation for user-defined elements that may be registered once
 # pyimpspec has been imported. The non-user-defined elements are validated
 # as part of the unit tests to reduce the amount of time it takes to import
 # pyimpspec.
 import pyimpspec.circuit.registry as _registry
-_registry._VALIDATE_IMPEDANCES = True
+
+_registry._initialized()

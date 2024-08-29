@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -58,7 +58,9 @@ def parse_cdc(cdc: str) -> Circuit:
     -------
     Circuit
     """
-    assert isinstance(cdc, str), cdc
+    if not isinstance(cdc, str):
+        raise TypeError(f"Expected a string instead of {cdc=}")
+
     return Parser().process(cdc)
 
 
@@ -86,11 +88,17 @@ def simulate_spectrum(
     -------
     DataSet
     """
-    assert isinstance(circuit, Circuit), circuit
-    assert isinstance(label, str), label
+    if not isinstance(circuit, Circuit):
+        raise TypeError(f"Expected a Circuit instead of {circuit=}")
+
+    if not isinstance(label, str):
+        raise TypeError(f"Expected a string instead of {label=}")
+
     if frequencies is None or len(frequencies) == 0:
         frequencies = logspace(5, -2, 71)
     elif not isinstance(frequencies, ndarray):
         frequencies = array(frequencies, dtype=Frequency)
+
     Z: ComplexImpedances = circuit.get_impedances(frequencies)
+
     return DataSet(frequencies=frequencies, impedances=Z, label=label)

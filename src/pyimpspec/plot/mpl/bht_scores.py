@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,18 +18,21 @@
 # the LICENSES folder.
 
 from pyimpspec.analysis.drt import BHTResult
-from typing import (
+from pyimpspec.typing.helpers import (
     Dict,
     List,
     Optional,
     Tuple,
+    _is_boolean,
 )
 from pyimpspec.plot.colors import (
     COLOR_MAGENTA,
     COLOR_TEAL,
 )
+from .helpers import (_initialize_figure, _validate_figure,)
 
 
+# TODO: Remove as it seems to be unused
 def plot_bht_scores(
     drt: BHTResult,
     colors: Optional[Dict[str, str]] = None,
@@ -76,34 +79,28 @@ def plot_bht_scores(
     -------
     Tuple[|Figure|, List[|Axes|]]
     """
-    import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
     from pandas import DataFrame
 
-    assert hasattr(drt, "to_scores_dataframe") and callable(
-        drt.to_scores_dataframe
-    ), drt
+    if figure is None:
+        figure, axes = _initialize_figure(num_rows=1, num_cols=1)
+    assert axes is not None
+
+    _validate_figure(figure, axes, num_axes=1)
+    axis: Axes = axes[0]
+
+    if not (isinstance(title, str) or title is None):
+        raise TypeError(f"Expected a string or None instead of {title=}")
+    elif title:
+        figure.suptitle(title)
+
     if colors is None:
         colors = {}
-    assert isinstance(colors, dict), colors
-    assert isinstance(title, str) or title is None, title
-    assert isinstance(legend, bool), legend
-    assert isinstance(figure, Figure) or figure is None, figure
-    assert isinstance(adjust_axes, bool), adjust_axes
-    axis: Axes
-    if figure is None:
-        assert axes is None
-        figure, axis = plt.subplots()
-        axes = [axis]
-        if title:
-            figure.suptitle(title)
-    assert isinstance(axes, list), axes
-    assert len(axes) == 1, axes
-    assert all(map(lambda _: isinstance(_, Axes), axes))
-    axis = axes[0]
+    elif not isinstance(colors, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {colors=}")
     color_real: str = colors.get("real", COLOR_TEAL)
     color_imaginary: str = colors.get("imaginary", COLOR_MAGENTA)
+
     df: DataFrame = drt.to_scores_dataframe(
         columns=[
             r"Score",
@@ -119,10 +116,15 @@ def plot_bht_scores(
             r"$s_{\rm JSD}$",
         ],
     )
-    assert isinstance(df, DataFrame), type(df)
+    if not isinstance(df, DataFrame):
+        raise TypeError(
+            f"Expected df.to_scores_dataframe to return a {DataFrame=} instead of {df=}"
+        )
+
     width: float = 0.5
     ticks: List[float] = []
     ticklabels: List[str] = []
+
     i: int
     label: str
     real: float
@@ -133,14 +135,21 @@ def plot_bht_scores(
         axis.bar(x + width / 2, imag, width=width, color=color_imaginary)
         ticks.append(x)
         ticklabels.append(label)
-    if legend is True:
+
+    if not _is_boolean(legend):
+        raise TypeError(f"Expected a boolean instead of {legend=}")
+    elif legend:
         axis.bar(0.0, -1.0, width=0.0, color=color_real, label="Real")
         axis.bar(0.0, -1.0, width=0.0, color=color_imaginary, label="Imag.")
         axis.legend()
-    if label_bars is True:
+
+    if not _is_boolean(label_bars):
+        raise TypeError(f"Expected a boolean instead of {label_bars=}")
+    elif label_bars:
         for i, bar in enumerate(axis.patches):
             if bar.get_height() < 0.0:
                 continue
+
             axis.text(
                 bar.get_x() + bar.get_width() / 2,
                 bar.get_height() + 3.0,
@@ -148,13 +157,17 @@ def plot_bht_scores(
                 ha="center",
                 va="bottom",
             )
-    if adjust_axes is True:
+
+    if not _is_boolean(adjust_axes):
+        raise TypeError(f"Expected a boolean instead of {adjust_axes=}")
+    elif adjust_axes:
         axis.grid(axis="y")
         axis.set_xlabel("")
         axis.set_xticks(ticks)
         axis.set_xticklabels(ticklabels)
         axis.set_ylabel("Score (%)")
         axis.set_ylim(0.0, 120.0 if label_bars else 100.0)
+
     return (
         figure,
         axes,

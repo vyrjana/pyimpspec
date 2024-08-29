@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,21 +17,25 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from os.path import exists
-from typing import List
 from pyimpspec.data.data_set import (
     DataSet,
     dataframe_to_data_sets,
 )
+from pyimpspec.typing.helpers import (
+    List,
+    Path,
+    Union,
+)
+from .helpers import _validate_path
 
 
-def parse_csv(path: str, **kwargs) -> List[DataSet]:
+def parse_csv(path: Union[str, Path], **kwargs) -> List[DataSet]:
     """
     Parse a file containing data as character-separated values.
 
     Parameters
     ----------
-    path: str
+    path: Union[str, pathlib.Path]
         The path to the file to process.
 
     **kwargs
@@ -46,13 +50,15 @@ def parse_csv(path: str, **kwargs) -> List[DataSet]:
         read_csv,
     )
 
-    assert isinstance(path, str) and exists(path), path
+    _validate_path(path)
+
     df: DataFrame
     try:
         df = read_csv(path, engine="python", **kwargs)
     except UnicodeDecodeError:
         kwargs["encoding"] = "latin-1"
         df = read_csv(path, engine="python", **kwargs)
+
     if len(df.columns) == 1:
         separators: List[str] = [
             "\t",
@@ -60,7 +66,9 @@ def parse_csv(path: str, **kwargs) -> List[DataSet]:
             ";",
             ",",
         ]
+
         while len(df.columns) == 1:
             kwargs["sep"] = separators.pop(0)
             df = read_csv(path, engine="python", **kwargs)
+
     return dataframe_to_data_sets(df, path=path)

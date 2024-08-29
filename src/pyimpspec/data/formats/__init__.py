@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,3 +25,5 @@ from .ids import parse_ids
 from .mpt import parse_mpt
 from .p00 import parse_p00
 from .spreadsheet import parse_spreadsheet
+from .z import parse_z
+from .pssession import parse_pssession

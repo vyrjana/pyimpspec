@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,13 +17,6 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Type,
-    Union,
-)
 from pyimpspec.circuit.base import (
     Connection,
     Element,
@@ -37,6 +30,14 @@ from pyimpspec.circuit.inductor import (
     ModifiedInductor,
 )
 from pyimpspec.circuit.constant_phase_element import ConstantPhaseElement
+from pyimpspec.typing.helpers import (
+    Dict,
+    List,
+    Optional,
+    Type,
+    Union,
+    _is_floating,
+)
 
 
 def to_drawing(
@@ -47,6 +48,7 @@ def to_drawing(
     hide_labels: bool = False,
     running: bool = False,
     custom_labels: Optional[Dict[Element, str]] = None,
+    canvas: Optional[Union[str, "Axes"]] = None,  # noqa: F821
 ) -> "Drawing":  # noqa: F821
     """
     Get a |Drawing| object for drawing a circuit diagram using, e.g., the matplotlib_ backend.
@@ -72,6 +74,9 @@ def to_drawing(
         A mapping of elements to their custom labels that are used instead of the automatically generated labels.
         The labels can make use of LaTeX's math mode.
 
+    canvas: Optional[Union[str, Axes]], optional
+        The canvas that the _schemdraw.Drawing class should use.
+
     Returns
     -------
     |Drawing|
@@ -79,12 +84,34 @@ def to_drawing(
     from schemdraw import Drawing
     import schemdraw.elements as elm
 
-    assert node_height > 0
-    assert isinstance(left_terminal_label, str), left_terminal_label
-    assert isinstance(right_terminal_label, str), right_terminal_label
-    assert isinstance(hide_labels, bool), hide_labels
-    assert isinstance(running, bool), running
-    assert isinstance(custom_labels, dict) or custom_labels is None, custom_labels
+    if not _is_floating(node_height):
+        raise TypeError(f"Expected a float instead of {node_height=}")
+    elif node_height <= 0.0:
+        raise ValueError(f"Expected a value greater than 0.0 instead of {node_height=}")
+
+    if not isinstance(left_terminal_label, str):
+        raise TypeError(f"Expected a string instead of {left_terminal_label=}")
+
+    if not isinstance(right_terminal_label, str):
+        raise TypeError(f"Expected a string instead of {right_terminal_label=}")
+
+    if not isinstance(hide_labels, bool):
+        raise TypeError(f"Expected a boolean instead of {hide_labels=}")
+
+    if not isinstance(running, bool):
+        raise TypeError(f"Expected a boolean instead of {running=}")
+
+    if custom_labels is None:
+        pass
+    elif not isinstance(custom_labels, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {custom_labels=}")
+    elif not all(map(lambda key: isinstance(key, Element), custom_labels.keys())):
+        raise TypeError(
+            f"Expected all keys in {custom_labels=} to be Element instances"
+        )
+    elif not all(map(lambda value: isinstance(value, str), custom_labels.values())):
+        raise TypeError(f"Expected all values in {custom_labels=} to be strings")
+
     identifiers: Dict[Element, int] = self.generate_element_identifiers(running=running)
     lookup: Dict[Type[Element], Type[elm.Element]] = {
         Resistor: elm.ResistorIEEE,
@@ -97,6 +124,7 @@ def to_drawing(
 
     def draw_element(elem: Element, drawing: Drawing):
         element: elm.Element = lookup.get(type(elem), elm.ResistorIEC)()
+
         if not hide_labels:
             if custom_labels is not None and elem in custom_labels:
                 element.label(custom_labels[elem])
@@ -104,64 +132,86 @@ def to_drawing(
                 symbol: str = elem.get_symbol()
                 label: str = elem.get_label() or str(identifiers[elem])
                 element.label(f"${symbol}_" + r"{\rm " + f"{label}}}$")
+
         drawing.add(element.right())
 
-    def get_width(
-        element_connection: Union[Element, Connection],
-    ) -> float:
+    def get_width(element_connection: Union[Element, Connection]) -> float:
         if isinstance(element_connection, Element):
             return unit_width
+
         widths: List[float] = []
         if isinstance(element_connection, Series):
-            for elem_con in element_connection.get_elements(flattened=False):
+            for elem_con in element_connection:
                 widths.append(
                     get_width(elem_con)
                     # Spacing around a parallel connection nested within a series connection
                     + (1.0 if isinstance(elem_con, Parallel) else 0.0)
                 )
-            assert len(widths) > 0
+
+            if len(widths) < 1:
+                raise ValueError(f"Expected at least one item instead of {widths=}")
+
             return sum(widths)
+
         elif isinstance(element_connection, Parallel):
-            for elem_con in element_connection.get_elements(flattened=False):
+            for elem_con in element_connection:
                 widths.append(get_width(elem_con))
-            assert len(widths) > 0
+
+            if len(widths) < 1:
+                raise ValueError(f"Expected at least one item instead of {widths=}")
+
             return max(widths)
+
         else:
-            raise Exception("Unsupported type: {type(element_connection)}")
+            raise TypeError("Unsupported type: {type(element_connection)}")
 
     def get_height(element_connection: Union[Element, Connection]) -> float:
         if isinstance(element_connection, Element):
             return node_height
+
         heights: List[float] = []
         if isinstance(element_connection, Series):
-            for elem_con in element_connection.get_elements(flattened=False):
+            for elem_con in element_connection:
                 heights.append(get_height(elem_con))
-            assert len(heights) > 0
+
+            if len(heights) < 1:
+                raise ValueError(f"Expected at least one item instead of {heights=}")
+
             return max(heights)
+
         elif isinstance(element_connection, Parallel):
-            for elem_con in element_connection.get_elements(flattened=False):
+            for elem_con in element_connection:
                 heights.append(get_height(elem_con))
-            assert len(heights) > 0
+            if len(heights) < 1:
+                raise ValueError(f"Expected at least one item instead of {heights=}")
+
             return sum(heights)
+
         else:
-            raise Exception("Unsupported type: {type(element_connection)}")
+            raise TypeError("Unsupported type: {type(element_connection)}")
 
     def draw_parallel(parallel: Parallel, drawing: Drawing):
         elements_connections: List[Union[Element, Connection]]
-        elements_connections = parallel.get_elements(flattened=False)
+        elements_connections = list(iter(parallel))
         heights: List[float] = list(map(get_height, elements_connections))
+
         i: int
         height: float
         for i, height in enumerate(heights):
             if i < len(elements_connections) - 1:
                 drawing.push()
                 drawing.add(elm.Line(l=height).down())
+
         total_width: float = get_width(parallel)
+
         elem_con: Union[Element, Connection]
-        for (i, elem_con) in reversed(list(enumerate(elements_connections))):
+        for i, elem_con in reversed(list(enumerate(elements_connections))):
             width: float = get_width(elem_con)
-            assert width <= total_width, type(elem_con)
+            if width > total_width:
+                raise ValueError(f"Expected {width=} <= {total_width=} for {elem_con=}")
+
             padding: float = total_width - width
+
             if isinstance(elem_con, Element):
                 draw_element(elem_con, drawing)
             elif isinstance(elem_con, Series):
@@ -169,24 +219,27 @@ def to_drawing(
             elif isinstance(elem_con, Parallel):
                 draw_parallel(elem_con, drawing)
             else:
-                raise Exception("Unsupported type: {type(elem_con)=}")
+                raise TypeError("Unsupported type: {type(elem_con)=}")
+
             if padding > 0:
                 drawing.add(elm.Line(l=padding).right())
+
             if i > 0:
                 drawing.add(elm.Line(l=heights[i - 1]).up())
                 drawing.pop()
 
     def draw_series(series: Series, drawing: Drawing, outermost: bool = False):
-        elements: List[Union[Element, Connection]] = series.get_elements(
-            flattened=False
-        )
+        elements: List[Union[Element, Connection]] = list(iter(series))
+
         i: int
         elem_con: Union[Element, Connection]
         for i, elem_con in enumerate(elements):
             if isinstance(elem_con, Element):
                 draw_element(elem_con, drawing)
+
             elif isinstance(elem_con, Series):
                 draw_series(elem_con, drawing)
+
             elif isinstance(elem_con, Parallel):
                 if not outermost:
                     drawing.add(elm.Line(l=0.5).right())
@@ -195,16 +248,20 @@ def to_drawing(
                     i < len(elements) - 1 and isinstance(elements[i + 1], Parallel)
                 ):
                     drawing.add(elm.Line(l=0.5).right())
-            else:
-                raise Exception("Unsupported type: {type(elem_con)}")
 
-    drawing: Drawing = Drawing()
+            else:
+                raise TypeError("Unsupported type: {type(elem_con)}")
+
+    drawing: Drawing = Drawing(canvas=canvas)
     drawing.config(unit=unit_width)
     we_dot: elm.Dot = elm.Dot(open=True)
+
     if not hide_labels:
         we_dot.label(left_terminal_label)
+
     drawing.add(we_dot)
     drawing.add(elm.Line(l=1.0).right())
+
     connections: List[Connection]
     if isinstance(self, Connection):
         if isinstance(self, Series):
@@ -212,14 +269,23 @@ def to_drawing(
         else:
             connections = [Series([self])]
     else:
-        connections = self.get_connections(flattened=False)
-    assert isinstance(connections, list), connections
-    assert len(connections) == 1, connections
-    assert isinstance(connections[0], Series), type(connections[0])
+        # isinstance(self, Circuit) == True
+        connections = self.get_connections(recursive=False)
+
+    if not isinstance(connections, list):
+        raise TypeError(f"Expected a list instead of {connections=}")
+    elif len(connections) != 1:
+        raise ValueError(f"Expected a list with one item instead of {connections=}")
+    elif not isinstance(connections[0], Series):
+        raise TypeError(f"Expected a Series instead of {connections[0]=}")
+
     draw_series(connections[0], drawing, outermost=True)
     drawing.add(elm.Line(l=1.0).right())
     ce_dot: elm.Dot = elm.Dot(open=True)
+
     if not hide_labels:
         ce_dot.label(right_terminal_label)
+
     drawing.add(ce_dot)
+
     return drawing

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,6 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import List
 from unittest import TestCase
 from numpy import (
     allclose,
@@ -42,6 +41,7 @@ from pyimpspec.typing import (
     Frequency,
     Frequencies,
 )
+from pyimpspec.typing.helpers import List
 
 
 class TestConnection(TestCase):
@@ -124,6 +124,7 @@ class TestConnection(TestCase):
                 array(list(map(lambda _: complex(expr.subs("f", _)), fs))),
             )
         )
+
         expr = self.parallel_nested_in_series.to_sympy(substitute=True)
         self.assertEqual(len(expr.free_symbols), 1)
         self.assertTrue(
@@ -148,12 +149,23 @@ class TestConnection(TestCase):
         connections: List[Connection] = con.get_connections()
         self.assertIsInstance(connections, list)
         self.assertEqual(len(connections), 2)
-        connections = con.get_connections(flattened=True)
+        self.assertTrue(
+            all(map(lambda item: isinstance(item, Connection), connections))
+        )
+
+        connections = con.get_connections(recursive=True)
         self.assertIsInstance(connections, list)
         self.assertEqual(len(connections), 2)
-        connections = con.get_connections(flattened=False)
+        self.assertTrue(
+            all(map(lambda item: isinstance(item, Connection), connections))
+        )
+
+        connections = con.get_connections(recursive=False)
         self.assertIsInstance(connections, list)
         self.assertEqual(len(connections), 1)
+        self.assertTrue(
+            all(map(lambda item: isinstance(item, Connection), connections))
+        )
 
     def test_to_latex(self):
         latex: str = Series([Resistor(), Capacitor()]).to_latex()
@@ -271,6 +283,7 @@ class TestSeries(TestCase):
         tlm: TransmissionLineModel = TransmissionLineModel()
         ser: Series = Series([res, cap, tlm])
         elements: List[Element] = ser._get_elements_recursive()
+
         self.assertTrue(res in elements)
         self.assertTrue(cap in elements)
         self.assertTrue(tlm in elements)
@@ -356,13 +369,21 @@ class TestParallel(TestCase):
         self.assertTrue(
             allclose(
                 self.multiple_elements.get_impedances(self.f),
-                1 / (1 / self.res.get_impedances(self.f) + 1 / self.cap.get_impedances(self.f)),
+                1
+                / (
+                    1 / self.res.get_impedances(self.f)
+                    + 1 / self.cap.get_impedances(self.f)
+                ),
             )
         )
         self.assertTrue(
             allclose(
                 self.container.get_impedances(self.f),
-                1 / (1 / self.res.get_impedances(self.f) + 1 / self.tlm.get_impedances(self.f)),
+                1
+                / (
+                    1 / self.res.get_impedances(self.f)
+                    + 1 / self.tlm.get_impedances(self.f)
+                ),
             )
         )
 
@@ -392,6 +413,7 @@ class TestParallel(TestCase):
         tlm: TransmissionLineModel = TransmissionLineModel()
         par: Parallel = Parallel([res, cap, tlm])
         elements: List[Element] = par._get_elements_recursive()
+
         self.assertTrue(res in elements)
         self.assertTrue(cap in elements)
         self.assertTrue(tlm in elements)

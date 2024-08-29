@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,59 +21,51 @@ from argparse import (
     ArgumentParser,
     Namespace,
 )
-from typing import (
+from matplotlib import get_backend
+import matplotlib.pyplot as plt
+from pyimpspec.progress import clear_default_handler_output
+from pyimpspec.typing.helpers import (
     Callable,
     Dict,
     IO,
     List,
 )
-from matplotlib import get_backend
-import matplotlib.pyplot as plt
 from .utility import (
     apply_filters,
-    clear_progress,
     format_text,
-    get_mock_data,
     get_output_path,
+    parse_inputs,
     set_figure_size,
-    validate_input_paths,
 )
 
 
 def command(parser: ArgumentParser, args: Namespace, print_func: Callable = print):
-    validate_input_paths(args.input)
-
     from pyimpspec import (
         DataSet,
         ZHITResult,
         mpl,
-        parse_data,
         perform_zhit,
     )
 
-    all_data_sets: Dict[str, List[DataSet]] = {}
-    num_paths: int = len(args.input)
+    all_data_sets: Dict[str, List[DataSet]] = parse_inputs(args)
+    num_paths: int = len(all_data_sets)
     num_paths_remaining: int = num_paths
-    i: int
-    path: str
-    for i, path in enumerate(args.input):
-        if path.startswith("<") and path.endswith(">"):
-            all_data_sets[path] = [get_mock_data(path[1:-1])]
-        else:
-            all_data_sets[path] = parse_data(path)
+
     agg_backend: bool = get_backend().lower() == "agg"
     set_figure_size(args.plot_width, args.plot_height, args.plot_dpi)
+
     plot_types: Dict[str, Callable] = {
-        "nyquist": mpl.plot_nyquist,
         "bode": mpl.plot_bode,
         "fit": mpl.plot_fit,
-        "magnitude": mpl.plot_magnitude,
-        "phase": mpl.plot_phase,
-        "complex": mpl.plot_complex,
-        "real": mpl.plot_real,
         "imaginary": mpl.plot_imaginary,
+        "magnitude": mpl.plot_magnitude,
+        "nyquist": mpl.plot_nyquist,
+        "phase": mpl.plot_phase,
+        "real": mpl.plot_real,
+        "real-imaginary": mpl.plot_real_imaginary,
     }
-    plot: Callable = plot_types[args.type]
+    plot: Callable = plot_types[args.plot_type]
+
     colors: Dict[str, str] = {
         "impedance": "black",
         "real": "black",
@@ -81,14 +73,19 @@ def command(parser: ArgumentParser, args: Namespace, print_func: Callable = prin
         "magnitude": "black",
         "phase": "black",
     }
+
     data_sets: List[DataSet]
     for path, data_sets in all_data_sets.items():
         list(map(lambda _: apply_filters(_, args), data_sets))
         num_data: int = len(data_sets)
-        data: DataSet
+
         for i, data in enumerate(data_sets):
             if num_paths > 1 or num_data > 1:
-                print_func(f"{path}: {data.get_label() or i}")
+                if len(data_sets) > 1:
+                    print_func(f"{path}: {data.get_label() or i}")
+                else:
+                    print_func(f"{path}")
+
             zhit: ZHITResult = perform_zhit(
                 data,
                 smoothing=args.smoothing,
@@ -99,39 +96,60 @@ def command(parser: ArgumentParser, args: Namespace, print_func: Callable = prin
                 num_points=args.num_points,
                 polynomial_order=args.polynomial_order,
                 num_iterations=args.num_iterations,
+                admittance=args.admittance,
                 num_procs=args.num_procs,
             )
-            clear_progress()
+
+            clear_default_handler_output()
             report: str = format_text(zhit.to_statistics_dataframe(), args)
+
             if plot == mpl.plot_fit:
                 figure, axes = plot(
                     zhit,
                     data=data,
                     line=True,
                     legend=not args.plot_no_legend,
-                    title=f"{data.get_label()}\n{zhit.get_label()}"
-                    if args.plot_title
-                    else "",
+                    title=f"{data.get_label()}\n{zhit.get_label()}",
                     colored_axes=args.plot_colored_axes,
+                    admittance=args.plot_admittance,
                 )
+
             else:
+                figure, axes = plot(
+                    zhit,
+                    label="",
+                    line=False,
+                    markers={
+                        "magnitude": ".",
+                        "phase": ".",
+                        "real": ".",
+                        "imaginary": ".",
+                        "impedance": ".",
+                    },
+                    admittance=args.plot_admittance,
+                    legend=False,
+                )
                 figure, axes = plot(
                     data,
                     colors=colors,
                     legend=False,
-                )
-                plot(
-                    zhit,
-                    line=True,
-                    legend=not args.plot_no_legend,
-                    title=f"{data.get_label()}\n{zhit.get_label()}"
-                    if args.plot_title
-                    else "",
-                    colored_axes=args.plot_colored_axes,
+                    admittance=args.plot_admittance,
                     figure=figure,
                     axes=axes,
                 )
+                figure, axes = plot(
+                    zhit,
+                    line=True,
+                    legend=not args.plot_no_legend,
+                    title=f"{data.get_label()}\n{zhit.get_label()}",
+                    colored_axes=args.plot_colored_axes,
+                    admittance=args.plot_admittance,
+                    figure=figure,
+                    axes=axes,
+                )
+
             figure.tight_layout()
+
             if args.output:
                 output_path: str = get_output_path(
                     data=data,
@@ -140,7 +158,9 @@ def command(parser: ArgumentParser, args: Namespace, print_func: Callable = prin
                     args=args,
                     i=i,
                 )
+
                 figure.savefig(output_path, dpi=args.plot_dpi)
+
                 output_path = get_output_path(
                     data=data,
                     result=zhit,
@@ -151,12 +171,17 @@ def command(parser: ArgumentParser, args: Namespace, print_func: Callable = prin
                 fp: IO
                 with open(output_path, "w") as fp:
                     fp.write(report)
+
             elif not agg_backend:
                 print_func(report)
                 plt.show()
+
             else:
                 print_func(report)
+
             plt.close()
+
             if (num_paths_remaining > 1 or i < num_data - 1) and not args.output:
                 print_func("")
+
             num_paths_remaining -= 1

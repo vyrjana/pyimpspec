@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,19 +23,11 @@
 # DRT-python-code commit: 9663ed8b331f521a9fcdb0b58fb2b34693df938c
 
 from dataclasses import dataclass
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
 from numpy import (
     array,
-    floating,
     float64,
+    fromiter,
     identity,
-    issubdtype,
     int64,
     log as ln,
     log10 as log,
@@ -49,7 +41,6 @@ from numpy import (
 from numpy.linalg import norm
 from numpy.typing import NDArray
 from pyimpspec.data import DataSet
-from pyimpspec.exceptions import DRTError
 from pyimpspec.analysis.utility import (
     _calculate_residuals,
     _calculate_pseudo_chisqr,
@@ -63,6 +54,14 @@ from pyimpspec.typing import (
     Gammas,
     Indices,
     TimeConstants,
+)
+from pyimpspec.typing.helpers import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    _is_floating,
 )
 from .utility import _l_curve_corner_search
 
@@ -124,12 +123,22 @@ class TRNNLSResult(DRTResult):
                 "tau (s)",
                 "gamma (ohm)",
             ]
-        assert isinstance(columns, list), columns
-        assert len(columns) == 2
+        elif not isinstance(columns, list):
+            raise TypeError(f"Expected a list of strings instead of {columns=}")
+        elif len(columns) != 2:
+            raise ValueError(f"Expected a list with 2 items instead of {len(columns)=}")
+        elif not all(map(lambda s: isinstance(s, str), columns)):
+            raise TypeError(f"Expected a list of strings instead of {columns=}")
+        elif len(set(columns)) != 2:
+            raise ValueError(
+                f"Expected a list of 2 unique strings instead of {columns=}"
+            )
+
         indices: Indices = self._get_peak_indices(
             threshold,
             self.gammas,  # type: ignore
         )
+
         return DataFrame.from_dict(
             {
                 columns[0]: self.time_constants[indices],  # type: ignore
@@ -146,6 +155,7 @@ class TRNNLSResult(DRTResult):
             "Log pseudo chi-squared": log(self.pseudo_chisqr),
             "Lambda": self.lambda_value,
         }
+
         return DataFrame.from_dict(
             {
                 "Label": list(statistics.keys()),
@@ -171,6 +181,7 @@ class TRNNLSResult(DRTResult):
             threshold,
             self.gammas,  # type: ignore
         )
+
         return (
             self.time_constants[indices],  # type: ignore
             self.gammas[indices],  # type: ignore
@@ -196,11 +207,14 @@ _MODES: List[str] = ["real", "imaginary"]
 def _calculate_delta_ln_tau(tau: TimeConstants) -> NDArray[float64]:
     ln_tau: NDArray[float64] = ln(tau)
     delta_ln_tau: NDArray[float64] = zeros(tau.size, dtype=float64)
+
     i: int
     for i in range(1, tau.size - 1):
         delta_ln_tau[i] = 0.5 * (ln_tau[i + 1] - ln_tau[i - 1])
+
     delta_ln_tau[0] = 0.5 * (ln_tau[1] - ln_tau[0])
     delta_ln_tau[-1] = 0.5 * (ln_tau[-1] - ln_tau[-2])
+
     return delta_ln_tau
 
 
@@ -209,8 +223,10 @@ def _normalize_impedance(
 ) -> Tuple[ComplexImpedances, float, float]:
     R_inf: float = Z[0].real  # High-frequency resistance
     Z_norm: ComplexImpedances = Z - R_inf
+
     R_pol: float = Z_norm[-1].real - Z_norm[0].real
     Z_norm /= R_pol
+
     return (
         Z_norm,
         R_inf,
@@ -231,10 +247,12 @@ def _generate_A_matrix(
         ),
         dtype=float64,
     )
+
     product: NDArray[float64]
     for i in range(0, omega.size):
         product = omega[i] * tau
         A[i, :] = (product if is_imaginary else 1) * delta_ln_tau / (1 + product**2)
+
     return A
 
 
@@ -284,12 +302,14 @@ def _test_lambda_values(
         total=len(lambda_values) + 1,
     ) as prog:
         solution_norms: NDArray[float64] = zeros(lambda_values.size, dtype=float64)
+
         i: int
         for i, lambda_value in enumerate(lambda_values):
             A_tikh: NDArray[float64] = _generate_tikhonov_matrix(A, I, lambda_value)
             g_tau: NDArray[float64] = _solve(A_tikh, b)
             solution_norms[i] = sqrt(array_sum(g_tau**2))
             prog.increment()
+
     return (
         lambda_values,
         solution_norms,
@@ -302,6 +322,7 @@ def _reduce_points_by_radius(
     r: float,
 ) -> Tuple[NDArray[float64], NDArray[float64]]:
     raw_indices: List[int] = [0]
+
     i: int = 0
     while i < x.size - 1:
         i += 1
@@ -309,7 +330,9 @@ def _reduce_points_by_radius(
         if ((x[i] - x[j]) ** 2 + (y[i] - y[j]) ** 2) ** (1 / 2) < r:
             continue
         raw_indices.append(i)
+
     indices: Indices = array(raw_indices, dtype=int64)
+
     return (
         x[indices],
         y[indices],
@@ -325,13 +348,16 @@ def _suggest_lambda(
         solution_norms,
         r=2e-2,
     )
+
     n: int = 5
     m1: float
     c1: float
     (m1, c1) = polyfit(lambda_values[:n], solution_norms[:n], deg=1)
+
     m2: float
     c2: float
     (m2, c2) = polyfit(lambda_values[-n:], solution_norms[-n:], deg=1)
+
     return (c2 - c1) / (m1 - m2)
 
 
@@ -347,23 +373,29 @@ def _generate_model_impedance(
     is_imaginary: bool,
 ) -> ComplexImpedances:
     Z_re_im: NDArray[float64] = zeros(omega.size, dtype=float64)
+
+    i: int
     for i in range(0, omega.size):
         product = omega[i] * tau
         Z_re_im[i] = array_sum(
             delta_ln_tau
             * ((product if is_imaginary else 1) * g_tau / (1 + product**2))
         )
+
     Z_re_im = R_pol * Z_re_im
+
     if is_imaginary:
-        return array(
-            list(map(lambda _: complex(*_), zip(Z.real, -Z_re_im))),
+        return fromiter(
+            map(lambda _: complex(*_), zip(Z.real, -Z_re_im)),
             dtype=ComplexImpedance,
+            count=len(Z),
         )
-    else:
-        return array(
-            list(map(lambda _: complex(*_), zip(Z_re_im + R_inf, Z.imag))),
-            dtype=ComplexImpedance,
-        )
+
+    return fromiter(
+        map(lambda _: complex(*_), zip(Z_re_im + R_inf, Z.imag)),
+        dtype=ComplexImpedance,
+        count=len(Z),
+    )
 
 
 def _l_curve_P(
@@ -374,6 +406,7 @@ def _l_curve_P(
 ) -> Tuple[float64, float64]:
     A_tikh: NDArray[float64] = _generate_tikhonov_matrix(A, I, lambda_value)
     g_tau: NDArray[float64] = _solve(A_tikh, b)
+
     return (
         log(norm(A_tikh @ g_tau - b) ** 2),
         log(norm(g_tau) ** 2),
@@ -414,27 +447,29 @@ def calculate_drt_tr_nnls(
     -------
     TRNNLSResult
     """
-    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
-    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
-    assert (
-        hasattr(data, "get_frequencies")
-        and callable(data.get_frequencies)
-        and hasattr(data, "get_impedances")
-        and callable(data.get_impedances)
-    ), data
-    assert type(mode) is str, mode
-    if mode not in _MODES:
-        raise DRTError("Valid mode values: '" + "', '".join(_MODES))
-    assert issubdtype(type(lambda_value), floating), lambda_value
+    if not isinstance(mode, str):
+        raise TypeError(f"Expected a string instead of {mode=}")
+    elif mode not in _MODES:
+        raise ValueError("Valid mode values: '" + "', '".join(_MODES))
+
+    if not _is_floating(lambda_value):
+        raise TypeError(f"Expected a float instead of {lambda_value=}")
+
     prog: Progress
     with Progress("Preparing matrices", total=6) as prog:
         is_imaginary: bool = mode == "imaginary"
         f: Frequencies = data.get_frequencies()
+        if len(f) < 1:
+            raise ValueError(
+                f"There are no unmasked data points in the '{data.get_label()}' data set parsed from '{data.get_path()}'"
+            )
+
         Z_exp: ComplexImpedances = data.get_impedances()
         omega: NDArray[float64] = 2 * pi * f
         tau: TimeConstants = 1 / f
         delta_ln_tau: NDArray[float64] = _calculate_delta_ln_tau(tau)
         prog.increment()
+
         Z_norm: ComplexImpedances
         R_inf: float
         R_pol: float
@@ -443,8 +478,10 @@ def calculate_drt_tr_nnls(
         I: NDArray[float64] = identity(omega.size, dtype=int64)
         A: NDArray[float64] = _generate_A_matrix(omega, tau, delta_ln_tau, is_imaginary)
         prog.increment()
+
         b: NDArray[float64] = _generate_b_vector(A, Z_norm, is_imaginary)
         prog.increment()
+
         A_tikh: NDArray[float64]
         g_tau: NDArray[float64]
         # Try to determine a suitable regularization parameter if one hasn't
@@ -455,6 +492,7 @@ def calculate_drt_tr_nnls(
                 minimum=1e-10,
                 maximum=1,
             )
+
         elif lambda_value <= 0.0:
             lambda_value = _suggest_lambda(
                 *_test_lambda_values(
@@ -468,11 +506,14 @@ def calculate_drt_tr_nnls(
                     ),
                 ),
             )
+
         prog.set_message("Calculating DRT")
         A_tikh = _generate_tikhonov_matrix(A, I, lambda_value)
         prog.increment()
+
         g_tau = _solve(A_tikh, b)
         prog.increment()
+
         # R_pol_synthetic: float = array_sum(g_tau * delta_ln_tau)  # Should be (close to) 1.0
         Z_fit: ComplexImpedances = _generate_model_impedance(
             omega,
@@ -486,6 +527,7 @@ def calculate_drt_tr_nnls(
             is_imaginary,
         )
         gamma: Gammas = g_tau * R_pol
+
     return TRNNLSResult(
         time_constants=tau,
         gammas=gamma,

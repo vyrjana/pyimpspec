@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,9 +17,10 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
+from pyimpspec.typing.helpers import (
     Callable,
     Dict,
+    _is_integer,
 )
 
 
@@ -41,11 +42,15 @@ def register(callback: Callable) -> int:
     -------
     int
     """
-    assert callable(callback)
     global _COUNTER
     global _CALLBACKS
+
+    if not callable(callback):
+        raise TypeError(f"Expected a callable instead of {callback=}")
+
     _COUNTER += 1
     _CALLBACKS[_COUNTER] = callback
+
     return _COUNTER
 
 
@@ -63,10 +68,16 @@ def unregister(identifier: int) -> bool:
     bool
     """
     global _CALLBACKS
-    assert isinstance(identifier, int) and identifier > 0
+
+    if not _is_integer(identifier):
+        raise TypeError(f"Expected an integer instead of {identifier=}")
+    elif identifier <= 0:
+        raise ValueError(f"Expected an integer greater than zero instead of {identifier=}")
+
     if identifier in _CALLBACKS:
         del _CALLBACKS[identifier]
         return True
+
     return False
 
 
@@ -79,18 +90,30 @@ def _update(*args, **kwargs):
 _RECENT_PROGRESS: float = -1.0
 
 
-def _update_every_N_percent(i: int, total: int = 1, N: float = 1.0, *args, **kwargs):
+def _update_every_N_percent(
+    i: int,
+    total: int = 1,
+    N: float = 1.0,
+    force: bool = False,
+    *args,
+    **kwargs,
+):
     global _RECENT_PROGRESS
     if i == 0:
         _RECENT_PROGRESS = -1.0
+
     step: float = N / 100.0
     progress: float = i / total
-    if _RECENT_PROGRESS < 0.0 or progress >= _RECENT_PROGRESS + step:
+    if (_RECENT_PROGRESS < 0.0) or (progress >= _RECENT_PROGRESS + step):
         if _RECENT_PROGRESS < 0.0:
             _RECENT_PROGRESS = 0.0
         else:
             _RECENT_PROGRESS += step
+
         _update(progress=_RECENT_PROGRESS, *args, **kwargs)
+    elif force:
+        _update(progress=progress, *args, **kwargs)
+
     if i >= total:
         _RECENT_PROGRESS = -1.0
 
@@ -127,14 +150,35 @@ class Progress:
     def __exit__(self, *args, **kwargs):
         self.increment()
 
-    def _update(self):
+    def _update(self, force: bool = False):
         _update_every_N_percent(
             i=self._i,
             total=self._total,
             message=self._message,
+            force=force,
             *self._args,
-            **self._kwargs
+            **self._kwargs,
         )
+
+    def get_total(self) -> int:
+        """
+        Get the current total.
+
+        Returns
+        -------
+        int
+        """
+        return self._total
+
+    def get(self) -> int:
+        """
+        Get the current step.
+
+        Returns
+        -------
+        int
+        """
+        return self._i
 
     def set(self, i: int):
         """
@@ -145,11 +189,13 @@ class Progress:
         i: int
             The step index.
         """
-        assert i <= self._total, (i, self._total)
+        if not (i <= self._total):
+            raise ValueError(f"Expected {i=} <= {self._total=}")
+
         self._i = i
         self._update()
 
-    def increment(self, step: int = 1):
+    def increment(self, step: int = 1, force: bool = False):
         """
         Increment the progress by a step size ((i + step) / total).
 
@@ -157,12 +203,19 @@ class Progress:
         ----------
         step: int, optional
             The size of the step to take when called.
+
+        force: bool, optional
+            Force an update.
         """
         self._i += step
-        assert self._i <= self._total, (self._i, self._total)
-        self._update()
+        if not (self._i <= self._total):
+            raise ValueError(f"Expected {self._i=} <= {self._total=}")
 
-    def set_message(self, message: str, i: int = -1, total: int = -1):
+        self._update(force=force)
+
+    def set_message(
+        self, message: str, i: int = -1, total: int = -1, force: bool = True
+    ):
         """
         Set the status message (and progress and total).
 
@@ -176,11 +229,50 @@ class Progress:
 
         total: int, optional
             The new total number of steps
+
+        force: bool, optional
+            Force an update.
         """
         self._message = message
         if i >= 0:
             self._i = 0
+
         if total >= 0:
-            assert total > 0, total
             self._total = total
-        self._update()
+
+        self._update(force=force)
+
+
+_PROGRESS_MESSAGE: str = ""
+
+
+def _default_handler(*args, **kwargs):
+    global _PROGRESS_MESSAGE
+
+    pct: str = f"{kwargs['progress'] * 100.0:.0f}%".rjust(4)
+    message: str = kwargs["message"]
+
+    _PROGRESS_MESSAGE = f"{pct}: {message}".ljust(len(_PROGRESS_MESSAGE.rstrip()))
+
+    print(_PROGRESS_MESSAGE, end="\r")
+
+
+def register_default_handler():
+    """
+    Register the default handler for progress updates.
+    Formats the incoming information and prints it to stdout.
+    The output ends with "\\r" instead of "\\n".
+    """
+    register(_default_handler)
+
+
+def clear_default_handler_output():
+    """
+    Print a blank line with the same length as the previously printed formatted output.
+    The output ends with "\\r" instead of "\\n".
+    """
+    global _PROGRESS_MESSAGE
+
+    _PROGRESS_MESSAGE = "".ljust(len(_PROGRESS_MESSAGE.rstrip()))
+
+    print(_PROGRESS_MESSAGE, end="\r")

@@ -4,12 +4,14 @@ Data parsing
 ============
 
 Individual impedance spectra are represented in pyimpspec as |DataSet| objects.
-The |parse_data| function acts as a wrapper for the various parsing functions available for different file formats:
+The |parse_data| function acts as a wrapper for the various parsing functions available for different file formats such as:
 
 - BioLogic: ``.mpt``
 - Eco Chemie: ``.dfr``
 - Gamry: ``.dta``
 - Ivium: ``.idf`` and ``.ids``
+- PalmSens: ``.pssession``
+- ZView: ``.z``
 - Spreadsheets: ``.xlsx`` and ``.ods``
 - Plain-text character-separated values (CSV)
 
@@ -52,8 +54,10 @@ Below is a Nyquist plot of some example data (test circuit 1 or TC-1 from `Bouka
 .. plot::
 
    from pyimpspec import mpl
-   from pyimpspec.mock_data import EXAMPLE
-   figure, axes = mpl.plot_nyquist(EXAMPLE)
+   from pyimpspec import generate_mock_data
+
+   data = generate_mock_data("CIRCUIT_1")[0]
+   figure, axes = mpl.plot_nyquist(data)
 
 
 More information and examples about these functions can be found in the API documentation (:doc:`/apidocs_plot_mpl`).
@@ -112,13 +116,14 @@ Below are two Bode plots of the example above from just before and after the low
 
    from pyimpspec import DataSet
    from pyimpspec import mpl
-   from pyimpspec.mock_data import EXAMPLE
-   data = DataSet.duplicate(EXAMPLE)
+   from pyimpspec import generate_mock_data
+
+   data = generate_mock_data("CIRCUIT_1")[0]
    figure, axes = mpl.plot_bode(data)
+
    data.low_pass(1e3)
    data.high_pass(1e1)
    figure, axes = mpl.plot_bode(data)
-   data.set_mask({})
 
 .. raw:: latex
 

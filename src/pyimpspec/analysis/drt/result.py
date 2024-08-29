@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,17 +22,10 @@ from abc import (
     abstractmethod,
 )
 from dataclasses import dataclass
-from typing import (
-    List,
-    Optional,
-    Tuple,
-)
 from numpy import (
     angle,
     array,
-    floating,
     int64,
-    issubdtype,
 )
 from pyimpspec.typing import (
     ComplexImpedances,
@@ -44,6 +37,12 @@ from pyimpspec.typing import (
     Phases,
     Residuals,
     TimeConstants,
+)
+from pyimpspec.typing.helpers import (
+    List,
+    Optional,
+    Tuple,
+    _is_floating,
 )
 
 
@@ -139,15 +138,19 @@ class DRTResult(ABC):
     def _get_peak_indices(self, threshold: float, gamma: Gammas) -> Indices:
         from scipy.signal import find_peaks
 
-        assert issubdtype(type(threshold), floating), threshold
-        assert 0.0 <= threshold <= 1.0, threshold
-        indices: Indices
-        indices, _ = find_peaks(gamma)
+        if not _is_floating(threshold):
+            raise TypeError(f"Expected a float instead of {threshold=}")
+        elif not (0.0 <= threshold <= 1.0):
+            raise ValueError(f"Expected a value in the range [0.0, 1.0] instead of {threshold=}")
+
+        indices: Indices = find_peaks(gamma)[0]
         if not indices.any():
             return array([], dtype=int64)
+
         max_g: float = max(gamma)
         if max_g == 0.0:
             return array([], dtype=int64)
+
         return array(
             list(
                 filter(

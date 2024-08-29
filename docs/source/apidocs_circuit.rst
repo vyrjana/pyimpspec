@@ -14,6 +14,9 @@ Functions
 .. automodule:: pyimpspec
    :members: get_elements, parse_cdc, simulate_spectrum, register_element
 
+.. automodule:: pyimpspec.circuit.registry
+   :members: remove_elements, reset, reset_default_parameter_values
+
 
 Base classes
 ------------

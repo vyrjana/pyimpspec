@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,6 +20,7 @@
 from copy import deepcopy
 from dataclasses import dataclass
 from multiprocessing import Pool
+from multiprocessing.context import TimeoutError as MPTimeoutError
 from typing import (
     Callable,
     Dict,
@@ -30,18 +31,18 @@ from typing import (
     Union,
 )
 from traceback import format_exc
-import warnings
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
 from numpy import (
     angle,
     array,
     float64,
     inf,
-    integer,
     isnan,
-    issubdtype,
     log10 as log,
     nan,
-    ndarray,
     ones,
 )
 from numpy.typing import NDArray
@@ -63,6 +64,12 @@ from pyimpspec.typing import (
     Impedances,
     Phases,
     Residuals,
+)
+from pyimpspec.typing.helpers import (
+    _is_boolean,
+    _is_complex_array,
+    _is_floating_array,
+    _is_integer,
 )
 
 
@@ -95,10 +102,13 @@ class FittedParameter:
         string: str = f"{self.value:.6e}"
         if not isnan(self.stderr):
             string += f" +/- {self.stderr:.6e}"
+
         if self.unit != "":
             string += f" {self.unit}"
+
         if self.fixed:
             string += " (fixed)"
+
         return string
 
     def get_value(self) -> float:
@@ -151,6 +161,7 @@ class FittedParameter:
         """
         if isnan(self.stderr):
             return self.stderr
+
         return (self.stderr or 0.0) / self.value
 
 
@@ -213,6 +224,7 @@ class FitResult:
         cdc: str = self.circuit.to_string()
         if cdc.startswith("[") and cdc.endswith("]"):
             cdc = cdc[1:-1]
+
         return cdc
 
     def get_frequencies(self, num_per_decade: int = -1) -> Frequencies:
@@ -230,9 +242,9 @@ class FitResult:
         -------
         |Frequencies|
         """
-        assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
             return _interpolate(self.frequencies, num_per_decade)
+
         return self.frequencies
 
     def get_impedances(self, num_per_decade: int = -1) -> ComplexImpedances:
@@ -250,13 +262,14 @@ class FitResult:
         -------
         |ComplexImpedances|
         """
-        assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
             return self.circuit.get_impedances(self.get_frequencies(num_per_decade))
+
         return self.impedances
 
     def get_nyquist_data(
-        self, num_per_decade: int = -1
+        self,
+        num_per_decade: int = -1,
     ) -> Tuple[Impedances, Impedances]:
         """
         Get the data necessary to plot this FitResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.
@@ -272,13 +285,13 @@ class FitResult:
         -------
         Tuple[|Impedances|, |Impedances|]
         """
-        assert issubdtype(type(num_per_decade), integer), num_per_decade
         if num_per_decade > 0:
             Z: ComplexImpedances = self.get_impedances(num_per_decade)
             return (
                 Z.real,
                 -Z.imag,
             )
+
         return (
             self.impedances.real,
             -self.impedances.imag,
@@ -302,19 +315,19 @@ class FitResult:
         -------
         Tuple[|Frequencies|, |Impedances|, |Phases|]
         """
-        assert issubdtype(type(num_per_decade), integer), num_per_decade
+        f: Frequencies
+        Z: ComplexImpedances
         if num_per_decade > 0:
-            f: Frequencies = self.get_frequencies(num_per_decade)
-            Z: ComplexImpedances = self.circuit.get_impedances(f)
-            return (
-                f,
-                abs(Z),
-                -angle(Z, deg=True),
-            )
+            f = self.get_frequencies(num_per_decade)
+            Z = self.circuit.get_impedances(f)
+        else:
+            f = self.frequencies
+            Z = self.impedances
+
         return (
-            self.frequencies,
-            abs(self.impedances),
-            -angle(self.impedances, deg=True),
+            f,
+            abs(Z),
+            -angle(Z, deg=True),
         )
 
     def get_residuals_data(
@@ -342,6 +355,7 @@ class FitResult:
         -------
         Dict[str, Dict[str, FittedParameter]]
         """
+        # TODO: Deprecated or unimplemented?
 
     def to_parameters_dataframe(
         self,
@@ -360,13 +374,16 @@ class FitResult:
         """
         from pandas import DataFrame
 
-        assert isinstance(running, bool), running
+        if not _is_boolean(running):
+            raise TypeError(f"Expected a boolean instead of {running=}")
+
         element_names: List[str] = []
         parameter_labels: List[str] = []
         fitted_values: List[float] = []
         stderr_values: List[Optional[float]] = []
         fixed: List[str] = []
         units: List[str] = []
+
         element_name: str
         parameters: Dict[str, FittedParameter]
         internal_identifiers: Dict[
@@ -375,6 +392,7 @@ class FitResult:
         external_identifiers: Dict[
             Element, int
         ] = self.circuit.generate_element_identifiers(running=False)
+
         element: Element
         for element, ident in external_identifiers.items():
             element_name = self.circuit.get_element_name(
@@ -382,6 +400,7 @@ class FitResult:
                 identifiers=external_identifiers,
             )
             parameters = self.parameters[element_name]
+
             parameter_label: str
             parameter: FittedParameter
             for parameter_label, parameter in parameters.items():
@@ -389,19 +408,21 @@ class FitResult:
                     self.circuit.get_element_name(
                         element,
                         identifiers=external_identifiers
-                        if running is False
+                        if not running
                         else internal_identifiers,
                     )
                 )
                 parameter_labels.append(parameter_label)
+
                 fitted_values.append(parameter.value)
                 stderr_values.append(
                     parameter.stderr / parameter.value * 100
-                    if parameter.stderr is not None and parameter.fixed is False
+                    if parameter.stderr is not None and not parameter.fixed
                     else nan
                 )
                 fixed.append("Yes" if parameter.fixed else "No")
                 units.append(parameter.unit)
+
         return DataFrame.from_dict(
             {
                 "Element": element_names,
@@ -437,6 +458,7 @@ class FitResult:
             "Method": self.method,
             "Weight": self.weight,
         }
+
         return DataFrame.from_dict(
             {
                 "Label": list(statistics.keys()),
@@ -450,17 +472,26 @@ def _to_lmfit(
 ) -> "Parameters":  # noqa: F821
     from lmfit import Parameters
 
-    assert isinstance(identifiers, dict), identifiers
+    if not isinstance(identifiers, dict):
+        raise TypeError(f"Expected a dictionary instead of {identifiers=}")
+
     result: Parameters = Parameters()
+
     ident: int
     element: Element
     for ident, element in identifiers.items():
         lower_limits: Dict[str, float] = element.get_lower_limits()
         upper_limits: Dict[str, float] = element.get_upper_limits()
         fixed: Dict[str, bool] = element.are_fixed()
+
         symbol: str
         value: float
         for symbol, value in element.get_values().items():
+            if not (lower_limits[symbol] <= value <= upper_limits[symbol]):
+                raise ValueError(
+                    f"Expected {lower_limits[symbol]} <= {value} <= {upper_limits[symbol]}"
+                )
+
             result.add(
                 f"{symbol}_{ident}",
                 value,
@@ -468,6 +499,7 @@ def _to_lmfit(
                 max=upper_limits[symbol],
                 vary=not fixed[symbol],
             )
+
     return result
 
 
@@ -477,9 +509,14 @@ def _from_lmfit(
 ):
     from lmfit import Parameters
 
-    assert isinstance(parameters, Parameters), parameters
-    assert isinstance(identifiers, dict), identifiers
+    if not isinstance(parameters, Parameters):
+        raise TypeError(f"Expected a Parameters instead of {parameters=}")
+
+    if not isinstance(identifiers, dict):
+        raise TypeError(f"Expected a dictionary instead of {identifiers=}")
+
     result: Dict[int, Dict[str, float]] = {_: {} for _ in identifiers}
+
     key: str
     value: float
     for key, value in parameters.valuesdict().items():
@@ -488,6 +525,7 @@ def _from_lmfit(
         symbol, ident = key.rsplit("_", 1)  # type: ignore
         ident = int(ident)
         result[ident][symbol] = float(value)
+
     element: Element
     for ident, element in identifiers.items():
         element.set_values(**result[ident])
@@ -510,6 +548,7 @@ def _residual(
         ],
         dtype=float64,
     )
+
     return weight_func(Z_exp, Z_fit) * errors
 
 
@@ -534,6 +573,7 @@ def _proportional_weight(
     weight: NDArray[float64] = ones(shape=(2, Z_exp.size), dtype=float64)
     weight[0] = weight[0] / Z_fit.real**2
     weight[1] = weight[1] / Z_fit.imag**2
+
     return weight
 
 
@@ -586,8 +626,6 @@ def _extract_parameters(
 ) -> Dict[str, Dict[str, FittedParameter]]:
     from lmfit.minimizer import MinimizerResult
 
-    assert isinstance(circuit, Circuit), circuit
-    assert isinstance(fit, MinimizerResult), fit
     parameters: Dict[str, Dict[str, FittedParameter]] = {}
     internal_identifiers: Dict[int, Element] = {
         v: k for k, v in circuit.generate_element_identifiers(running=True).items()
@@ -595,6 +633,7 @@ def _extract_parameters(
     external_identifiers: Dict[Element, int] = circuit.generate_element_identifiers(
         running=False
     )
+
     internal_id: int
     element: Element
     for internal_id, element in internal_identifiers.items():
@@ -602,9 +641,13 @@ def _extract_parameters(
         symbol: str = element.get_symbol()
         if element_name == symbol:
             element_name = f"{symbol}_{external_identifiers[element]}"
-        assert element_name not in parameters, element_name
+
+        if element_name in parameters:
+            raise KeyError(f"Expected {element_name=} not to exist in {parameters=}")
+
         parameters[element_name] = {}
         units: Dict[str, str] = element.get_units()
+
         # Parameters that were not fixed
         variable_name: str
         for variable_name in filter(
@@ -617,6 +660,7 @@ def _extract_parameters(
                 float(stderr)
             except TypeError:
                 stderr = nan
+
             variable_name, _ = variable_name.rsplit("_", 1)
             parameters[element_name][variable_name] = FittedParameter(
                 value=par.value,
@@ -624,17 +668,20 @@ def _extract_parameters(
                 fixed=False,
                 unit=units[variable_name],
             )
+
         # Remaining parameters are fixed
         value: float
         for name, value in element.get_values().items():
             if name in parameters[element_name]:
                 continue
+
             parameters[element_name][name] = FittedParameter(
                 value=value,
                 stderr=nan,
                 fixed=True,
                 unit=units[name],
             )
+
     return parameters
 
 
@@ -652,21 +699,38 @@ def _fit_process(
     max_nfev: int
     auto: bool
     circuit, f, Z_exp, method, weight, max_nfev, auto = args
-    assert isinstance(circuit, Circuit), circuit
-    assert isinstance(f, ndarray), f
-    assert isinstance(Z_exp, ndarray), Z_exp
-    assert isinstance(method, str), method
-    assert isinstance(weight, str), weight
-    assert issubdtype(type(max_nfev), integer), max_nfev
-    assert isinstance(auto, bool), auto
+
+    if not isinstance(circuit, Circuit):
+        raise TypeError(f"Expected a Circuit instead of {circuit=}")
+
+    if not _is_floating_array(f):
+        raise TypeError(f"Expected an NDArray[float] instead of {f=}")
+
+    if not _is_complex_array(Z_exp):
+        raise TypeError(f"Expected an NDArray[complex] instead of {Z_exp=}")
+
+    if not isinstance(method, str):
+        raise TypeError(f"Expected a string instead of {method=}")
+
+    if not isinstance(weight, str):
+        raise TypeError(f"Expected a string instead of {weight=}")
+
+    if not _is_integer(max_nfev):
+        raise TypeError(f"Expected an integer instead of {max_nfev=}")
+
+    if not _is_boolean(auto):
+        raise TypeError(f"Expected a boolean instead of {auto=}")
+
     weight_func: Callable = _WEIGHT_FUNCTIONS[weight]
     identifiers: Dict[int, Element] = {
         v: k for k, v in circuit.generate_element_identifiers(running=True).items()
     }
-    with warnings.catch_warnings():
+
+    with catch_warnings():
         if auto:
-            warnings.filterwarnings("error")
-            warnings.filterwarnings("ignore", category=DeprecationWarning)
+            filterwarnings("error")
+            filterwarnings("ignore", category=DeprecationWarning)
+
         try:
             fit: MinimizerResult = minimize(
                 _residual,
@@ -681,7 +745,8 @@ def _fit_process(
                 ),
                 max_nfev=None if max_nfev < 1 else max_nfev,
             )
-        except (Exception, Warning):
+
+        except (Exception, Warning):  # TODO
             return (
                 circuit,
                 inf,
@@ -690,9 +755,12 @@ def _fit_process(
                 weight,
                 format_exc(),
             )
+
     if fit.ndata < len(f) and log(fit.chisqr) < -50:
         return (circuit, inf, None, method, weight, "Invalid result!")
+
     _from_lmfit(fit.params, identifiers)
+
     return (
         circuit,
         _calculate_pseudo_chisqr(Z_exp=Z_exp, Z_fit=circuit.get_impedances(f)),
@@ -711,19 +779,24 @@ def validate_circuit(circuit: Circuit):
     ----------
     circuit: Circuit
     """
-    assert circuit.to_string() not in ["[]", "()"], "The circuit has no elements!"
+    if circuit.to_string() in ["[]", "()"]:
+        raise ValueError("The circuit has no elements!")
+
     identifiers: Dict[Element, int] = circuit.generate_element_identifiers(
         running=False
     )
     element_names: Set[str] = set()
+
     element: Element
     ident: int
     for element, ident in identifiers.items():
         name: str = circuit.get_element_name(element, identifiers)
-        assert (
-            name not in element_names
-        ), f"Two or more elements of the same type have the same name ({name})!"
-        element_names.add(name)
+        if name in element_names:
+            raise ValueError(
+                f"Two or more elements of the same type have the same name ({name=})"
+            )
+        else:
+            element_names.add(name)
 
 
 def fit_circuit(
@@ -732,7 +805,8 @@ def fit_circuit(
     method: str = "auto",
     weight: str = "auto",
     max_nfev: int = -1,
-    num_procs: int = 0,
+    num_procs: int = -1,
+    timeout: int = 0,
 ) -> FitResult:
     """
     Fit a circuit to a data set.
@@ -765,61 +839,65 @@ def fit_circuit(
         A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
         Additionally, a negative value can be used to reduce the number of processes by that much (e.g., to leave one core for a GUI thread).
 
+    timeout: int, optional
+        The amount of time in seconds that a single fit is allowed to take before being timed out.
+        If this values is less than one, then no time limit is imposed.
+
     Returns
     -------
     FitResult
     """
     from lmfit.minimizer import MinimizerResult
 
-    assert isinstance(circuit, Circuit), (
-        type(circuit),
-        circuit,
-    )
-    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
-    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
-    assert isinstance(method, str), (
-        type(method),
-        method,
-    )
-    if not (method in _METHODS or method == "auto"):
-        raise FittingError(
+    if not isinstance(circuit, Circuit):
+        raise TypeError(f"Expected a Circuit instead of {circuit=}")
+    else:
+        validate_circuit(circuit)
+
+    if not isinstance(method, str):
+        raise TypeError(f"Expected a string instead of {method=}")
+    elif not (method in _METHODS or method == "auto"):
+        raise ValueError(
             "Valid method values: '" + "', '".join(_METHODS) + "', and 'auto'"
         )
-    assert isinstance(weight, str), (
-        type(weight),
-        weight,
-    )
-    if not (weight in _WEIGHT_FUNCTIONS or weight == "auto"):
-        raise FittingError(
+
+    if not isinstance(weight, str):
+        raise TypeError(f"Expected a string instead of {weight=}")
+    elif not (weight in _WEIGHT_FUNCTIONS or weight == "auto"):
+        raise ValueError(
             "Valid weight values: '" + "', '".join(_WEIGHT_FUNCTIONS) + "', and 'auto'"
         )
-    assert issubdtype(type(max_nfev), integer), (
-        type(max_nfev),
-        max_nfev,
-    )
-    assert issubdtype(type(num_procs), integer), (
-        type(num_procs),
-        num_procs,
-    )
-    validate_circuit(circuit)
-    if num_procs < 1:
-        num_procs = _get_default_num_procs() - abs(num_procs)
-        if num_procs < 1:
-            num_procs = 1
+
+    if not _is_integer(max_nfev):
+        raise TypeError(f"Expected an integer instead of {max_nfev=}")
+
+    if not _is_integer(num_procs):
+        raise TypeError(f"Expected an integer instead of {num_procs=}")
+    elif num_procs < 1:
+        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+
+    if not _is_integer(timeout):
+        raise TypeError(f"Expected an integer instead of {timeout=}")
+    elif timeout < 0:
+        raise ValueError(
+            f"Expected an integer equal to or greater than zero instead of {timeout=}"
+        )
+
     num_steps: int = (len(_METHODS) if method == "auto" else 1) * (
         len(_WEIGHT_FUNCTIONS) if weight == "auto" else 1
     )
+
     prog: Progress
     with Progress("Preparing to fit", total=num_steps + 1) as prog:
-        f: Frequencies = data.get_frequencies()
-        Z_exp: ComplexImpedances = data.get_impedances()
         fits: List[
             Tuple[Circuit, float, Optional["MinimizerResult"], str, str, str]
         ] = []
+
         methods: List[str] = [method] if method != "auto" else _METHODS
         weights: List[str] = (
             [weight] if weight != "auto" else list(_WEIGHT_FUNCTIONS.keys())
         )
+
         method_weight_combos: List[Tuple[str, str]] = []
         for method in methods:
             for weight in weights:
@@ -829,6 +907,14 @@ def fit_circuit(
                         weight,
                     )
                 )
+
+        f: Frequencies = data.get_frequencies()
+        if len(f) < 2:
+            raise ValueError(
+                f"There are fewer than two unmasked data points in the '{data.get_label()}' data set parsed from '{data.get_path()}'"
+            )
+
+        Z_exp: ComplexImpedances = data.get_impedances()
         args = (
             (
                 deepcopy(circuit),
@@ -841,26 +927,54 @@ def fit_circuit(
             )
             for (method, weight) in method_weight_combos
         )
-        prog.set_message("Performing fit(s)")
-        if len(method_weight_combos) > 1 and num_procs > 1:
+
+        prog.set_message(
+            "Performing fit" + ("s" if len(method_weight_combos) > 1 else "")
+        )
+        res: Tuple[Circuit, float, Optional["MinimizerResult"], str, str, str]
+        if num_procs > 1 or timeout > 0:
             with Pool(num_procs) as pool:
-                for res in pool.imap_unordered(_fit_process, args):
+                iterator = pool.imap(_fit_process, args, 1)
+                while True:
+                    try:
+                        if timeout > 0:
+                            res = iterator.next(timeout=timeout)
+                        else:
+                            res = iterator.next()
+                    except MPTimeoutError:
+                        if len(method_weight_combos) > 1:
+                            raise FittingError(
+                                "Timed out before finishing fitting using all combinations of methods and weights! Consider either reducing the number of combinations to test or increasing the time limit."
+                            )
+                        else:
+                            raise FittingError(
+                                "Timed out before finishing fitting! Consider increasing the time limit."
+                            )
+                    except StopIteration:
+                        break
+
                     fits.append(res)
                     prog.increment()
+
         else:
             for res in map(_fit_process, args):
                 fits.append(res)
                 prog.increment()
-        fits.sort(key=lambda _: log(_[1]) if _[2] is not None else inf)
+
         if not fits:
             raise FittingError("No valid results generated!")
+
+        fits.sort(key=lambda _: log(_[1]) if _[2] is not None else inf)
+
         fit: Optional[MinimizerResult]
         error_msg: str
         Xps: float
         circuit, Xps, fit, method, weight, error_msg = fits[0]
         if fit is None:
             raise FittingError(error_msg)
+
         Z_fit: ComplexImpedances = circuit.get_impedances(f)
+
     return FitResult(
         circuit=circuit,
         parameters=_extract_parameters(circuit, fit),

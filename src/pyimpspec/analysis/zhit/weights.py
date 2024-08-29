@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -48,18 +48,22 @@ def _initialize_window_functions():
     from scipy.signal import windows as scipy_windows
 
     global _WINDOW_FUNCTIONS
+
     name: str
     for name in dir(scipy_windows):
         if name.startswith("_"):
             continue
         elif not callable(getattr(scipy_windows, name)):
             continue
+
         func: Callable = getattr(scipy_windows, name)
         sig: Signature = signature(func)
+
         if not ("M" in sig.parameters and "sym" in sig.parameters):
             continue
         elif len(sig.parameters) > 2:
             continue
+
         _WINDOW_FUNCTIONS[name] = func
 
 
@@ -76,10 +80,12 @@ def _generate_weights(
             f"Unsupported window function: '{window}'! Valid values include:\n- "
             + "\n- ".join(sorted(_WINDOW_FUNCTIONS.keys()))
         )
+
     weights: NDArray[float64] = zeros(log_f.shape, dtype=float64)
     min_log_f: float = center - width / 2
     max_log_f: float = center + width / 2
     num_points: int = 10 * int(ceil(max_log_f) - floor(min_log_f)) + 1
+
     x: List[float] = [
         _
         for _ in log(
@@ -95,23 +101,30 @@ def _generate_weights(
         x.insert(0, min_log_f)
     if max_log_f not in x:
         x.append(max_log_f)
+
     weights_interpolator: Akima1DInterpolator = Akima1DInterpolator(
         x,
         _WINDOW_FUNCTIONS[window](M=len(x)),
     )
+
     i: int
     lf: float
     for i, lf in enumerate(log_f):
         if not (min_log_f <= lf <= max_log_f):
             continue
         weights[i] = weights_interpolator(lf)
-    assert len(weights) == len(log_f)
+
+    if not (len(weights) == len(log_f)):
+        raise ValueError(f"Expected {len(weights)=} == {len(log_f)=}")
+
     indices = where(weights < 0.0)[0]
     if indices.size > 0:
         weights[indices] = 0.0
+
     indices = where(weights > 1.0)[0]
     if indices.size > 0:
         weights[indices] = 1.0
+
     return weights
 
 
@@ -124,17 +137,22 @@ def _generate_window_options(
     prog: Progress,
 ) -> Dict[str, NDArray[float64]]:
     prog.set_message("Generating weights")
+
     if len(_WINDOW_FUNCTIONS) == 0:
         _initialize_window_functions()
     window_options: Dict[str, NDArray[float64]] = {}
+
     if weights is not None:
         window_options["custom"] = weights
         prog.increment()
+
     elif window == "auto":
         for window in _WINDOW_FUNCTIONS:
             window_options[window] = _generate_weights(log_f, window, center, width)
             prog.increment()
+
     else:
         window_options[window] = _generate_weights(log_f, window, center, width)
         prog.increment()
+
     return window_options

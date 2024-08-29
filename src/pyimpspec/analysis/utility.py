@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,44 +30,56 @@ from numpy import (
     __config__ as numpy_config,
     array,
     ceil,
-    empty,
     float64,
     floor,
     int64,
     integer,
     isinf,
-    issubdtype,
     log10 as log,
     logspace,
-    ndarray,
     sum as array_sum,
 )
 from numpy.typing import NDArray
 from pyimpspec.typing import (
     ComplexImpedances,
-    ComplexResidual,
     ComplexResiduals,
     Frequencies,
     Frequency,
+)
+from pyimpspec.typing.helpers import (
+    _cast_to_floating_array,
+    _is_complex_array,
+    _is_floating_array,
+    _is_integer,
 )
 
 
 def _interpolate(
     experimental: Frequencies,
-    num_per_decade: int,
+    num_per_decade: integer,
 ) -> Frequencies:
-    if not isinstance(experimental, ndarray):
-        experimental = array(experimental, dtype=Frequency)
-    assert (
-        issubdtype(type(num_per_decade), integer) and num_per_decade > 0
-    ), num_per_decade
+    if not _is_floating_array(experimental):
+        experimental = _cast_to_floating_array(experimental)
+
+    if not _is_integer(num_per_decade):
+        raise TypeError(f"Expected an integer instead of {num_per_decade=}")
+    elif num_per_decade <= 0:
+        raise ValueError(
+            f"Expected an integer greater than zero instead of {num_per_decade=}"
+        )
+
     min_f: float64 = min(experimental)
     max_f: float64 = max(experimental)
-    assert 0.0 < min_f < max_f
-    assert not isinf(max_f)
+    if not (0.0 < min_f < max_f):
+        raise ValueError(
+            f"Expected 0.0 < min_f < max_f instead of {min_f=} and {max_f=}"
+        )
+    elif isinf(max_f):
+        raise ValueError(f"Expected max_f < inf instead of {max_f=}")
+
     log_min_f: int64 = int64(floor(log(min_f)))
     log_max_f: int64 = int64(ceil(log(max_f)))
-    f: float64
+
     freq: List[float64] = [
         f
         for f in logspace(
@@ -75,10 +87,13 @@ def _interpolate(
         )
         if f >= min_f and f <= max_f
     ]
+
     if min_f not in freq:
         freq.append(min_f)
+
     if max_f not in freq:
         freq.append(max_f)
+
     return array(list(sorted(freq, reverse=True)), dtype=Frequency)
 
 
@@ -86,15 +101,17 @@ def _calculate_residuals(
     Z_exp: ComplexImpedances,
     Z_fit: ComplexImpedances,
 ) -> ComplexResiduals:
-    residuals: ComplexResiduals = empty(Z_exp.shape, dtype=ComplexResidual)
-    residuals.real = (Z_exp.real - Z_fit.real) / abs(Z_exp)
-    residuals.imag = (Z_exp.imag - Z_fit.imag) / abs(Z_exp)
-    return residuals
+    # Eqs. 15 and 16 from Schönleber et al., 2014.
+    # DOI:10.1016/j.electacta.2014.01.034
+    return (Z_exp - Z_fit) / abs(Z_exp)
 
 
 def _boukamp_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
-    assert isinstance(Z_exp, ndarray), Z_exp
-    # See eq. 13 in Boukamp (1995)
+    if not _is_complex_array(Z_exp):
+        raise TypeError(f"Expected an array of complex values instead of {Z_exp=}")
+
+    # Eq. 13 in Boukamp, 1995.
+    # DOI:10.1149/1.2044210
     return (Z_exp.real**2 + Z_exp.imag**2) ** -1  # type: ignore
 
 
@@ -103,12 +120,20 @@ def _calculate_pseudo_chisqr(
     Z_fit: ComplexImpedances,
     weight: Optional[NDArray[float64]] = None,
 ) -> float:
-    assert isinstance(Z_exp, ndarray), Z_exp
-    assert isinstance(Z_fit, ndarray), Z_fit
-    assert isinstance(weight, ndarray) or weight is None, weight
+    if not _is_complex_array(Z_exp):
+        raise TypeError(f"Expected an array of complex values instead of {Z_exp=}")
+
+    if not _is_complex_array(Z_fit):
+        raise TypeError(f"Expected an array of complex values instead of {Z_fit=}")
+
+    if not (_is_floating_array(weight) or weight is None):
+        raise TypeError(f"Expected None or an array of floats instead of {weight=}")
+
     if weight is None:
         weight = _boukamp_weight(Z_exp)
-    # See eq. 14 in Boukamp (1995)
+
+    # Eq. 14 in Boukamp, 1995.
+    # DOI:10.1149/1.2044210
     return float(
         array_sum(
             weight * ((Z_exp.real - Z_fit.real) ** 2 + (Z_exp.imag - Z_fit.imag) ** 2)
@@ -130,7 +155,9 @@ def _set_default_num_procs(num_procs: int):
         If the value is greater than zero, then the value is used as the number of processes to use.
         Otherwise, any previous override is disabled.
     """
-    assert issubdtype(type(num_procs), integer), num_procs
+    if not _is_integer(num_procs):
+        raise TypeError(f"Expected an integer instead of {num_procs=}")
+
     global NUM_PROCS_OVERRIDE
     NUM_PROCS_OVERRIDE = num_procs
 
@@ -138,13 +165,13 @@ def _set_default_num_procs(num_procs: int):
 def _get_default_num_procs() -> int:
     """
     Get the default number of parallel processes that pyimpspec would try to use.
-    NumPy may be using libraries that multithreaded, which can lead to poor performance or system responsiveness when combined with pyimpspec's use of multiple processes.
+    NumPy may be using libraries that are multithreaded, which can lead to poor performance or system responsiveness when combined with pyimpspec's use of multiple processes.
     This function attempts to return a reasonable number of processes depending on the detected libraries (and relevant environment variables):
 
     - OpenBLAS (``OPENBLAS_NUM_THREADS``)
     - MKL (``MKL_NUM_THREADS``)
 
-    If none the libraries listed above are detected because some other library is used, then the value returned by ``multiprocessing.cpu_count()`` is used.
+    If none of the libraries listed above are detected because some other library is used, then the value returned by ``multiprocessing.cpu_count()`` is used.
 
     Returns
     -------
@@ -153,6 +180,7 @@ def _get_default_num_procs() -> int:
     if NUM_PROCS_OVERRIDE > 0:
         return NUM_PROCS_OVERRIDE
     num_cores: int = cpu_count()
+
     multithreaded: Dict[str, str] = {
         "openblas": "OPENBLAS_NUM_THREADS",
         "mkl": "MKL_NUM_THREADS",

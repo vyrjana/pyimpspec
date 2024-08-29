@@ -1,8 +1,21 @@
+.. |alpha| replace:: :math:`\alpha`
+.. |beta| replace:: :math:`\beta`
 .. |mu| replace:: :math:`\mu`
+.. |mu crit| replace:: :math:`\mu_{\rm crit}`
+.. |kappa| replace:: :math:`\kappa`
 .. |lambda| replace:: :math:`\lambda`
 .. |chi-squared| replace:: :math:`\chi^2`
-.. |pseudo chi-squared| replace:: :math:`\chi^2_{ps.}`
+.. |pseudo chi-squared| replace:: :math:`\chi^2_{\rm ps}`
+.. |log pseudo chi-squared| replace:: :math:`\log{\chi^2_{\rm ps}}`
+.. |N_tau| replace:: :math:`N_\tau`
+.. |N_tauopt| replace:: :math:`N_{\tau\rm,opt}`
+.. |N_taumin| replace:: :math:`N_{\tau\rm,min}`
+.. |N_taumax| replace:: :math:`N_{\tau\rm,max}`
+.. |F_ext| replace:: :math:`F_{\rm ext}`
+.. |log F_ext| replace:: :math:`\log{F_{\rm ext}}`
 .. |ohm| replace:: :math:`\Omega`
+.. |log sum abs tau R| replace:: :math:`\log{\Sigma_{k=1}^{N_\tau} |\tau_k / R_k|}`
+.. |log sum abs tau C| replace:: :math:`\log{\Sigma_{k=1}^{N_\tau} |\tau_k / C_k|}`
 
 .. classes
    || replace:: :class:`~pyimpspec.`
@@ -25,7 +38,7 @@
 .. |SubcircuitDefinition| replace:: :class:`~pyimpspec.SubcircuitDefinition`
 .. |TRNNLSResult| replace:: :class:`~pyimpspec.TRNNLSResult`
 .. |TRRBFResult| replace:: :class:`~pyimpspec.TRRBFResult`
-.. |TestResult| replace:: :class:`~pyimpspec.TestResult`
+.. |KramersKronigResult| replace:: :class:`~pyimpspec.KramersKronigResult`
 .. |TransmissionLineModel| replace:: :class:`~pyimpspec.circuit.elements.TransmissionLineModel`
 
 .. type hints
@@ -57,17 +70,24 @@
 
 .. functions
    || replace:: :func:`~pyimpspec.`
+.. |calculate_drt| replace:: :func:`~pyimpspec.calculate_drt`
 .. |dataframe_to_data_sets| replace:: :func:`~pyimpspec.dataframe_to_data_sets`
+.. |fit_circuit| replace:: :func:`~pyimpspec.fit_circuit`
 .. |get_default_num_procs| replace:: :func:`~pyimpspec.get_default_num_procs`
-.. |set_default_num_procs| replace:: :func:`~pyimpspec.set_default_num_procs`
+.. |mu.calculate_score| replace:: :func:`~pyimpspec.analysis.kramers_kronig.algorithms.mu_criterion.calculate_score`
 .. |parse_cdc| replace:: :func:`~pyimpspec.parse_cdc`
 .. |parse_data| replace:: :func:`~pyimpspec.parse_data`
-.. |perform_exploratory_tests| replace:: :func:`~pyimpspec.perform_exploratory_tests`
-.. |perform_test| replace:: :func:`~pyimpspec.perform_test`
-.. |fit_circuit| replace:: :func:`~pyimpspec.fit_circuit`
+.. |perform_kramers_kronig_test| replace:: :func:`~pyimpspec.perform_kramers_kronig_test`
+.. |perform_exploratory_kramers_kronig_tests| replace:: :func:`~pyimpspec.perform_exploratory_kramers_kronig_tests`
+.. |perform_zhit| replace:: :func:`~pyimpspec.perform_zhit`
 .. |plot_circuit| replace:: :func:`~pyimpspec.plot.mpl.plot_circuit`
-.. |simulate_spectrum| replace:: :func:`~pyimpspec.simulate_spectrum`
 .. |register_element| replace:: :func:`~pyimpspec.register_element`
+.. |set_default_num_procs| replace:: :func:`~pyimpspec.set_default_num_procs`
+.. |simulate_spectrum| replace:: :func:`~pyimpspec.simulate_spectrum`
+.. |suggest_num_RC_limits| replace:: :func:`~pyimpspec.analysis.kramers_kronig.suggest_num_RC_limits`
+.. |suggest_num_RC| replace:: :func:`~pyimpspec.analysis.kramers_kronig.suggest_num_RC`
+.. |suggest_representation| replace:: :func:`~pyimpspec.analysis.kramers_kronig.suggest_representation`
+.. |evaluate_log_F_ext| replace:: :func:`~pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext`
 
 .. links
 .. _circuitikz: https://github.com/circuitikz/circuitikz
@@ -77,11 +97,14 @@
 .. _lin-kk tool: https://www.iam.kit.edu/et/english/Lin-KK.php
 .. _lmfit.minimize: https://lmfit.github.io/lmfit-py/fitting.html#lmfit.minimizer.minimize
 .. _matplotlib: https://matplotlib.org
-.. _pandas.dataframe: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame
+.. _numpy.inf: https://numpy.org/doc/stable/reference/constants.html#numpy.inf
+.. _numpy.nan: https://numpy.org/doc/stable/reference/constants.html#numpy.nan
 .. _pandas.dataframe.to_latex: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_latex.html#pandas.DataFrame.to_latex
 .. _pandas.dataframe.to_markdown: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_markdown.html#pandas.DataFrame.to_markdown
+.. _pandas.dataframe: https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame
 .. _randles: https://en.wikipedia.org/wiki/Randles_circuit
 .. _schemdraw: https://schemdraw.readthedocs.io/en/latest/
+.. _schemdraw.drawing: https://schemdraw.readthedocs.io/en/latest/classes/drawing.html#schemdraw.Drawing
 .. _scipy.signal.savgol_filter: https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html
 .. _statsmodels.nonparametric.smoothers_lowess.lowess: https://www.statsmodels.org/dev/generated/statsmodels.nonparametric.smoothers_lowess.lowess.html
 .. _sympy: https://www.sympy.org/en/index.html

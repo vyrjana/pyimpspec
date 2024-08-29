@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@ from unittest import TestCase
 from numpy import (
     allclose,
     angle,
-    iscomplex,
     ndarray,
 )
 from numpy.random import (
@@ -34,17 +33,19 @@ from numpy.random import (
 )
 from pandas import DataFrame
 from pyimpspec import (
-    BHTResult,
     Circuit,
     DRTResult,
     DataSet,
-    MRQFitResult,
-    TRNNLSResult,
-    TRRBFResult,
     calculate_drt,
     fit_circuit,
     parse_cdc,
     parse_data,
+)
+from pyimpspec.analysis.drt import (
+    BHTResult,
+    MRQFitResult,
+    TRNNLSResult,
+    TRRBFResult,
 )
 from pyimpspec.exceptions import DRTError
 from pyimpspec.analysis.drt import _METHODS
@@ -57,9 +58,7 @@ from pyimpspec import progress as PROGRESS
 from pyimpspec.typing import (
     ComplexImpedances,
     Frequencies,
-    Gamma,
     Gammas,
-    TimeConstant,
     TimeConstants,
 )
 from test_matplotlib import (
@@ -114,11 +113,23 @@ class TestDRT(TestCase):
             cls._method_results[method] = drt
 
     def test_data(self):
-        self.assertRaises(AssertionError, calculate_drt, {})
+        self.assertRaises(
+            AttributeError,
+            calculate_drt,
+            {},
+        )
 
     def test_methods(self):
-        self.assertRaises(NotImplementedError, self.wrapper, method="crivens")
-        self.assertRaises(NotImplementedError, self.wrapper, method="invalid method")
+        self.assertRaises(
+            ValueError,
+            self.wrapper,
+            method="crivens",
+        )
+        self.assertRaises(
+            ValueError,
+            self.wrapper,
+            method="invalid method",
+        )
 
     def test_result_label(self):
         method: str
@@ -317,13 +328,13 @@ class TestDRT(TestCase):
     def test_method_tr_nnls(self):
         method: str = "tr-nnls"
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             mode=0,
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             mode="crivens",
@@ -335,100 +346,86 @@ class TestDRT(TestCase):
     def test_method_tr_rbf(self):
         method: str = "tr-rbf"
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             rbf_type="crivens",
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             derivative_order=0,
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             derivative_order=3,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             derivative_order=2.5,
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             rbf_shape="crivens",
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             inductance="crivens",
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             credible_intervals="crivens",
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             num_samples=0,
             credible_intervals=True,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             num_samples="crivens",
         )
-        self.assertRaises(
-            DRTError,
-            self.wrapper,
-            method=method,
-            maximum_symmetry=-0.1,
-        )
-        self.assertRaises(
-            DRTError,
-            self.wrapper,
-            method=method,
-            maximum_symmetry=1.1,
-        )
-        self.assertRaises(
-            AssertionError,
-            self.wrapper,
-            method=method,
-            maximum_symmetry="crivens",
-        )
+
         mode: str
         for mode in _MODES:
             self.wrapper(method=method, mode=mode)
+
         derivative_order: int
         for derivative_order in range(1, 3):
             rbf_type: str
             for rbf_type in _RBF_TYPES:
                 self.wrapper(
-                    method=method, rbf_type=rbf_type, derivative_order=derivative_order
+                    method=method,
+                    rbf_type=rbf_type,
+                    derivative_order=derivative_order,
                 )
+
         self.assertTrue("factor" in _RBF_SHAPES)
         rbf_shape: str
         for rbf_shape in _RBF_SHAPES:
-            if rbf_shape == "factor":
-                self.assertRaises(
-                    DRTError, self.wrapper, method=method, rbf_shape=rbf_shape
-                )
-            else:
-                self.wrapper(method=method, rbf_shape=rbf_shape)
+            self.wrapper(method=method, rbf_shape=rbf_shape)
 
     def test_credible_intervals(self):
-        drt: DRTResult = self.wrapper(method="tr-rbf", credible_intervals=True)
+        # TODO: Switch to an impedance spectrum with some noise?
+        # Calculating credible intervals seems to be faster and thus
+        # the timeout would not need to be raised. Other test cases might
+        # need to be updated in terms of expected values.
+        drt: DRTResult = self.wrapper(method="tr-rbf", credible_intervals=True, timeout=300)
         time_constants: TimeConstants
         mean_gamma: Gammas
         lower_bound: Gammas
@@ -451,77 +448,78 @@ class TestDRT(TestCase):
     def test_method_bht(self):
         method: str = "bht"
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             rbf_type="crivens",
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             derivative_order=0,
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             derivative_order=3,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             derivative_order=2.5,
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             rbf_shape="crivens",
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             num_samples=0,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             num_samples="crivens",
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             num_attempts=0,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             num_attempts="crivens",
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             maximum_symmetry=-0.1,
         )
         self.assertRaises(
-            DRTError,
+            ValueError,
             self.wrapper,
             method=method,
             maximum_symmetry=1.1,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             maximum_symmetry="crivens",
         )
+
         derivative_order: int
         for derivative_order in range(1, 3):
             rbf_type: str
@@ -533,6 +531,7 @@ class TestDRT(TestCase):
                     maximum_symmetry=1.0,
                     derivative_order=derivative_order,
                 )
+
         rbf_shape: str
         for rbf_shape in _RBF_SHAPES:
             self.wrapper(
@@ -544,27 +543,31 @@ class TestDRT(TestCase):
 
     def test_method_mrq_fit(self):
         self.assertEqual(
-            MRQFitResult._generate_label(parse_cdc("R(RC)(RC)(RC)")), "R-3(RC)"
+            MRQFitResult._generate_label(parse_cdc("R(RC)(RC)(RC)")),
+            "R-3(RC)",
         )
         self.assertEqual(
-            MRQFitResult._generate_label(parse_cdc("R(RC)(RQ)(RC)")), "R(RQ)-2(RC)"
+            MRQFitResult._generate_label(parse_cdc("R(RC)(RQ)(RC)")),
+            "R(RQ)-2(RC)",
         )
         self.assertEqual(
-            MRQFitResult._generate_label(parse_cdc("R(RQ)(RQ)(RC)")), "R-2(RQ)-(RC)"
+            MRQFitResult._generate_label(parse_cdc("R(RQ)(RQ)(RC)")),
+            "R-2(RQ)-(RC)",
         )
         self.assertEqual(
             MRQFitResult._generate_label(parse_cdc("R(RQ)(RQ)(RC)(RC)")),
             "R-2(RQ)-2(RC)",
         )
+
         method: str = "mrq-fit"
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             circuit=5,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             circuit=self._circuit.to_string(),
@@ -624,28 +627,28 @@ class TestDRT(TestCase):
             circuit=parse_cdc("R(RCQ)"),
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             circuit=self._circuit,
             gaussian_width=0,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             circuit=self._circuit,
             gaussian_width="crivens",
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             circuit=self._circuit,
             num_per_decade=1.6,
         )
         self.assertRaises(
-            AssertionError,
+            TypeError,
             self.wrapper,
             method=method,
             circuit=self._circuit,
@@ -696,6 +699,7 @@ class TestDRT(TestCase):
             plotter: Callable
             for plotter in primitive_mpl_plotters:
                 check_mpl_return_values(self, *plotter(data=drt))
+
             check_mpl_return_values(self, *mpl.plot_residuals(drt))
             check_mpl_return_values(self, *mpl.plot_gamma(drt))
             check_mpl_return_values(self, *mpl.plot_gamma(drt, colored_axes=True))

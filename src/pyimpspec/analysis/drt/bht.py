@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,35 +18,23 @@
 # the LICENSES folder.
 
 # This module implements the Bayesian Hilbert transform method
-# 10.1016/j.electacta.2020.136864
+# - 10.1016/j.electacta.2020.136864
 # Based on code from https://github.com/ciuccislab/pyDRTtools.
-# pyDRTtools commit: 65ea54d9332a0c6594de852f0242a88e20ec4427
+# pyDRTtools commit: 3694b9b4cef9b29d623bef7300280810ec351d46
 
 from contextlib import redirect_stdout
 from dataclasses import dataclass
 from multiprocessing import Pool
 from os import devnull
-from typing import (
-    Callable,
-    Dict,
-    IO,
-    List,
-    Optional,
-    Tuple,
-    Union,
-)
+from sys import version_info as _python_version_info
 from numpy import (
     array,
     diag,
-    empty,
     empty_like,
     exp,
     eye,
     float64,
-    floating,
     full,
-    integer,
-    issubdtype,
     log as ln,
     log10 as log,
     logical_and,
@@ -60,7 +48,7 @@ from numpy import (
 )
 from numpy.linalg import (
     cholesky,
-    inv as invert,
+    inv,
     norm,
     solve as solve_linalg,
 )
@@ -84,13 +72,23 @@ from pyimpspec.progress import Progress
 from pyimpspec.typing import (
     ComplexImpedance,
     ComplexImpedances,
-    ComplexResiduals,
     Frequencies,
     Gamma,
     Gammas,
     Indices,
     TimeConstant,
     TimeConstants,
+)
+from pyimpspec.typing.helpers import (
+    Callable,
+    Dict,
+    IO,
+    List,
+    Optional,
+    Tuple,
+    Union,
+    _is_integer,
+    _is_floating,
 )
 
 
@@ -171,8 +169,16 @@ class BHTResult(DRTResult):
                 "tau, imag. (s)",
                 "gamma, imag. (ohm)",
             ]
-        assert isinstance(columns, list), columns
-        assert len(columns) == 4
+        elif not isinstance(columns, list):
+            raise TypeError(f"Expected a list of strings instead of {columns=}")
+        elif len(columns) != 4:
+            raise ValueError(f"Expected a list with 4 items instead of {len(columns)=}")
+        elif not all(map(lambda s: isinstance(s, str), columns)):
+            raise TypeError(f"Expected a list of strings instead of {columns=}")
+        elif len(set(columns)) != 4:
+            raise ValueError(
+                f"Expected a list of 4 unique strings instead of {columns=}"
+            )
 
         def pad(
             tau: TimeConstants,
@@ -191,6 +197,7 @@ class BHTResult(DRTResult):
         indices_re: Indices = self._get_peak_indices(threshold, self.real_gammas)
         indices_im: Indices = self._get_peak_indices(threshold, self.imaginary_gammas)
         width: int = max(indices_re.size, indices_im.size)
+
         tau_re: TimeConstants
         gamma_re: Gammas
         tau_re, gamma_re = pad(
@@ -198,6 +205,7 @@ class BHTResult(DRTResult):
             self.real_gammas[indices_re],
             width,
         )
+
         tau_im: TimeConstants
         gamma_im: Gammas
         tau_im, gamma_im = pad(
@@ -205,6 +213,7 @@ class BHTResult(DRTResult):
             self.imaginary_gammas[indices_im],
             width,
         )
+
         return DataFrame.from_dict(
             {
                 columns[0]: tau_re,
@@ -222,6 +231,7 @@ class BHTResult(DRTResult):
         statistics: Dict[str, Union[int, float, str]] = {
             "Log pseudo chi-squared": log(self.pseudo_chisqr),
         }
+
         return DataFrame.from_dict(
             {
                 "Label": list(statistics.keys()),
@@ -248,6 +258,7 @@ class BHTResult(DRTResult):
         """
         indices_re: Indices = self._get_peak_indices(threshold, self.real_gammas)
         indices_im: Indices = self._get_peak_indices(threshold, self.imaginary_gammas)
+
         return (
             self.time_constants[indices_re],
             self.real_gammas[indices_re],
@@ -295,8 +306,17 @@ class BHTResult(DRTResult):
                 "Real (%)",
                 "Imag. (%)",
             ]
-        assert isinstance(columns, list), columns
-        assert len(columns) == 3
+        elif not isinstance(columns, list):
+            raise TypeError(f"Expected a list of strings instead of {columns=}")
+        elif len(columns) != 3:
+            raise ValueError(f"Expected a list with 3 items instead of {len(columns)=}")
+        elif not all(map(lambda s: isinstance(s, str), columns)):
+            raise TypeError(f"Expected a list of strings instead of {columns=}")
+        elif len(set(columns)) != 3:
+            raise ValueError(
+                f"Expected a list of 3 unique strings instead of {columns=}"
+            )
+
         if rows is None:
             rows = [
                 "Mean",
@@ -306,8 +326,15 @@ class BHTResult(DRTResult):
                 "Hellinger distance",
                 "Jensen-Shannon distance",
             ]
-        assert isinstance(rows, list), rows
-        assert len(rows) == 6
+        elif not isinstance(rows, list):
+            raise TypeError(f"Expected a list of strings instead of {rows=}")
+        elif len(rows) != 6:
+            raise ValueError(f"Expected a list with 6 items instead of {len(rows)=}")
+        elif not all(map(lambda s: isinstance(s, str), rows)):
+            raise TypeError(f"Expected a list of strings instead of {rows=}")
+        elif len(set(rows)) != 6:
+            raise ValueError(f"Expected a list of 6 unique strings instead of {rows=}")
+
         return DataFrame.from_dict(
             {
                 columns[0]: rows,
@@ -332,13 +359,16 @@ class BHTResult(DRTResult):
 
 
 def _compute_res_scores(
-    res: NDArray[float64], band: NDArray[float64]
+    res: NDArray[float64],
+    band: NDArray[float64],
 ) -> NDArray[float64]:
     # Count the points fallen inside the 1, 2, and 3 sigma credible bands
     count: NDArray[float64] = zeros(3, dtype=float64)
+
     i: int
     for i in range(3):
         count[i] = array_sum(logical_and(res < (i + 1) * band, res > -(i + 1) * band))
+
     return count / len(res)
 
 
@@ -351,8 +381,10 @@ def _compute_SHD(
     # Squared Hellinger distance
     sigma_P: NDArray[float64] = sqrt(diag(Sigma_P))
     sigma_Q: NDArray[float64] = sqrt(diag(Sigma_Q))
+
     sum_cov: NDArray[float64] = sigma_P**2 + sigma_Q**2
     prod_cov: NDArray[float64] = sigma_P * sigma_Q
+
     return 1.0 - sqrt(2.0 * prod_cov / sum_cov) * exp(
         -0.25 * (mu_P - mu_Q) ** 2 / sum_cov
     )
@@ -369,21 +401,26 @@ def _compute_JSD(
     from scipy.stats import multivariate_normal
 
     JSD: NDArray[float64] = empty_like(mu_P, dtype=float64)
+
     i: int
     for i in range(mu_P.size):
         RV_p = multivariate_normal(mean=mu_P[i], cov=Sigma_P[i, i])
         RV_q = multivariate_normal(mean=mu_Q[i], cov=Sigma_Q[i, i])
+
         x: NDArray[float64] = RV_p.rvs(num_samples)
         p_x: NDArray[float64] = RV_p.pdf(x)
         q_x: NDArray[float64] = RV_q.pdf(x)
         m_x: NDArray[float64] = (p_x + q_x) / 2.0
+
         y: NDArray[float64] = RV_q.rvs(num_samples)
         p_y: NDArray[float64] = RV_p.pdf(y)
         q_y: NDArray[float64] = RV_q.pdf(y)
         m_y: NDArray[float64] = (p_y + q_y) / 2.0
+
         dKL_pm: NDArray[float64] = ln(p_x / m_x).mean()
         dKL_qm: NDArray[float64] = ln(q_y / m_y).mean()
         JSD[i] = 0.5 * (dKL_pm + dKL_qm)
+
     return JSD
 
 
@@ -399,33 +436,41 @@ def _NMLL_fct(
     sigma_beta: NDArray[float64]
     sigma_lambda: NDArray[float64]
     sigma_n, sigma_beta, sigma_lambda = theta
+
     W: NDArray[float64] = (
         1 / (sigma_beta**2) * eye(num_taus + 1, dtype=float64)
         + 1 / (sigma_lambda**2) * L.T @ L
     )
+
     # W = 0.5 * (W.T + W)
     K_agm: NDArray[float64] = 1 / (sigma_n**2) * (A.T @ A) + W
+
     # K_agm = 0.5 * (K_agm.T + K_agm)
     L_W: NDArray[float64] = cholesky(W)
     L_agm: NDArray[float64] = cholesky(K_agm)
+
     # Compute mu_x
     u: NDArray[float64] = solve_linalg(L_agm.T, solve_linalg(L_agm, A.T @ Z))
     mu_x: NDArray[float64] = 1 / (sigma_n**2) * u
+
     # Compute loss
     E_mu_x: NDArray[float64] = 0.5 / (sigma_n**2) * norm(A @ mu_x - Z) ** 2 + 0.5 * (
         mu_x.T @ (W @ mu_x)
     )
+
     val_1: NDArray[float64] = array_sum(ln(diag(L_W)))
     val_2: NDArray[float64] = -array_sum(ln(diag(L_agm)))
     val_3: NDArray[float64] = -num_freqs / 2.0 * ln(sigma_n**2)
     val_4: NDArray[float64] = -E_mu_x
     val_5: float = -num_freqs / 2 * ln(2 * pi)
+
     return -(val_1 + val_2 + val_3 + val_4 + val_5)
 
 
 def _compute_A_re(w: NDArray[float64], tau: NDArray[float64]) -> NDArray[float64]:
     num_freqs: int = w.shape[0]
     num_taus: int = tau.shape[0]
+
     A_re: NDArray[float64] = zeros(
         (
             num_freqs,
@@ -434,6 +479,7 @@ def _compute_A_re(w: NDArray[float64], tau: NDArray[float64]) -> NDArray[float64
         dtype=float64,
     )
     A_re[:, 0] = 1.0
+
     i: int
     j: int
     for i in range(0, num_freqs):
@@ -446,6 +492,7 @@ def _compute_A_re(w: NDArray[float64], tau: NDArray[float64]) -> NDArray[float64
                     / (tau[j] if j == 0 else tau[j - 1])
                 )
             )
+
     return A_re
 
 
@@ -456,6 +503,7 @@ def _compute_A_H_re(w: NDArray[float64], tau: NDArray[float64]) -> NDArray[float
 def _compute_A_im(w: NDArray[float64], tau: NDArray[float64]) -> NDArray[float64]:
     num_freqs: int = w.shape[0]
     num_taus: int = tau.shape[0]
+
     A_im: NDArray[float64] = zeros(
         (
             num_freqs,
@@ -464,6 +512,7 @@ def _compute_A_im(w: NDArray[float64], tau: NDArray[float64]) -> NDArray[float64
         dtype=float64,
     )
     A_im[:, 0] = w
+
     i: int
     j: int
     for i in range(0, num_freqs):
@@ -477,6 +526,7 @@ def _compute_A_im(w: NDArray[float64], tau: NDArray[float64]) -> NDArray[float64
                     / (tau[j] if j == 0 else tau[j - 1])
                 )
             )
+
     return A_im
 
 
@@ -493,52 +543,49 @@ def _compute_L(tau: NDArray[float64], derivative_order: int) -> NDArray[float64]
         ),
         dtype=float64,
     )
+
     i: int
     delta_loc: float
     if derivative_order == 1:
         for i in range(0, num_taus - 2):
             delta_loc = ln(tau[i + 1] / tau[i])
             factors: NDArray[float64] = array([1.0, -2.0, 1.0], dtype=float64)
+
             if i == 0 or i == num_taus - 3:
                 factors *= 2
+
             L[i, i + 1] = factors[0] / (delta_loc**2)
             L[i, i + 2] = factors[1] / (delta_loc**2)
             L[i, i + 3] = factors[2] / (delta_loc**2)
+
     elif derivative_order == 2:
         for i in range(0, num_taus - 2):
             delta_loc = ln(tau[i + 1] / tau[i])
+
             if i == 0:
                 L[i, i + 1] = -3.0 / (2 * delta_loc)
                 L[i, i + 2] = 4.0 / (2 * delta_loc)
                 L[i, i + 3] = -1.0 / (2 * delta_loc)
+
             elif i == num_taus - 2:
                 L[i, i] = 1.0 / (2 * delta_loc)
                 L[i, i + 1] = -4.0 / (2 * delta_loc)
                 L[i, i + 2] = 3.0 / (2 * delta_loc)
+
             else:
                 L[i, i] = 1.0 / (2 * delta_loc)
                 L[i, i + 2] = -1.0 / (2 * delta_loc)
     else:
-        raise Exception(f"Unsupported derivative order: {derivative_order}")
+        raise NotImplementedError(f"Unsupported {derivative_order=}")
+
     return L
 
 
-def _compute_mu_real_score(
-    mu_Z_DRT_re: NDArray[float64],
-    mu_Z_H_re: NDArray[float64],
+def _compute_mu_score(
+    mu_Z_DRT: NDArray[float64],
+    mu_Z_H: NDArray[float64],
 ) -> float:
-    return float(
-        1.0 - (norm(mu_Z_DRT_re - mu_Z_H_re) / (norm(mu_Z_DRT_re) + norm(mu_Z_H_re)))
-    )
-
-
-def _compute_mu_imaginary_score(
-    mu_Z_DRT_im: NDArray[float64],
-    mu_Z_H_im: NDArray[float64],
-) -> float:
-    return float(
-        1.0 - (norm(mu_Z_DRT_im - mu_Z_H_im) / (norm(mu_Z_DRT_im) + norm(mu_Z_H_im)))
-    )
+    return float(1.0 - (norm(mu_Z_DRT - mu_Z_H) / (norm(mu_Z_DRT) + norm(mu_Z_H))))
 
 
 def _compute_real_residual_scores(
@@ -551,6 +598,7 @@ def _compute_real_residual_scores(
 ) -> NDArray[float64]:
     res_re: NDArray[float64] = mu_R_inf + mu_Z_H_re - Z_exp.real
     band_re: NDArray[float64] = sqrt(cov_R_inf + diag(Sigma_Z_H_re) + sigma_n_im**2)
+
     return _compute_res_scores(res_re, band_re)
 
 
@@ -567,6 +615,7 @@ def _compute_imaginary_residual_scores(
     band_im: NDArray[float64] = sqrt(
         (omega**2) * cov_L_0 + diag(Sigma_Z_H_im) + sigma_n_re**2
     )
+
     return _compute_res_scores(res_im, band_im)
 
 
@@ -621,12 +670,14 @@ def _calculate_scores(
         # s_mu - distance between means:
         mu_Z_DRT_re: NDArray[float64] = out_dict_real["mu_Z_DRT"]
         mu_Z_H_re: NDArray[float64] = out_dict_imag["mu_Z_H"]
+        s_mu_re: float = _compute_mu_score(mu_Z_DRT_re, mu_Z_H_re)
+        prog.increment()
+
         mu_Z_DRT_im: NDArray[float64] = out_dict_imag["mu_Z_DRT"]
         mu_Z_H_im: NDArray[float64] = out_dict_real["mu_Z_H"]
-        s_mu_re: float = _compute_mu_real_score(mu_Z_DRT_re, mu_Z_H_re)
+        s_mu_im: float = _compute_mu_score(mu_Z_DRT_im, mu_Z_H_im)
         prog.increment()
-        s_mu_im: float = _compute_mu_imaginary_score(mu_Z_DRT_im, mu_Z_H_im)
-        prog.increment()
+
         # s_JSD - Jensen-Shannon Distance:
         # we need the means (above) and covariances (below)
         # for the computation of the JSD
@@ -634,6 +685,7 @@ def _calculate_scores(
         Sigma_Z_DRT_im: NDArray[float64] = out_dict_imag["Sigma_Z_DRT"]
         Sigma_Z_H_re: NDArray[float64] = out_dict_imag["Sigma_Z_H"]
         Sigma_Z_H_im: NDArray[float64] = out_dict_real["Sigma_Z_H"]
+
         # s_res - residual score:
         # real part
         s_res_re: NDArray[float64] = _compute_real_residual_scores(
@@ -645,6 +697,7 @@ def _calculate_scores(
             Sigma_Z_H_re,
         )
         prog.increment()
+
         # imaginary part
         s_res_im: NDArray[float64] = _compute_imaginary_residual_scores(
             out_dict_imag["mu_gamma"][0],
@@ -656,6 +709,7 @@ def _calculate_scores(
             Sigma_Z_H_im,
         )
         prog.increment()
+
         s_HD_re: float = _compute_HD_score(
             mu_Z_DRT_re,
             Sigma_Z_DRT_re,
@@ -663,6 +717,7 @@ def _calculate_scores(
             Sigma_Z_H_re,
         )
         prog.increment()
+
         s_HD_im: float = _compute_HD_score(
             mu_Z_DRT_im,
             Sigma_Z_DRT_im,
@@ -670,6 +725,7 @@ def _calculate_scores(
             Sigma_Z_H_im,
         )
         prog.increment()
+
         s_JSD_re: float = _compute_JSD_score(
             mu_Z_DRT_re,
             Sigma_Z_DRT_re,
@@ -678,6 +734,7 @@ def _calculate_scores(
             num_samples,
         )
         prog.increment()
+
         s_JSD_im: float = _compute_JSD_score(
             mu_Z_DRT_im,
             Sigma_Z_DRT_im,
@@ -685,6 +742,7 @@ def _calculate_scores(
             Sigma_Z_H_im,
             num_samples,
         )
+
     return {
         "hellinger_distance": complex(s_HD_re, s_HD_im),
         "jensen_shannon_distance": complex(s_JSD_re, s_JSD_im),
@@ -697,31 +755,43 @@ def _calculate_scores(
 
 def _single_hilbert_transform_estimate(
     theta_0: NDArray[float64],
-    Z_exp: ComplexImpedances,
+    Z_exp: NDArray[float64],
     A: NDArray[float64],
     A_H: NDArray[float64],
     L: NDArray[float64],
     num_freqs: int,
     num_taus: int,
-):
+) -> dict:
+    import warnings
     from scipy.optimize import (
         OptimizeResult,
+        OptimizeWarning,
         minimize,
     )
 
     fp: IO
     with open(devnull, "w") as fp:
         with redirect_stdout(fp):
-            res: OptimizeResult = minimize(
-                _NMLL_fct,
-                squeeze(theta_0),
-                args=(Z_exp, A, L, num_freqs, num_taus),
-                options={"gtol": 1e-8, "disp": True},
-            )
+            kw: dict
+            if _python_version_info.major == 3 and _python_version_info.minor < 11:
+                kw = {}
+            else:
+                kw = {"category": OptimizeWarning}
+
+            with warnings.catch_warnings(**kw):
+                warnings.simplefilter("ignore")
+                res: OptimizeResult = minimize(
+                    _NMLL_fct,
+                    squeeze(theta_0),
+                    args=(Z_exp, A, L, num_freqs, num_taus),
+                    options={"gtol": 1e-8, "disp": True},
+                )
+
     sigma_n: float
     sigma_beta: float
     sigma_lambda: float
     sigma_n, sigma_beta, sigma_lambda = res.x
+
     # Compute the probability density functions of data regression
     # $K_agm = A.T A +\lambda L.T L$
     W: NDArray[float64] = (
@@ -729,27 +799,34 @@ def _single_hilbert_transform_estimate(
         + 1 / (sigma_lambda**2) * L.T @ L
     )
     K_agm: NDArray[float64] = 1 / (sigma_n**2) * (A.T @ A) + W
+
     # Cholesky factorization
     L_agm: NDArray[float64] = cholesky(K_agm)
-    inv_L_agm: NDArray[float64] = invert(L_agm)
+    inv_L_agm: NDArray[float64] = inv(L_agm)
     inv_K_agm: NDArray[float64] = inv_L_agm.T @ inv_L_agm
+
     # Compute the gamma ~ N(mu_gamma, Sigma_gamma)
     Sigma_gamma: NDArray[float64] = inv_K_agm
+    # .real is also in the original pyDRTTools code
     mu_gamma: NDArray[float64] = 1 / (sigma_n**2) * (Sigma_gamma @ A.T) @ Z_exp.real
+
     # Compute, from gamma, the Z ~ N(mu_Z, Sigma_Z)
     mu_Z: NDArray[float64] = A @ mu_gamma
     Sigma_Z: NDArray[float64] = A @ (Sigma_gamma @ A.T) + sigma_n**2 * eye(
         num_freqs, dtype=float64
     )
+
     # Compute, from gamma, the Z_DRT ~ N(mu_Z_DRT, Sigma_Z_DRT)
     A_DRT: NDArray[float64] = A[:, 1:]
     mu_gamma_DRT: NDArray[float64] = mu_gamma[1:]
     Sigma_gamma_DRT: NDArray[float64] = Sigma_gamma[1:, 1:]
     mu_Z_DRT: NDArray[float64] = A_DRT @ mu_gamma_DRT
     Sigma_Z_DRT: NDArray[float64] = A_DRT @ (Sigma_gamma_DRT @ A_DRT.T)
+
     # Compute, from gamma, the Z_H_conj ~ N(mu_Z_H_conj, Sigma_Z_H_conj)
     mu_Z_H: NDArray[float64] = A_H @ mu_gamma[1:]
     Sigma_Z_H: NDArray[float64] = A_H @ (Sigma_gamma[1:, 1:] @ A_H.T)
+
     return {
         "mu_gamma": mu_gamma,
         "Sigma_gamma": Sigma_gamma,
@@ -776,6 +853,7 @@ def _calculate_symmetry_score(
     data_real: dict
     data_imag: dict
     pseudo_chisqr, theta_0, data_real, data_imag = result
+
     _, gamma = _x_to_gamma(
         data_real["mu_gamma"][1:],
         tau_fine,
@@ -783,9 +861,11 @@ def _calculate_symmetry_score(
         epsilon,
         rbf_type,
     )
+
     min_gamma: float = abs(min(gamma))
     max_gamma: float = abs(max(gamma))
     score: float = 1.0 - ((max_gamma - min_gamma) / max(min_gamma, max_gamma))
+
     _, gamma = _x_to_gamma(
         data_imag["mu_gamma"][1:],
         tau_fine,
@@ -793,15 +873,17 @@ def _calculate_symmetry_score(
         epsilon,
         rbf_type,
     )
+
     min_gamma = abs(min(gamma))
     max_gamma = abs(max(gamma))
     score += 1.0 - ((max_gamma - min_gamma) / max(min_gamma, max_gamma))
+
     return score / 2.0
 
 
 def _hilbert_transform_process(
     args: tuple,
-) -> Optional[Tuple[float, NDArray[float64], dict, dict]]:
+) -> Union[Optional[Tuple[float, NDArray[float64], dict, dict]], Exception]:
     theta_0: NDArray[float64]
     w: NDArray[float64]
     Z: ComplexImpedances
@@ -844,6 +926,7 @@ def _hilbert_transform_process(
             num_freqs,
             num_taus,
         )
+
         theta_0 = data_real["theta"]
         data_imag: dict = _single_hilbert_transform_estimate(
             theta_0,
@@ -854,10 +937,12 @@ def _hilbert_transform_process(
             num_freqs,
             num_taus,
         )
+
         mu_R_inf: float = data_real["mu_gamma"][0]
         mu_Z_H_re: NDArray[float64] = data_imag["mu_Z_H"]
         mu_L_0: float = data_imag["mu_gamma"][0]
         mu_Z_H_im: NDArray[float64] = data_real["mu_Z_H"]
+
         Z_fit: ComplexImpedances = array(
             list(
                 map(
@@ -871,6 +956,7 @@ def _hilbert_transform_process(
             dtype=ComplexImpedance,
         )
         pseudo_chisqr: float = _calculate_pseudo_chisqr(Z_exp=Z, Z_fit=Z_fit)
+
         result: Tuple[float, NDArray[float64], dict, dict] = (
             pseudo_chisqr,
             theta_0,
@@ -878,7 +964,7 @@ def _hilbert_transform_process(
             data_imag,
         )
         if (
-            _calculate_symmetry_score(
+            maximum_symmetry > 0.0 and _calculate_symmetry_score(
                 result,
                 tau_fine,
                 tau,
@@ -889,14 +975,15 @@ def _hilbert_transform_process(
         ):
             # The result is most likely poor (lots of strong oscillation).
             return None
+
         return (
             pseudo_chisqr,
             theta_0,
             data_real,
             data_imag,
         )
-    except Exception:
-        return None
+    except Exception as err:
+        return err
 
 
 def _perform_attempts(
@@ -919,6 +1006,7 @@ def _perform_attempts(
 ) -> Tuple[float, NDArray[float64], dict, dict]:
     L: NDArray[float64] = _compute_L(tau, derivative_order)
     theta_0_generator: Callable = lambda: 10 ** (6 * rand(3, 1) - 3)
+
     args = (
         (
             theta_0_generator(),
@@ -939,28 +1027,40 @@ def _perform_attempts(
         )
         for _ in range(0, num_attempts)
     )
+
     results: List[Tuple[float, NDArray[float64], dict, dict]] = []
+    errors: List[Exception] = []
+
     prog: Progress
     with Progress("Calculating Hilbert transforms", total=num_attempts + 1) as prog:
         if num_procs > 1:
             with Pool(num_procs) as pool:
-                for i, res in enumerate(
-                    pool.imap_unordered(
-                        _hilbert_transform_process,
-                        args,
-                    )
+                for res in pool.imap_unordered(
+                    _hilbert_transform_process,
+                    args,
                 ):
                     prog.increment()
-                    if res is not None:
+                    if isinstance(res, Exception):
+                        errors.append(res)
+                    elif res is not None:
                         results.append(res)
+
         else:
-            for i, res in enumerate(map(_hilbert_transform_process, args)):
+            for res in map(_hilbert_transform_process, args):
                 prog.increment()
-                if res is not None:
+                if isinstance(res, Exception):
+                    errors.append(res)
+                elif res is not None:
                     results.append(res)
+
     if len(results) == 0:
-        raise DRTError("Failed to perform calculations! Try tweaking the settings.")
+        if len(errors) > 0:
+            raise errors.pop(0)
+        else:
+            raise DRTError("Failed to perform calculations! Try tweaking the settings.")
+
     results.sort(key=lambda _: _[0])
+
     return results[0]
 
 
@@ -972,12 +1072,15 @@ def _calculate_model_impedance(
     # Real part
     mu_R_inf: float = data_real["mu_gamma"][0]
     mu_Z_H_im: NDArray[float64] = data_real["mu_Z_H"]
+
     # Imaginary part
     mu_L_0: float = data_imag["mu_gamma"][0]
     mu_Z_H_re: NDArray[float64] = data_imag["mu_Z_H"]
+
     # Means and bounds
     mu_Z_H_re_agm: NDArray[float64] = mu_R_inf + mu_Z_H_re
     mu_Z_H_im_agm: NDArray[float64] = w * mu_L_0 + mu_Z_H_im
+
     return array(
         list(
             map(
@@ -992,6 +1095,7 @@ def _calculate_model_impedance(
     )
 
 
+# TODO: Add support for admittance?
 def calculate_drt_bht(
     data: DataSet,
     rbf_type: str = "gaussian",
@@ -1001,7 +1105,7 @@ def calculate_drt_bht(
     num_samples: int = 2000,
     num_attempts: int = 10,
     maximum_symmetry: float = 0.5,
-    num_procs: int = 0,
+    num_procs: int = -1,
     **kwargs,
 ) -> BHTResult:
     """
@@ -1071,44 +1175,61 @@ def calculate_drt_bht(
     -------
     BHTResult
     """
-    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
-    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
-    assert type(rbf_type) is str, rbf_type
-    if rbf_type not in _RBF_TYPES:
-        raise DRTError("Valid rbf_type values: '" + "', '".join(_RBF_TYPES))
-    assert issubdtype(type(derivative_order), integer), derivative_order
-    if not (1 <= derivative_order <= 2):
-        raise DRTError("Valid derivative_order values: 1, 2")
-    assert type(rbf_shape) is str, rbf_shape
-    if rbf_shape not in _RBF_SHAPES:
-        raise DRTError("Valid rbf_shape values: '" + "', '".join(_RBF_SHAPES))
-    assert issubdtype(type(shape_coeff), floating), shape_coeff
-    if shape_coeff <= 0.0:
-        raise DRTError("The shape coefficient must be greater than 0.0!")
-    assert issubdtype(type(num_samples), integer), num_samples
-    if num_samples < 1:
-        raise DRTError("The number of samples must be greater than ")
-    assert issubdtype(type(num_attempts), integer), num_attempts
-    if num_attempts < 1:
-        raise DRTError("The number of attempts must be greater than 0!")
-    assert issubdtype(type(maximum_symmetry), floating), maximum_symmetry
-    if not (0.0 <= maximum_symmetry <= 1.0):
-        raise DRTError("The maximum symmetry must be between 0.0 and 1.0 (inclusive)!")
-    assert issubdtype(type(num_procs), integer), num_procs
-    if num_procs < 1:
-        num_procs = _get_default_num_procs() - abs(num_procs)
-        if num_procs < 1:
-            num_procs = 1
+    if not isinstance(rbf_type, str):
+        raise TypeError(f"Expected a string instead of {rbf_type=}")
+    elif rbf_type not in _RBF_TYPES:
+        raise ValueError("Valid rbf_type values: '" + "', '".join(_RBF_TYPES))
+
+    if not _is_integer(derivative_order):
+        raise TypeError(f"Expected an integer instead of {derivative_order=}")
+    elif not (1 <= derivative_order <= 2):
+        raise ValueError("Valid derivative_order values: 1, 2")
+
+    if not isinstance(rbf_shape, str):
+        raise TypeError(f"Expected a string instead of {rbf_shape=}")
+    elif rbf_shape not in _RBF_SHAPES:
+        raise ValueError("Valid rbf_shape values: '" + "', '".join(_RBF_SHAPES))
+
+    if not _is_floating(shape_coeff):
+        raise TypeError(f"Expected a float instead of {shape_coeff=}")
+    elif shape_coeff <= 0.0:
+        raise ValueError("The shape coefficient must be greater than 0.0")
+
+    if not _is_integer(num_samples):
+        raise TypeError(f"Expected an integer instead of {num_samples=}")
+    elif num_samples < 1:
+        raise ValueError("The number of samples must be greater than 0")
+
+    if not _is_integer(num_attempts):
+        raise TypeError(f"Expected an integer instead of {num_attempts=}")
+    elif num_attempts < 1:
+        raise ValueError("The number of attempts must be greater than 0")
+
+    if not _is_floating(maximum_symmetry):
+        raise TypeError(f"Expected a float instead of {maximum_symmetry=}")
+    elif not (0.0 <= maximum_symmetry <= 1.0):
+        raise ValueError("The maximum symmetry must be in the range [0.0, 1.0]")
+
+    if not _is_integer(num_procs):
+        raise TypeError(f"Expected an integer instead of {num_procs=}")
+    elif num_procs < 1:
+        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+
     prog: Progress
     with Progress("Preparing matrices", total=5) as prog:
         f: Frequencies = data.get_frequencies()
-        Z_exp: ComplexImpedances = data.get_impedances()
+        if len(f) < 1:
+            raise ValueError(
+                f"There are no unmasked data points in the '{data.get_label()}' data set parsed from '{data.get_path()}'"
+            )
+
         tau: NDArray[float64] = 1 / f
         tau_fine: NDArray[float64] = logspace(
             log(tau.min()) - 0.5,
             log(tau.max()) + 0.5,
             10 * f.shape[0],
         )
+
         w: NDArray[float64] = 2 * pi * f
         epsilon: float = _compute_epsilon(
             f,
@@ -1116,14 +1237,20 @@ def calculate_drt_bht(
             shape_coeff,
             rbf_type,
         )
+
         A_re: NDArray[float64] = _compute_A_re(w, tau)
         prog.increment()
+
         A_im: NDArray[float64] = _compute_A_im(w, tau)
         prog.increment()
+
         A_H_re: NDArray[float64] = _compute_A_H_re(w, tau)
         prog.increment()
+
         A_H_im: NDArray[float64] = _compute_A_H_im(w, tau)
         prog.increment()
+
+        Z_exp: ComplexImpedances = data.get_impedances()
         theta_0: NDArray[float64]
         data_real: dict
         data_imag: dict
@@ -1145,6 +1272,7 @@ def calculate_drt_bht(
             num_attempts,
             num_procs,
         )
+
         # Scores seem to be fine based on comparison with the ZARC example used in the article
         scores: dict = _calculate_scores(
             theta_0,
@@ -1156,6 +1284,7 @@ def calculate_drt_bht(
         )
         prog.set_message("Calculating model impedance")
         Z_fit: ComplexImpedances = _calculate_model_impedance(w, data_real, data_imag)
+
     time_constants: TimeConstants
     time_constants, real_gammas = _x_to_gamma(
         data_real["mu_gamma"][1:],
@@ -1172,6 +1301,7 @@ def calculate_drt_bht(
         epsilon,
         rbf_type,
     )
+
     return BHTResult(
         time_constants=time_constants,
         real_gammas=real_gammas,

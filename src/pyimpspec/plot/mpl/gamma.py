@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,16 +20,7 @@
 from pyimpspec.analysis.drt import DRTResult
 from numpy import (
     complex128,
-    floating,
     isnan,
-    issubdtype,
-)
-from typing import (
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Union,
 )
 from pyimpspec.typing import (
     Gamma,
@@ -37,11 +28,20 @@ from pyimpspec.typing import (
     TimeConstant,
     TimeConstants,
 )
+from pyimpspec.typing.helpers import (
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    _is_boolean,
+)
 from pyimpspec.plot.colors import COLOR_BLACK
-from pyimpspec.plot.mpl.utility import (
+from .helpers import (
     _color_axis,
     _configure_log_limits,
     _configure_log_scale,
+    _initialize_figure,
+    _validate_figure,
 )
 
 
@@ -217,55 +217,55 @@ def plot_gamma(
     -------
     Tuple[|Figure|, List[|Axes|]]
     """
-    import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
 
-    assert hasattr(drt, "get_drt_data") and callable(drt.get_drt_data)
-    assert (
-        issubdtype(type(bounds_alpha), floating) and 0.0 <= bounds_alpha <= 1.0
-    ), bounds_alpha
-    assert (
-        issubdtype(type(peak_threshold), floating) and peak_threshold <= 1.0
-    ), peak_threshold
     if colors is None:
         colors = {}
-    assert isinstance(colors, dict), colors
-    assert isinstance(label, str) or label is None, label
-    assert isinstance(legend, bool), legend
-    assert isinstance(colored_axes, bool), colored_axes
-    assert isinstance(figure, Figure) or figure is None, figure
-    axis: Axes
+    elif not isinstance(colors, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {colors=}")
+    color: str = colors.get("gamma", COLOR_BLACK)
+
     if figure is None:
-        assert axes is None
-        figure, axis = plt.subplots()
-        axes = [axis]
-    assert isinstance(axes, list)
-    assert len(axes) == 1
-    assert all(map(lambda _: isinstance(_, Axes), axes))
-    axis = axes[0]
-    assert axis is not None, axis
+        figure, axes = _initialize_figure(num_rows=1, num_cols=1)
+    assert axes is not None
+
+    _validate_figure(figure, axes, num_axes=1)
+    axis: Axes = axes[0]
+
     if label is None:
         if hasattr(drt, "get_label") and callable(drt.get_label):
             label = drt.get_label()
         else:
             label = ""
-    color: str = colors.get("gamma", COLOR_BLACK)
+    elif not isinstance(label, str):
+        raise TypeError(f"Expected a string or None instead of {label=}")
+
     if hasattr(drt, "get_drt_credible_intervals_data") and callable(
         drt.get_drt_credible_intervals_data
     ):
         _plot_credible_intervals(drt, label, color, bounds_alpha, axis)
+
     _plot_peaks(drt, peak_threshold, color, axis)
     _plot_gammas(drt, label, color, axis)
-    if adjust_axes:
+
+    if not _is_boolean(adjust_axes):
+        raise TypeError(f"Expected a boolean instead of {adjust_axes=}")
+    elif adjust_axes:
         axis.set_xlabel(r"$\tau\ (\rm s)$")
         axis.set_ylabel(r"$\gamma\ (\Omega)$")
         _configure_log_scale(axis, x=True)
         _configure_log_limits(axis, x=True)
-    if legend is True:
+
+    if not _is_boolean(legend):
+        raise TypeError(f"Expected a boolean instead of {legend=}")
+    elif legend:
         axis.legend()
-    if colored_axes is True:
+
+    if not _is_boolean(colored_axes):
+        raise TypeError(f"Expected a boolean instead of {colored_axes=}")
+    elif colored_axes:
         _color_axis(axis, color, left=True, right=True)
+
     return (
         figure,
         axes,

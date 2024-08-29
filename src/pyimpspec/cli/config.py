@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@ from argparse import (
 )
 from importlib.machinery import SourceFileLoader
 from json import (
-    JSONDecodeError,
     dump as dump_json,
     load as load_json,
 )
@@ -96,6 +95,7 @@ config_args: Callable = args
 def get_defaults() -> dict:
     defaults: dict = {}
     parser: ArgumentParser = get_argument_parser()
+
     cmd: str
     subparser: ArgumentParser
     for cmd, subparser in parser._actions[1]._name_parser_map.items():
@@ -103,11 +103,15 @@ def get_defaults() -> dict:
             continue
         elif cmd == "show":
             continue
+
         defaults[cmd] = {}
+
         for action in subparser._actions:
             if type(action) is _HelpAction or action.default is None:
                 continue
+
             defaults[cmd][action.dest] = action.default
+
     return defaults
 
 
@@ -117,6 +121,7 @@ def merge_configs(src: dict, dst: dict):
     for k, v in src.items():
         if k not in dst:
             continue
+
         if type(v) is dict:
             merge_configs(v, dst[k])
         else:
@@ -128,19 +133,25 @@ def command(parser: ArgumentParser, args: Namespace, print_func: Callable = prin
         folder: str = get_config_dir()
         if not exists(folder):
             makedirs(folder)
+
         output: dict = get_defaults()
         output["user_defined_elements"] = ""
         output["num_procs"] = 0
+
         if args.update_file:
             merge_configs(get_config(), output)
+
         output["version"] = VERSION
+
         fp: IO
         with open(get_config_path(), "w") as fp:
             dump_json(output, fp, indent=4, sort_keys=True)
+
     elif args.num_procs:
         from pyimpspec.analysis.utility import _get_default_num_procs
 
         print_func(_get_default_num_procs())
+
     else:
         print_command_help(parser, args.command)
 
@@ -150,7 +161,7 @@ def get_argument_parser() -> ArgumentParser:
         prog="pyimpspec",
         allow_abbrev=False,
         description="""
-pyimpspec Copyright (C) 2023 pyimpspec developers
+pyimpspec Copyright (C) 2024 pyimpspec developers
 This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
 This is free software, and you are welcome to redistribute it
 under certain conditions; type `show c' for details.
@@ -239,15 +250,19 @@ Command-line interface for the pyimpspec Python package, which can be used to va
         dest="version",
         help="Print the current version.",
     )
+
     return parser
 
 
 def load_user_defined_elements(path: Optional[str]):
     if path is None or path == "":
         return
-    assert exists(
-        path
-    ), f"Failed to load user-defined elements from '{path}' because the file does not exist!"
+
+    if not exists(path):
+        raise FileNotFoundError(
+            f"Failed to load user-defined elements from '{path}' because the file does not exist!"
+        )
+
     loader = SourceFileLoader("user_defined_elements", path)
     mod = ModuleType(loader.name)
     loader.exec_module(mod)
@@ -261,28 +276,36 @@ def set_num_procs_override(num_procs: int):
 
 def parse_cli_args(parser: ArgumentParser, argv: List[str]) -> Namespace:
     args: Namespace = parser.parse_args(argv)
-    if _IGNORE_USER_CONFIG is True:
+    if _IGNORE_USER_CONFIG:
         return args
+
     config: dict = get_config()
     load_user_defined_elements(config.get("user_defined_elements"))
+
     num_procs: int = config.get("num_procs", -1)
     if num_procs > 0:
         set_num_procs_override(num_procs)
+
     config = config.get(args.command, {})
     if not config:
         return args
+
     subparser: ArgumentParser = parser._actions[1]._name_parser_map[args.command]
+
     for act in subparser._actions:
-        if type(act) is _HelpAction or act.default is None:
+        if isinstance(act, _HelpAction) or act.default is None:
             continue
         elif act.dest not in config:
             continue
         act.default = config[act.dest]
+
     return parser.parse_args(argv)
 
 
 def _v1_migrator(config: dict) -> dict:
-    assert config["version"] <= 1, "Implement migrator for CLI config!"
+    if config["version"] > 1:
+        raise NotImplementedError(f"Implement migrator to CLI config version {config['version']}")
+
     return config
 
 
@@ -290,17 +313,23 @@ def migrate_config(config: dict) -> dict:
     version: int = config.get("version", -1)
     if version < 1:
         return {}
-    assert 0 < version <= VERSION, version
+
+    if not (0 < version <= VERSION):
+        raise NotImplementedError(f"Unsupported config version {version=}")
+
     migrators: Dict[int, Callable] = {
         1: _v1_migrator,
     }
+
     v: int
     migrator: Callable
     for v, migrator in migrators.items():
         if v < version:
             continue
         config = migrator(config)
+
     del config["version"]
+
     return config
 
 
@@ -308,11 +337,9 @@ def get_config() -> dict:
     config_path: str = get_config_path()
     if not exists(config_path):
         return {}
+
     fp: IO
-    try:
-        config: dict
-        with open(config_path, "r") as fp:
-            config = load_json(fp)
-    except JSONDecodeError as e:
-        raise Exception(f"Config error! {e}")
+    with open(config_path, "r") as fp:
+        config: dict = load_json(fp)
+
     return migrate_config(config)

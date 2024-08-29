@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,15 +18,11 @@
 # the LICENSES folder.
 
 from numpy import (
-    complex128,
-    float64,
     inf,
     pi,
 )
-from numpy.typing import NDArray
 from .functions import (
     coth,
-    sqrt,
     tanh,
 )
 from .base import Element

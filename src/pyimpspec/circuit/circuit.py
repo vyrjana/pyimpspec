@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ from .base import (
     _calculate_impedances,
 )
 from .series import Series
-from numpy import ndarray
+from .parallel import Parallel
 from sympy import (
     Expr,
     latex,
@@ -54,13 +54,27 @@ class Circuit:
 
     Parameters
     ----------
-    elements: Series
-        The elements of the circuit wrapped in a Series connection.
+    elements: Union[List[Element], Element, Series, Parallel]
+        The elements of the circuit.
     """
 
     def __init__(self, elements: Connection):
-        if not isinstance(elements, Series):
+        if isinstance(elements, Series):
+            pass
+        elif isinstance(elements, Parallel):
             elements = Series([elements])
+        elif isinstance(elements, Element):
+            elements = Series([elements])
+        elif isinstance(elements, list):
+            if not all(map(lambda e: isinstance(e, Element), elements)):
+                raise TypeError(f"Expected a List[Element] instead of {elements=}")
+            else:
+                elements = Series([elements])
+        else:
+            raise TypeError(
+                f"Expected a List[Element], Element, Series, or Parallel instead of {elements=}"
+            )
+
         self._elements: Series = elements
 
     def __copy__(self) -> "Circuit":
@@ -71,12 +85,17 @@ class Circuit:
     def __deepcopy__(self, memo: dict) -> "Circuit":
         ident: int = id(self)
         copy: Optional["Circuit"] = memo.get(ident)
+
         if copy is None:
             copy = type(self)(
                 self._elements.__deepcopy__(memo),  # type: ignore
             )
             memo[ident] = copy
+
         return copy
+
+    def __iter__(self) -> List[Union[Element, Connection]]:
+        return self._elements.__iter__()
 
     def __repr__(self) -> str:
         return f"Circuit ('{self.to_string()}', {hex(id(self))})"
@@ -90,6 +109,7 @@ class Circuit:
     def to_stack(self) -> List[Tuple[str, Union[Element, Connection]]]:
         stack: List[Tuple[str, Union[Element, Connection]]] = []
         self._elements.to_stack(stack)
+
         return stack
 
     def serialize(self, decimals: int = 12) -> str:
@@ -133,46 +153,50 @@ class Circuit:
         -------
         |ComplexImpedances|
         """
-        assert isinstance(frequencies, ndarray), frequencies
         return _calculate_impedances(self._elements, frequencies)
 
-    def get_connections(self, flattened: bool = True) -> List[Connection]:
+    def get_connections(self, recursive: bool = True) -> List[Connection]:
         """
         Get the connections in this circuit.
 
         Parameters
         ----------
-        flattened: bool, optional
-            Whether or not the connections should be returned as a list of all connections or as a list connections that may also contain more connections.
+        recursive: bool, optional
+            If True and this Circuit contains nested Connection instances, then all of them are returned.
+            If False, then only the top-level Connection is returned.
 
         Returns
         -------
         List[Connection]
         """
-        if flattened is True:
+        if recursive:
             connections: List[Connection] = self._elements.get_connections(
-                flattened=flattened
+                recursive=recursive
             )
             connections.insert(0, self._elements)
+
             return connections
+
         return [self._elements]
 
-    def get_elements(self, flattened: bool = True) -> List[Union[Element, Connection]]:
+    def get_elements(self, recursive: bool = True) -> List[Element]:
         """
         Get the elements in this circuit.
 
         Parameters
         ----------
-        flattened: bool, optional
-            Whether or not the elements should be returned as a list of only elements or as a list of connections containing elements.
+        recursive: bool, optional
+            If True and there are Element instances nested within Connection instances, then all Element instances are returned.
+            If False, then only the Element instances within the top-level Connection are returned.
 
         Returns
         -------
-        List[Union[Element, Connection]]
+        List[Element]
         """
-        if flattened is True:
-            return self._elements.get_elements(flattened=flattened)
-        return [self._elements]
+        if recursive:
+            return self._elements.get_elements(recursive=recursive)
+
+        return [item for item in self._elements if isinstance(item, Element)]
 
     def generate_element_identifiers(self, running: bool) -> Dict[Element, int]:
         """
@@ -229,7 +253,9 @@ class Circuit:
             substitute=substitute,
             identifiers=self.generate_element_identifiers(running=True),
         )
-        assert isinstance(expr, Expr)
+        if not isinstance(expr, Expr):
+            raise TypeError(f"Expected an Expr instead of {expr=}")
+
         return expr
 
     def to_latex(self) -> str:
