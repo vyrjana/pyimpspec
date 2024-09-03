@@ -22,18 +22,15 @@ from os import environ
 from typing import (
     Any,
     Dict,
-    List,
     Optional,
     Set,
 )
 from numpy import (
     __config__ as numpy_config,
-    array,
-    ceil,
     float64,
-    floor,
     int64,
     integer,
+    isclose,
     isinf,
     log10 as log,
     logspace,
@@ -61,6 +58,9 @@ def _interpolate(
     if not _is_floating_array(experimental):
         experimental = _cast_to_floating_array(experimental)
 
+    if len(experimental) < 2:
+        raise ValueError(f"Expected an array with at least two values instead of {experimental=}")
+
     if not _is_integer(num_per_decade):
         raise TypeError(f"Expected an integer instead of {num_per_decade=}")
     elif num_per_decade <= 0:
@@ -77,24 +77,21 @@ def _interpolate(
     elif isinf(max_f):
         raise ValueError(f"Expected max_f < inf instead of {max_f=}")
 
-    log_min_f: int64 = int64(floor(log(min_f)))
-    log_max_f: int64 = int64(ceil(log(max_f)))
+    log_min_f: int64 = log(min_f)
+    log_max_f: int64 = log(max_f)
+    num_decades: int = int(round(log_max_f - log_min_f))
 
-    freq: List[float64] = [
-        f
-        for f in logspace(
-            log_min_f, log_max_f, num=(log_max_f - log_min_f) * num_per_decade + 1
-        )
-        if f >= min_f and f <= max_f
-    ]
+    f: Frequencies = logspace(
+        log_max_f,
+        log_min_f,
+        num=num_decades * num_per_decade + 1,
+        dtype=Frequency,
+    )
 
-    if min_f not in freq:
-        freq.append(min_f)
+    assert isclose(f, min_f).any(), f
+    assert isclose(f, max_f).any(), f
 
-    if max_f not in freq:
-        freq.append(max_f)
-
-    return array(list(sorted(freq, reverse=True)), dtype=Frequency)
+    return f
 
 
 def _calculate_residuals(

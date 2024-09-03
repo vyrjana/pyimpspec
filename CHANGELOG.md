@@ -2,6 +2,7 @@
 
 - Updated the docstring of the `generate_mock_data` function.
 - Updated the documentation to include the functions for generating mock data and circuits.
+- Fixed a bug in a function for interpolating frequencies.
 
 
 # 5.0.0 (2024/08/29)
