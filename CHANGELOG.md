@@ -1,3 +1,9 @@
+# 5.0.1 (2024/MM/DD)
+
+- Updated the docstring of the `generate_mock_data` function.
+- Updated the documentation to include the functions for generating mock data and circuits.
+
+
 # 5.0.0 (2024/08/29)
 
 **THIS UPDATE CONTAINS SEVERAL CHANGES THAT ARE NOT BACKWARDS COMPATIBLE WITH CODE WRITTEN USING VERSION 4.x!**

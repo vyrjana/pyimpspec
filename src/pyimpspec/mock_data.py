@@ -501,6 +501,7 @@ def generate_mock_data(identifier: str, **kwargs) -> List[DataSet]:
     **kwargs
         Keyword arguments to use when simulating an immittance spectrum.
         Valid keys include:
+
         - `log_max_f`: the logarithm of the highest frequency.
         - `log_min_f`: the logarithm of the lowest frequency.
         - `num_per_decade`: the number of points per decade.

@@ -56,7 +56,7 @@ For example, open a terminal and run the following command to confirm that pip (
 
 .. note::
 
-   Using a Python `virtual environments <https://docs.python.org/3/tutorial/venv.html>`_ is highly recommended in order to avoid possible issues related to conflicting versions of dependencies installed on a system.
+   Using a Python `virtual environment <https://docs.python.org/3/tutorial/venv.html>`_ is highly recommended in order to avoid possible issues related to conflicting versions of dependencies installed on a system.
    Such a virtual environment needs to be activated before running a script that imports a package installed inside the virtual environment.
    The system-wide Python environment may also be `externally managed <https://peps.python.org/pep-0668/>`_ in order to prevent the user from accidentally breaking that environment since the operating system depends upon the packages in that environment.
 

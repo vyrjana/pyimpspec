@@ -88,6 +88,8 @@
 .. |suggest_num_RC| replace:: :func:`~pyimpspec.analysis.kramers_kronig.suggest_num_RC`
 .. |suggest_representation| replace:: :func:`~pyimpspec.analysis.kramers_kronig.suggest_representation`
 .. |evaluate_log_F_ext| replace:: :func:`~pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext`
+.. |generate_mock_data| replace:: :func:`~pyimpspec.mock_data.generate_mock_data`
+.. |generate_mock_circuits| replace:: :func:`~pyimpspec.mock_data.generate_mock_circuits`
 
 .. links
 .. _circuitikz: https://github.com/circuitikz/circuitikz
