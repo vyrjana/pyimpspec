@@ -1,4 +1,4 @@
-# 5.0.1 (2024/MM/DD)
+# 5.0.1 (2024/09/03)
 
 - Updated the docstring of the `generate_mock_data` function.
 - Updated the documentation to include the functions for generating mock data and circuits.
