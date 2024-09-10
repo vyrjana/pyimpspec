@@ -51,9 +51,11 @@ def copy_additional_files(files: List[Path]):
     src_dir: Path = PARENT_DIRECTORY
     dst_dir: Path = src_dir.joinpath("src", "pyimpspec")
     licenses_dir: Path = dst_dir.joinpath("LICENSES")
-    if not licenses_dir.is_dir():
-        licenses_dir.mkdir(parents=True)
-    
+    if licenses_dir.is_dir():
+        rmtree(licenses_dir)
+
+    licenses_dir.mkdir(parents=True)
+
     path: Path
     for path in files:
         update_file(src_dir.joinpath(path), dst_dir.joinpath(path))
@@ -67,20 +69,20 @@ if __name__ == "__main__":
         "LICENSE",
         "README.md",
     )))
-    
+
     path: Path
     for path in PARENT_DIRECTORY.joinpath("LICENSES").glob("*"):
         data_files.append(path.relative_to(PARENT_DIRECTORY))
-    
+
     assert all(map(lambda path: path.is_file(), data_files))
-    
+
     copy_additional_files(data_files)
-    
+
     # Remove old dist files
     dist_output: Path = PARENT_DIRECTORY.joinpath("dist")
     if dist_output.is_dir():
         rmtree(dist_output)
-    
+
     # Remove old documentation files to force a rebuild
     docs_output: Path = PARENT_DIRECTORY.joinpath("docs", "build")
     if docs_output.is_dir():
