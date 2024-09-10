@@ -338,7 +338,7 @@ Similar impedance spectra have been reported when measuring, e.g., `in the passi
    figure.tight_layout()
 
 
-Attempting to perform Kramers-Kronig tests on this impedance data as shown in the previous example incorrectly indicates that the spectrum is not linear, causal, and stable.
+Attempting to perform KK tests on this impedance data as shown in the previous example incorrectly indicates that the spectrum is not linear, causal, and stable.
 
 .. plot::
 
@@ -355,7 +355,7 @@ Attempting to perform Kramers-Kronig tests on this impedance data as shown in th
 
 
 However, there are two approaches that can be used to successfully validate this impedance spectrum.
-The first approach is to perform the Kramers-Kronig tests on the admittance data either explicitly (i.e., by specifying ``admittance=True`` when calling the |perform_kramers_kronig_test| and |evaluate_log_F_ext| functions) or by calling |perform_kramers_kronig_test| with ``admittance=None`` (default value). The latter should then test both the impedance and the admittance representation before ultimately suggesting the result for the most appropriate represention, which in this case is the admittance representation.
+The first approach is to perform the KK tests on the admittance data either explicitly (i.e., by specifying ``admittance=True`` when calling the |perform_kramers_kronig_test| and |evaluate_log_F_ext| functions) or by calling |perform_kramers_kronig_test| with ``admittance=None`` (default value). The latter should then test both the impedance and the admittance representation before ultimately suggesting the result for the most appropriate represention, which in this case is the admittance representation.
 
 .. plot::
 
@@ -371,7 +371,7 @@ The first approach is to perform the Kramers-Kronig tests on the admittance data
    figure.tight_layout()
 
 
-The second approach is to add a parallel resistance of a suitable magnitude to the impedance data and to perform the Kramers-Kronig tests on the resulting impedance data.
+The second approach is to add a parallel resistance of a suitable magnitude to the impedance data and to perform the KK tests on the resulting impedance data.
 
 .. plot::
 
@@ -420,10 +420,10 @@ As can be seen from the results below, the new, and thus also the original, impe
 
 References:
 
-- Boukamp, B.A., 1995, J. Electrochem. Soc., 142, 1885-1894 (https://doi.org/10.1149/1.2044210)
-- Schönleber, M., Klotz, D., and Ivers-Tiffée, E., 2014, Electrochim. Acta, 131, 20-27 (https://doi.org/10.1016/j.electacta.2014.01.034)
-- Plank, C., Rüther, T., and Danzer, M.A., 2022, 2022 International Workshop on Impedance Spectroscopy (https://doi.org/10.1109/IWIS57888.2022.9975131)
-- Yrjänä, V and Bobacka, J., 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+- `Boukamp, B.A., 1995, J. Electrochem. Soc., 142, 1885-1894 <https://doi.org/10.1149/1.2044210>`_
+- `Schönleber, M., Klotz, D., and Ivers-Tiffée, E., 2014, Electrochim. Acta, 131, 20-27 <https://doi.org/10.1016/j.electacta.2014.01.034>`_
+- `Plank, C., Rüther, T., and Danzer, M.A., 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6 <https://doi.org/10.1109/IWIS57888.2022.9975131>`_
+- `Yrjänä, V. and Bobacka, J., 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
 .. raw:: latex
 

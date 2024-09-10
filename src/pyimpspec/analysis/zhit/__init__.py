@@ -230,7 +230,7 @@ def perform_zhit(
 
     - Ehm, W., Göhr, H., Kaus, R., Röseler, B., and Schiller, C.A., 2000, Acta Chimica Hungarica, 137 (2-3), 145-157.
     - Ehm, W., Kaus, R., Schiller, C.A., and Strunz, W., 2001, in "New Trends in Electrochemical Impedance Spectroscopy and Electrochemical Noise Analysis".
-    - Schiller, C.A., Richter, F., Gülzow, E., and Wagner, N., 2001, 3, 374-378 (https://doi.org/10.1039/B007678N)
+    - `Schiller, C.A., Richter, F., Gülzow, E., and Wagner, N., 2001, 3, 374-378 <https://doi.org/10.1039/B007678N>`_
 
     Parameters
     ----------
@@ -238,7 +238,7 @@ def perform_zhit(
         The data set for which the modulus of the impedance should be reconstructed.
 
     smoothing: str, optional
-        The type of smoothing to apply: "none", "lowess" (`Locally Weighted Scatterplot Smoothing <https://www.statsmodels.org/dev/generated/statsmodels.nonparametric.smoothers_lowess.lowess.html#statsmodels.nonparametric.smoothers_lowess.lowess>`_), "modsinc" (`modified sinc kernel` <https://pubs.acs.org/doi/full/10.1021/acsmeasuresciau.1c00054>`_), "savgol" (`Savitzky-Golay <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html>`_), "whithend" (`Whittaker-Henderson <https://doi.org/10.1021/acsmeasuresciau.1c00054>`_) or "auto".
+        The type of smoothing to apply: "none", "lowess" (`Locally Weighted Scatterplot Smoothing <https://www.statsmodels.org/dev/generated/statsmodels.nonparametric.smoothers_lowess.lowess.html#statsmodels.nonparametric.smoothers_lowess.lowess>`_), "modsinc" (`modified sinc kernel <https://pubs.acs.org/doi/full/10.1021/acsmeasuresciau.1c00054>`_), "savgol" (`Savitzky-Golay <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html>`_), "whithend" (`Whittaker-Henderson <https://doi.org/10.1021/acsmeasuresciau.1c00054>`_) or "auto".
 
     interpolation: str, optional
         The type of interpolation to apply: "akima" (`Akima spline <https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Akima1DInterpolator.html#scipy.interpolate.Akima1DInterpolator>`_), "cubic" (`cubic spline <https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicSpline.html#scipy.interpolate.CubicSpline>`_), "pchip" (`Piecewise Cubic Hermite Interpolating Polynomial <https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.PchipInterpolator.html#scipy.interpolate.PchipInterpolator>`_), or "auto".

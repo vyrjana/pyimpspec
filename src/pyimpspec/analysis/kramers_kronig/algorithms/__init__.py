@@ -67,7 +67,7 @@ def suggest_num_RC_limits(
 
     References:
 
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
     Parameters
     ----------
@@ -95,7 +95,8 @@ def suggest_num_RC_limits(
     Returns
     -------
     Tuple[int, int]
-        The suggested lower and upper limits.
+
+        The suggested lower and upper limits for the number of RC elements where the optimal number of RC elements is likely to exist. Values outside these limits are likely to result in under- or overfitting.
     """
     manually_defined_lower_limit: bool = lower_limit > 0
     manually_defined_upper_limit: bool = upper_limit > 0
@@ -592,10 +593,10 @@ def suggest_num_RC(
     """
     Suggest the optimal number of RC elements to use as part of the linear Kramers-Kronig test by applying one or more of the following methods:
 
-    - 1: |mu|-criterion (Schönleber et al., 2014).
+    - 1: |mu|-criterion (Schönleber et al., 2014). With optional modifications that are enabled by default (Yrjänä and Bobacka, 2024).
     - 2: The norm of the fitted variables (Plank et al., 2022).
-    - 3: The norm of the curvatures across the fitted impedance spectrum (Plank et al., 2022).
-    - 4: The number of sign changes across the curvatures of the fitted impedance spectrum (Plank et al., 2022).
+    - 3: The norm of the curvatures across the fitted impedance spectrum (Plank et al., 2022). With optional modifications that are enabled by default (Yrjänä and Bobacka, 2024).
+    - 4: The number of sign changes across the curvatures of the fitted impedance spectrum (Plank et al., 2022). With optional modifications that are enabled by default (Yrjänä and Bobacka, 2024).
     - 5: The mean distance between sign changes across the curvatures of the fitted impedance spectrum (Yrjänä and Bobacka, 2024).
     - 6: The apex of a |log sum abs tau R| (or |log sum abs tau C|) versus the number of RC elements (Yrjänä and Bobacka, 2024).
 
@@ -615,18 +616,11 @@ def suggest_num_RC(
 
     If the lower and/or upper limit is not specified, then |suggest_num_RC_limits| is used to estimate the limit(s).
 
-    Returns a tuple containing the following:
-
-    - The |KramersKronigResult| corresponding to the mean of the suggested number of RC elements.
-    - A dictionary that maps the number of RC elements to their corresponding scores.
-    - The lower limit for the number of RC elements to consider.
-    - The upper limit for the number of RC elements to consider.
-
     References:
 
-    - M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 (https://doi.org/10.1016/j.electacta.2014.01.034)
-    - C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6, (https://doi.org/10.1109/IWIS57888.2022.9975131)
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - `M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 <https://doi.org/10.1016/j.electacta.2014.01.034>`_
+    - `C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6 <https://doi.org/10.1109/IWIS57888.2022.9975131>`_
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
     Parameters
     ----------
@@ -660,6 +654,13 @@ def suggest_num_RC(
     Returns
     -------
     Tuple[|KramersKronigResult|, Dict[int, float], int, int]
+
+        A tuple containing:
+
+        - The |KramersKronigResult| corresponding to the suggested number of RC elements.
+        - A dictionary that maps the number of RC elements to their corresponding scores.
+        - The lower limit for the number of RC elements to consider.
+        - The upper limit for the number of RC elements to consider.
     """
     if not isinstance(tests, list):
         raise TypeError(f"Expected a list instead of {tests=}")

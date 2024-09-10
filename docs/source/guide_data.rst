@@ -19,16 +19,18 @@ The parsing functions and |parse_data| always return a list of |DataSet| objects
 
 .. doctest::
 
-   >>> from pyimpspec import DataSet, parse_data
+   >>> from pyimpspec import DataSet, Frequencies, ComplexImpedances, parse_data
    >>>
    >>> data: DataSet
    >>> for data in parse_data("./tests/data.dta"):
    ...   # Do something with 'data'.
-   ...   pass
+   ...   f: Frequencies = data.get_frequencies()
+   ...   Z: ComplexImpedances = data.get_impedances()
 
 .. note::
 
-  The data points are sorted from highest to lowest frequency when a |DataSet| object is created.
+  The data points are sorted from highest to lowest frequency when a |DataSet| instance is created.
+  If a file contains multiple frequency sweeps, then they are returned as separate |DataSet| instances.
 
 
 Plotting data
@@ -44,12 +46,18 @@ Below is a Nyquist plot of some example data (test circuit 1 or TC-1 from `Bouka
    
    >>> from pyimpspec import DataSet, parse_data
    >>> from pyimpspec import mpl
-   >>> import matplotlib.pyplot as plt
    >>>
    >>> data: DataSet
    >>> for data in parse_data("./tests/data.dta"):
    ...   figure, axes = mpl.plot_nyquist(data)
-   >>> plt.show()
+   >>>
+   >>> mpl.show()
+
+
+.. note::
+
+   The ``figure`` and ``axes`` values can be reused if one wishes to plot multiple immittance spectra in the same figure: ``mpl.plot_nyquist(data, figure=figure, axes=axes)``
+
 
 .. plot::
 
@@ -110,7 +118,7 @@ Masking a data point means that the data point will not be processed when analyz
 
 |DataSet| objects have various methods for getting certain types of values while taking the applied mask into account (e.g., |DataSet.get_frequencies|  or |DataSet.get_phases|).
 
-Below are two Bode plots of the example above from just before and after the low- and high-pass filters was applied.
+Below are two Bode plots of the example above before and after the low- and high-pass filters were applied.
 
 .. plot::
 

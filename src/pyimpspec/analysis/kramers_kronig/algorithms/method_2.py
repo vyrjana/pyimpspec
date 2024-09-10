@@ -95,7 +95,7 @@ def suggest(
 
     References:
 
-    - C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6, (https://doi.org/10.1109/IWIS57888.2022.9975131)
+    - `C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6 <https://doi.org/10.1109/IWIS57888.2022.9975131>`_
 
     Parameters
     ----------
@@ -118,6 +118,8 @@ def suggest(
     Returns
     -------
     Dict[int, float]
+
+        A dictionary mapping the number of RC elements to its corresponding score.
     """
     circuits: Dict[int, Circuit] = {t.num_RC: t.circuit for t in tests}
     circuits = _truncate_circuits(circuits, lower_limit, upper_limit)

@@ -1020,8 +1020,8 @@ def evaluate_log_F_ext(
 
     References:
 
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
-    - B.A. Boukamp, 1995, J. Electrochem. Soc., 142, 1885-1894 (https://doi.org/10.1149/1.2044210)
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
+    - `B.A. Boukamp, 1995, J. Electrochem. Soc., 142, 1885-1894 <https://doi.org/10.1149/1.2044210>`_
 
     Parameters
     ----------
@@ -1075,7 +1075,14 @@ def evaluate_log_F_ext(
     Returns
     -------
     List[Tuple[float, List[KramersKronigResult], float]]
-        A list of tuples where the first element is the extension in terms of decades beyond the default range, the second element is a list of linear Kramers-Kronig test results performed with a different number of RC elements (i.e., time constants), and the third element is the statistic indicating the quality of the extension (the smaller the better). The list of tuples is sorted from best to worst. The lists of |KramersKronigResult| instances are sorted from lowest to highest number of RC elements, and the optimal number of RC elements still needs to be determined.
+
+        A list of tuples containing:
+
+        - The extension in terms of decades beyond the default range.
+        - A list of linear Kramers-Kronig test results performed with a different number of RC elements (i.e., time constants).
+        - The statistic indicating the quality of the extension (the smaller the better).
+
+        The list of tuples is sorted from best to worst. The list of |KramersKronigResult| instances within each tuple is sorted from lowest to highest number of RC elements, and the optimal number of RC elements still needs to be determined.
     """
     if not isinstance(test, str):
         raise TypeError(f"Expected a string instead of {test=}")
@@ -1351,8 +1358,10 @@ def perform_exploratory_kramers_kronig_tests(
 
     References:
 
-    - B.A. Boukamp, 1995, J. Electrochem. Soc., 142, 1885-1894 (https://doi.org/10.1149/1.2044210)
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - `B.A. Boukamp, 1995, J. Electrochem. Soc., 142, 1885-1894 <https://doi.org/10.1149/1.2044210>`_
+    - `M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 <https://doi.org/10.1016/j.electacta.2014.01.034>`_
+    - `C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6 <https://doi.org/10.1109/IWIS57888.2022.9975131>`_
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
     Parameters
     ----------
@@ -1407,8 +1416,9 @@ def perform_exploratory_kramers_kronig_tests(
 
     Returns
     -------
-    Tuple[List[KramersKronigResult], Tuple[KramersKronigResult, Dict[int, float], int, int]]:
-        A tuple containing a list of |KramersKronigResult| and the corresponding result of |suggest_num_RC|.
+    Tuple[List[KramersKronigResult], Tuple[KramersKronigResult, Dict[int, float], int, int]]
+
+        A tuple containing a list of |KramersKronigResult| and the corresponding result of |suggest_num_RC| for the suggested extension of the range of time constants and the suggested representation of the immittance spectrum to test.
     """
     if not (_is_boolean(admittance) or admittance is None):
         raise TypeError(f"Expected a boolean or None instead of {admittance=}")

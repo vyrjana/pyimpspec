@@ -65,7 +65,8 @@ def _calculate_score(
 
     References:
 
-    - M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 (https://doi.org/10.1016/j.electacta.2014.01.034)
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
+    - `M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 <https://doi.org/10.1016/j.electacta.2014.01.034>`_
 
     Parameters
     ----------
@@ -161,8 +162,8 @@ def suggest(
 
     References:
 
-    - M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 (https://doi.org/10.1016/j.electacta.2014.01.034)
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - `M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 <https://doi.org/10.1016/j.electacta.2014.01.034>`_
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
     Parameters
     ----------
@@ -194,6 +195,8 @@ def suggest(
     Returns
     -------
     Dict[int, float]
+
+        A dictionary mapping the number of RC elements to its corresponding score.
     """
     if not _is_floating(mu_criterion):
         raise TypeError(f"Expected a float instead of {mu_criterion=}")

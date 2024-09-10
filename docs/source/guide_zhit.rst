@@ -89,7 +89,7 @@ References:
 
 - Ehm, W., Göhr, H., Kaus, R., Röseler, B., and Schiller, C.A., 2000, Acta Chimica Hungarica, 137 (2-3), 145-157.
 - Ehm, W., Kaus, R., Schiller, C.A., and Strunz, W., 2001, in "New Trends in Electrochemical Impedance Spectroscopy and Electrochemical Noise Analysis".
-- Schiller, C.A., Richter, F., Gülzow, E., and Wagner, N., 2001, 3, 374-378 (https://doi.org/10.1039/B007678N)
+- `Schiller, C.A., Richter, F., Gülzow, E., and Wagner, N., 2001, 3, 374-378 <https://doi.org/10.1039/B007678N>`_
 
 .. raw:: latex
 

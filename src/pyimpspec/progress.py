@@ -30,17 +30,17 @@ _COUNTER: int = 0
 
 def register(callback: Callable) -> int:
     """
-    Register a callback function that should be invoked when information about progress is emitted.
-    The callback function should have `*args` and `**kwargs` as its arguments.
-    An integer identifier is returned and this value can be used to unregister the callback function.
+    Register a callback function that should be invoked when a progress update is emitted.
 
     Parameters
     ----------
     callback: Callable
+        The callback function should have ``*args`` and ``**kwargs`` as its arguments.
 
     Returns
     -------
     int
+        An identifier/handle that can be used to unregister the callback function.
     """
     global _COUNTER
     global _CALLBACKS
@@ -56,16 +56,17 @@ def register(callback: Callable) -> int:
 
 def unregister(identifier: int) -> bool:
     """
-    Unregister a callback function based on the identifier that was returned when the callback function was registered.
-    Returns True if the callback function was successfully unregistered.
+    Unregister a callback function based on the identifier/handle that was returned when the callback function was registered.
 
     Parameters
     ----------
     identifier: int
+        The identifier/handle for the callback function that was registered at some point.
 
     Returns
     -------
     bool
+        True if the callback function was successfully unregistered.
     """
     global _CALLBACKS
 
@@ -121,7 +122,8 @@ def _update_every_N_percent(
 class Progress:
     """
     Context manager class that can be used to emit information related to progress status.
-    The *args and **kwargs parameters are passed on to the callback functions.
+    This is used in various parts of the pyimpspec source code to handle the state related to progress and for emitting progress updates as necessary.
+    The ``*args`` and ``**kwargs`` parameters are passed on to the callback functions whenever a progress update is emitted.
 
     Parameters
     ----------
@@ -162,7 +164,7 @@ class Progress:
 
     def get_total(self) -> int:
         """
-        Get the current total.
+        Get the current total number of steps.
 
         Returns
         -------
@@ -205,7 +207,7 @@ class Progress:
             The size of the step to take when called.
 
         force: bool, optional
-            Force an update.
+            Force a progress update to be emitted.
         """
         self._i += step
         if not (self._i <= self._total):
@@ -214,10 +216,14 @@ class Progress:
         self._update(force=force)
 
     def set_message(
-        self, message: str, i: int = -1, total: int = -1, force: bool = True
+        self,
+        message: str,
+        i: int = -1,
+        total: int = -1,
+        force: bool = True,
     ):
         """
-        Set the status message (and progress and total).
+        Set the status message and optionally also the progress and total number of steps.
 
         Parameters
         ----------
@@ -231,7 +237,7 @@ class Progress:
             The new total number of steps
 
         force: bool, optional
-            Force an update.
+            Force a progress update to be emitted.
         """
         self._message = message
         if i >= 0:
@@ -261,7 +267,7 @@ def register_default_handler():
     """
     Register the default handler for progress updates.
     Formats the incoming information and prints it to stdout.
-    The output ends with "\\r" instead of "\\n".
+    The output ends with a carriage return (``\\r``) instead of a newline (``\\n``).
     """
     register(_default_handler)
 
@@ -269,7 +275,7 @@ def register_default_handler():
 def clear_default_handler_output():
     """
     Print a blank line with the same length as the previously printed formatted output.
-    The output ends with "\\r" instead of "\\n".
+    The output ends with a carriage return (``\\r``) instead of a newline (``\\n``).
     """
     global _PROGRESS_MESSAGE
 

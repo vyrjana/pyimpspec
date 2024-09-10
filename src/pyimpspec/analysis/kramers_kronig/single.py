@@ -60,8 +60,10 @@ def perform_kramers_kronig_test(
 
     References:
 
-    - B.A. Boukamp, 1995, J. Electrochem. Soc., 142, 1885-1894 (https://doi.org/10.1149/1.2044210)
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - `B.A. Boukamp, 1995, J. Electrochem. Soc., 142, 1885-1894 <https://doi.org/10.1149/1.2044210>`_
+    - `M. Schönleber, D. Klotz, and E. Ivers-Tiffée, 2014, Electrochim. Acta, 131, 20-27 <https://doi.org/10.1016/j.electacta.2014.01.034>`_
+    - `C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6 <https://doi.org/10.1109/IWIS57888.2022.9975131>`_
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
     Parameters
     ----------
@@ -71,7 +73,7 @@ def perform_kramers_kronig_test(
     test: str, optional
         Supported values include "complex", "imaginary", "real", "complex-inv", "imaginary-inv", "real-inv", and "cnls".
         The first three correspond to the complex, imaginary, real tests, respectively, described by Boukamp (1995).
-        These three implementations use least squares fitting (see `numpy.linalg.lstsq <https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html>`).
+        These three implementations use least squares fitting (see `numpy.linalg.lstsq <https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html>`_).
         The implementations ending with "-inv" use matrix inversion, which was the default in pyimpspec prior to version 5.0.0.
         The "cnls" implementation uses complex non-linear least squares fitting.
 
@@ -133,7 +135,8 @@ def perform_kramers_kronig_test(
     Returns
     -------
     KramersKronigResult
-        A single linear Kramers-Kronig test result representing both the optimal extension of the range of time constants and the optimal number of RC elements (i.e., time constants).
+
+        A single linear Kramers-Kronig test result representing the suggested extension of the range of time constants, the suggested number of RC elements (i.e., time constants), and the suggested representation of the immittance spectrum to test.
     """
     if not _is_integer(num_RC):
         raise TypeError(f"Expected an integer instead of {num_RC=}")

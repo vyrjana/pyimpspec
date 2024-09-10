@@ -795,11 +795,11 @@ class KramersKronigResult:
 
     def get_estimated_percent_noise(self) -> float:
         r"""
-        Estimate the amount of noise (as a percentage of :math:`|Z|`) using the approximation :math:`{\rm SD}_{\rm est} \approx \sqrt{\chi^2_{\rm ps} \times 5000 / N_\omega}` where :math:`\chi^2_{\rm ps}` is the pseudo chi-squared value of the fit and :math:`N_\omega` is the number of excitation frequencies. This approximation assumes that the error is spread evenly across the real and imaginary parts of the immittance spectrum.
+        Estimate the standard deviation of the noise (as a percentage of :math:`|Z|`) using the approximation :math:`{\rm SD}_{\rm est} \approx \sqrt{\chi^2_{\rm ps} \times 5000 / N_\omega}` where :math:`\chi^2_{\rm ps}` is the pseudo chi-squared value of the fit and :math:`N_\omega` is the number of excitation frequencies. This approximation assumes that the error is spread evenly across the real and imaginary parts of the immittance spectrum.
 
         References:
 
-        - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+        - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
         Returns
         -------

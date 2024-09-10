@@ -46,3 +46,4 @@ The following two lines should provide access to most of what you are likely to 
    apidocs_plot_mpl
    apidocs_typing
    apidocs_exceptions
+   apidocs_progress

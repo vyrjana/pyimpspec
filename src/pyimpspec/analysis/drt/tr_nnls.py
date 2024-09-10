@@ -424,7 +424,7 @@ def calculate_drt_tr_nnls(
 
     References:
 
-    - Kulikovsky, A., 2021, J. Electrochem. Soc., 168, 044512 (https://doi.org/10.1149/1945-7111/abf508)
+    - `Kulikovsky, A., 2021, J. Electrochem. Soc., 168, 044512 <https://doi.org/10.1149/1945-7111/abf508>`_
 
     Parameters
     ----------

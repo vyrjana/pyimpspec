@@ -1,3 +1,8 @@
+# 5.0.2 (2024/09/10)
+
+- Updated the documentation (e.g., various function and method docstrings have been updated). Notably, the functions related to handling progress updates are now included in the API documentation.
+
+
 # 5.0.1 (2024/09/03)
 
 - Updated the docstring of the `generate_mock_data` function.

@@ -169,13 +169,13 @@ def _fit_osculating_circle(
 
 
 def calculate_curvatures(Z: ComplexImpedances) -> NDArray[float64]:
-    """
+    r"""
     Estimate the curvatures of an impedance spectrum.
 
     References:
 
-    - C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6, (https://doi.org/10.1109/IWIS57888.2022.9975131)
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - `C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6 <https://doi.org/10.1109/IWIS57888.2022.9975131>`_
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
     Parameters
     ----------
@@ -184,7 +184,10 @@ def calculate_curvatures(Z: ComplexImpedances) -> NDArray[float64]:
 
     Returns
     -------
-        NDArray[float64]
+    NDArray[float64]
+
+        An array of curvatures.
+        If the impedances were sorted in order of decreasing frequency, then a curvature with a negative sign indicates a clockwise motion within the context of a plot of :math:`-{\rm Im}(Z)\ {\rm versus}\ {\rm Re}(Z)`.
     """
     kappa: NDArray[float64] = zeros((Z.size - 2, 3), dtype=float64)
 

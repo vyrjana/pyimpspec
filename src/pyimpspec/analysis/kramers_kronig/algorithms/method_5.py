@@ -109,8 +109,8 @@ def suggest(
 
     References:
 
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
-    - C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6, (https://doi.org/10.1109/IWIS57888.2022.9975131)
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
+    - `C. Plank, T. Rüther, and M.A. Danzer, 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6 <https://doi.org/10.1109/IWIS57888.2022.9975131>`_
 
     Parameters
     ----------
@@ -142,6 +142,8 @@ def suggest(
     Returns
     -------
     Dict[int, float]
+
+        A dictionary mapping the number of RC elements to its corresponding score.
     """
     f: Frequencies = tests[0].get_frequencies()
     m: int = len(f)

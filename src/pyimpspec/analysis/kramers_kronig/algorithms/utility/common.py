@@ -75,7 +75,7 @@ def subdivide_frequencies(
     subdivision: int = 4,
 ) -> Frequencies:
     """
-    Insert additional frequencies between each frequency.
+    Insert additional frequencies between each pair of frequencies.
 
     Parameters
     ----------
@@ -87,7 +87,9 @@ def subdivide_frequencies(
 
     Returns
     -------
-        Frequencies
+    Frequencies
+        
+        A new set of frequencies with additional frequencies inserted between each of the original frequencies.
     """
     if subdivision < 1:
         raise ValueError(f"Expected {subdivision=} > 0")

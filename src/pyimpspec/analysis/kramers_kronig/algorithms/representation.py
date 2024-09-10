@@ -438,16 +438,23 @@ def suggest(
 
     References:
 
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
     Parameters
     ----------
     suggestions: List[Tuple[KramersKronigResult, Dict[int, float], int, int]]
-        A list obtained by calling |suggest_num_RC| multiple times and collecting the return values in a list.
+        A list obtained by processing List[|KramersKronigResult|] for different representations with |suggest_num_RC| and collecting the return values.
 
     Returns
     -------
     Tuple[KramersKronigResult, Dict[int, float], int, int]
+
+        A tuple containing:
+
+        - The |KramersKronigResult| corresponding to the suggested number of RC elements and representation.
+        - A dictionary that maps the number of RC elements to their corresponding scores for the suggested representation.
+        - The lower limit for the number of RC elements to consider for the suggested representation.
+        - The upper limit for the number of RC elements to consider for the suggested representation.
     """
     if not isinstance(suggestions, list):
         raise TypeError(f"Expected a list instead of {suggestions=}")

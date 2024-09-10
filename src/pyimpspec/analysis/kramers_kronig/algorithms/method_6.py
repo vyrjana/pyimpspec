@@ -124,7 +124,7 @@ def suggest(
 
     References:
 
-    - V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - `V. Yrjänä and J. Bobacka, 2024, Electrochim. Acta, 504, 144951 <https://doi.org/10.1016/j.electacta.2024.144951>`_
 
     Parameters
     ----------
@@ -147,6 +147,8 @@ def suggest(
     Returns
     -------
     Dict[int, float]
+
+        A dictionary mapping the number of RC elements to its corresponding score.
     """
     return _suggest(
         circuits={t.num_RC: t.circuit for t in tests},
