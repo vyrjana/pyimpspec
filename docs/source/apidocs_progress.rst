@@ -4,7 +4,7 @@
 Progress
 ========
 
-A collection of functions and classes for performing reconstruction of the modulus data of complex impedances using the Z-HIT algorithm.
+A collection of functions and classes for getting progress updates.
 
 
 Function
