@@ -56,7 +56,7 @@ def parse_cdc(cdc: str) -> Circuit:
 
     Returns
     -------
-    Circuit
+    |Circuit|
     """
     if not isinstance(cdc, str):
         raise TypeError(f"Expected a string instead of {cdc=}")
@@ -74,10 +74,10 @@ def simulate_spectrum(
 
     Parameters
     ----------
-    circuit: Circuit
+    circuit: |Circuit|
         The circuit to use when calculating impedances at various frequencies.
 
-    frequencies: Optional[Frequencies], optional
+    frequencies: Optional[|Frequencies|], optional
         Excitation frequencies in hertz.
         If no frequencies are provided, then a frequency range of 10 mHz to 100 kHz with 10 points per decade will be used.
 
@@ -86,7 +86,7 @@ def simulate_spectrum(
 
     Returns
     -------
-    DataSet
+    |DataSet|
     """
     if not isinstance(circuit, Circuit):
         raise TypeError(f"Expected a Circuit instead of {circuit=}")

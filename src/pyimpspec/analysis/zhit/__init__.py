@@ -182,11 +182,11 @@ class ZHITResult:
 
     def to_statistics_dataframe(self) -> "DataFrame":  # noqa: F821
         """
-        Get the statistics related to the modulus reconstruction as a |DataFrame| object.
+        Get the statistics related to the modulus reconstruction as a `pandas.DataFrame`_ object.
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         from pandas import DataFrame
 
@@ -234,7 +234,7 @@ def perform_zhit(
 
     Parameters
     ----------
-    data: DataSet
+    data: |DataSet|
         The data set for which the modulus of the impedance should be reconstructed.
 
     smoothing: str, optional
@@ -274,7 +274,7 @@ def perform_zhit(
 
     Returns
     -------
-    ZHITResult
+    |ZHITResult|
     """
     if not isinstance(smoothing, str):
         raise TypeError(f"Expected a string instead of {smoothing=}")

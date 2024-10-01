@@ -18,11 +18,13 @@
 # the LICENSES folder.
 
 from inspect import signature
+from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.data import DataSet
 from pyimpspec.analysis import (
     KramersKronigResult,
     FitResult,
 )
+from pyimpspec.analysis.utility import _interpolate
 from pyimpspec.analysis.drt import (
     DRTResult,
 )
@@ -145,6 +147,13 @@ def plot_nyquist(
         X = data.get_impedances(num_per_decade=num_per_decade) ** (
             -1 if admittance else 1
         )
+    elif line and hasattr(data, "circuit") and isinstance(data.circuit, Circuit):
+        X = data.circuit.get_impedances(
+            _interpolate(
+                data.get_frequencies(),
+                num_per_decade=num_per_decade,
+            ),
+        ) ** (-1 if admittance else 1)
     else:
         X = data.get_impedances() ** (-1 if admittance else 1)
 

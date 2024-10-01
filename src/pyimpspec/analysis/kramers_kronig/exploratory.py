@@ -1025,7 +1025,7 @@ def evaluate_log_F_ext(
 
     Parameters
     ----------
-    data: DataSet
+    data: |DataSet|
         The data set to be tested.
 
     test: str, optional
@@ -1074,7 +1074,7 @@ def evaluate_log_F_ext(
 
     Returns
     -------
-    List[Tuple[float, List[KramersKronigResult], float]]
+    List[Tuple[float, List[|KramersKronigResult|], float]]
 
         A list of tuples containing:
 
@@ -1365,7 +1365,7 @@ def perform_exploratory_kramers_kronig_tests(
 
     Parameters
     ----------
-    data: DataSet
+    data: |DataSet|
         The data set to be tested.
 
     test: str, optional
@@ -1416,7 +1416,7 @@ def perform_exploratory_kramers_kronig_tests(
 
     Returns
     -------
-    Tuple[List[KramersKronigResult], Tuple[KramersKronigResult, Dict[int, float], int, int]]
+    Tuple[List[|KramersKronigResult|], Tuple[|KramersKronigResult|, Dict[int, float], int, int]]
 
         A tuple containing a list of |KramersKronigResult| and the corresponding result of |suggest_num_RC| for the suggested extension of the range of time constants and the suggested representation of the immittance spectrum to test.
     """

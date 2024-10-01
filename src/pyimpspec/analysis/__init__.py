@@ -18,10 +18,12 @@
 # the LICENSES folder.
 
 from .fitting import (
+    FitIdentifiers,
+    FitResult,
     FittedParameter,
     FittingError,
-    FitResult,
     fit_circuit,
+    generate_fit_identifiers,
 )
 from .kramers_kronig import (
     KramersKronigResult,
@@ -31,7 +33,10 @@ from .kramers_kronig import (
 from .drt import (
     BHTResult,
     DRTError,
+    DRTPeak,
+    DRTPeaks,
     DRTResult,
+    LMResult,
     MRQFitResult,
     TRNNLSResult,
     TRRBFResult,

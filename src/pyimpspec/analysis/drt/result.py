@@ -26,6 +26,12 @@ from numpy import (
     angle,
     array,
     int64,
+    zeros,
+)
+from .peak_analysis import (
+    DRTPeaks,
+    DRTPeak,
+    _analyze_peaks,
 )
 from pyimpspec.typing import (
     ComplexImpedances,
@@ -40,9 +46,14 @@ from pyimpspec.typing import (
 )
 from pyimpspec.typing.helpers import (
     List,
+    NDArray,
     Optional,
     Tuple,
+    Union,
+    float64,
+    _is_boolean,
     _is_floating,
+    _is_floating_array,
 )
 
 
@@ -119,7 +130,7 @@ class DRTResult(ABC):
         columns: Optional[List[str]] = None,
     ) -> "DataFrame":  # noqa: F821
         """
-        Get the peaks as a |DataFrame| object that can be used to generate, e.g., a Markdown table.
+        Get the peaks as a `pandas.DataFrame`_ object that can be used to generate, e.g., a Markdown table.
 
         Parameters
         ----------
@@ -131,11 +142,11 @@ class DRTResult(ABC):
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         pass
 
-    def _get_peak_indices(self, threshold: float, gamma: Gammas) -> Indices:
+    def _get_peak_indices(self, threshold: float, gammas: Gammas) -> Indices:
         from scipy.signal import find_peaks
 
         if not _is_floating(threshold):
@@ -143,18 +154,23 @@ class DRTResult(ABC):
         elif not (0.0 <= threshold <= 1.0):
             raise ValueError(f"Expected a value in the range [0.0, 1.0] instead of {threshold=}")
 
-        indices: Indices = find_peaks(gamma)[0]
+        padded_gammas: Gammas = zeros(gammas.size + 2, dtype=gammas.dtype)
+        padded_gammas[1:-1] = gammas
+
+        indices: Indices = find_peaks(padded_gammas)[0]
         if not indices.any():
             return array([], dtype=int64)
 
-        max_g: float = max(gamma)
+        max_g: float = max(gammas)
         if max_g == 0.0:
             return array([], dtype=int64)
+
+        indices -= 1  # Because of the padding
 
         return array(
             list(
                 filter(
-                    lambda _: gamma[_] / max_g > threshold and gamma[_] > 0.0, indices
+                    lambda _: gammas[_] / max_g > threshold and gammas[_] > 0.0, indices
                 )
             ),
             dtype=int64,
@@ -206,10 +222,56 @@ class DRTResult(ABC):
         self,
     ) -> "DataFrame":  # noqa: F821
         """
-        Get the statistics related to the DRT as a |DataFrame| object.
+        Get the statistics related to the DRT as a `pandas.DataFrame`_ object.
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         pass
+
+    def analyze_peaks(
+        self,
+        num_peaks: int = 0,
+        peak_positions: Optional[Union[List[float], NDArray[float64]]] = None,
+        disallow_skew: bool = False,
+    ) -> DRTPeaks:
+        """
+        Analyze the peaks present in a distribution of relaxation times using skew normal distributions.
+
+        Parameters
+        ----------
+        num_peaks: int, optional
+            If greater than zero, then analyze only that number of peaks (sorted from highest to lowest gamma values).
+
+        peak_positions: Optional[Union[List[float], NDArray[float64]]], optional
+            Analyze only the peaks at the provided positions.
+
+        disallow_skew: bool, optional
+            If true, then normal distributions are used instead of skew normal distributions.
+
+        Returns
+        -------
+        |DRTPeaks|
+        """
+        args = self.get_drt_data()
+        if not isinstance(args, tuple):
+            raise TypeError(f"Expected a tuple instead of {args=}")
+        elif len(args) != 2:
+            raise ValueError(f"Expected a tuple with two values instead of {args=}")
+        elif not _is_floating_array(args[0]):
+            raise TypeError(f"Expected an array of floats instead of {args[0]=}")
+        elif not _is_floating_array(args[1]):
+            raise TypeError(f"Expected an array of floats instead of {args[1]=}")
+        elif not _is_boolean(disallow_skew):
+            raise TypeError(f"Expected a boolean instead of {disallow_skew=}")
+
+        peaks: DRTPeaks = _analyze_peaks(
+            *args,
+            num_peaks=num_peaks,
+            peak_positions=peak_positions,
+            disallow_skew=disallow_skew,
+        )
+        object.__setattr__(self, "_peak_analysis", peaks)
+
+        return peaks

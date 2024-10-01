@@ -50,13 +50,17 @@ from pyimpspec.analysis.utility import (
     _set_default_num_procs as set_default_num_procs,
 )
 from pyimpspec.analysis.drt import (
+    DRTPeaks,
+    DRTPeak,
     DRTResult,
     calculate_drt,
 )
 from pyimpspec.analysis.fitting import (
+    FitIdentifiers,
     FitResult,
     FittedParameter,
     fit_circuit,
+    generate_fit_identifiers,
 )
 from pyimpspec.analysis.kramers_kronig import (
     KramersKronigResult,

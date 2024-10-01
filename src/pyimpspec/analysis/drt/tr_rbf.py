@@ -22,7 +22,7 @@
 # - 10.1016/j.electacta.2015.03.123
 # - 10.1016/j.electacta.2017.07.050
 # Based on code from https://github.com/ciuccislab/pyDRTtools.
-# pyDRTtools commit: 3694b9b4cef9b29d623bef7300280810ec351d46
+# pyDRTtools commit: 1653298d52183c36ec941197ae59399b9dc85579
 
 from dataclasses import dataclass
 from time import time
@@ -345,6 +345,11 @@ def _generate_truncated_multivariate_gaussians(
 
     R: NDArray[float64] = cholesky(M)
     R = R.T  # change the lower matrix to upper matrix
+
+    # Symmetrize the matrix M
+    M = 0.5 * (M + M.T)
+    if not _is_positive_definite(M):
+        M = _nearest_positive_definite(M)
 
     mu: NDArray[float64]
     if cov:  # Using M as a covariance matrix
@@ -1206,8 +1211,6 @@ def _x_to_gamma(
 def _prepare_complex_matrices(
     A_re: NDArray[float64],
     A_im: NDArray[float64],
-    b_re: NDArray[float64],
-    b_im: NDArray[float64],
     M: NDArray[float64],
     f: Frequencies,
     num_freqs: int,
@@ -1256,8 +1259,6 @@ def _prepare_complex_matrices(
 def _prepare_real_matrices(
     A_re: NDArray[float64],
     A_im: NDArray[float64],
-    b_re: NDArray[float64],
-    b_im: NDArray[float64],
     M: NDArray[float64],
     num_freqs: int,
     num_taus: int,
@@ -1307,8 +1308,6 @@ def _prepare_real_matrices(
 def _prepare_imaginary_matrices(
     A_re: NDArray[float64],
     A_im: NDArray[float64],
-    b_re: NDArray[float64],
-    b_im: NDArray[float64],
     M: NDArray[float64],
     f: Frequencies,
     num_freqs: int,
@@ -1750,7 +1749,7 @@ def calculate_drt_tr_rbf(
 
     Returns
     -------
-    TRRBFResult
+    |TRRBFResult|
     """
     global _SOLVER_IMPORTED
 
@@ -1901,8 +1900,6 @@ def calculate_drt_tr_rbf(
             A_re, A_im, M, num_RL = _prepare_complex_matrices(
                 A_re,
                 A_im,
-                b_re,
-                b_im,
                 M,
                 f,
                 num_freqs,
@@ -1913,8 +1910,6 @@ def calculate_drt_tr_rbf(
             A_re, A_im, M, num_RL = _prepare_real_matrices(
                 A_re,
                 A_im,
-                b_re,
-                b_im,
                 M,
                 num_freqs,
                 num_taus,
@@ -1923,8 +1918,6 @@ def calculate_drt_tr_rbf(
             A_re, A_im, M, num_RL = _prepare_imaginary_matrices(
                 A_re,
                 A_im,
-                b_re,
-                b_im,
                 M,
                 f,
                 num_freqs,

@@ -442,12 +442,12 @@ def suggest(
 
     Parameters
     ----------
-    suggestions: List[Tuple[KramersKronigResult, Dict[int, float], int, int]]
+    suggestions: List[Tuple[|KramersKronigResult|, Dict[int, float], int, int]]
         A list obtained by processing List[|KramersKronigResult|] for different representations with |suggest_num_RC| and collecting the return values.
 
     Returns
     -------
-    Tuple[KramersKronigResult, Dict[int, float], int, int]
+    Tuple[|KramersKronigResult|, Dict[int, float], int, int]
 
         A tuple containing:
 

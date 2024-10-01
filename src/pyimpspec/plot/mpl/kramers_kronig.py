@@ -107,7 +107,7 @@ def plot_log_F_ext(
     adjust_axes: bool, optional
         Whether or not to adjust the axes (label, scale, limits, etc.).
 
-    **kwargs,
+    **kwargs
 
     Returns
     -------

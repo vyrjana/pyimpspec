@@ -167,6 +167,7 @@ class TestArguments(TestCase):
             set(),
             msg=set(self.parsers.keys()) - set(skip),
         )
+
         command: str
         parser: Callable
         for command, parser in self.parsers.items():
@@ -237,6 +238,7 @@ class TestArguments(TestCase):
             set(),
             msg=set(self.parsers.keys()) - set(skip),
         )
+
         command: str
         parser: Callable
         for command, parser in self.parsers.items():
@@ -370,6 +372,7 @@ class TestPlot(TestCase):
                 parser("-pt", "imaginary"),
             ]
         )
+
         for args in COMMAND_LINE_ARGUMENTS["plot"]:
             lines: List[str] = []
             plot_command(
@@ -392,6 +395,7 @@ class TestTest(TestCase):
         parser: Callable = lambda *a: self.parser.parse_args(
             ["test", *self.data_paths, *a]
         )
+
         long: str
         short: str
         dest: str
@@ -479,6 +483,7 @@ class TestZHIT(TestCase):
         parser: Callable = lambda *a: self.parser.parse_args(
             ["zhit", *self.data_paths, *a]
         )
+
         long: str
         short: str
         dest: str
@@ -501,6 +506,7 @@ class TestZHIT(TestCase):
             else:
                 args_long = parser(long, str(value))
             self.assertEqual(getattr(args_long, dest), value)
+
             if short != "":
                 args_short: Namespace
                 if isinstance(value, bool):
@@ -508,7 +514,9 @@ class TestZHIT(TestCase):
                 else:
                     args_short = parser(short, str(value))
                 self.assertEqual(getattr(args_long, dest), getattr(args_short, dest))
+
             COMMAND_LINE_ARGUMENTS["zhit"].append(args_long)
+
         args: Namespace
         for args in COMMAND_LINE_ARGUMENTS["zhit"]:
             lines: List[str] = []
@@ -533,6 +541,7 @@ class TestDRT(TestCase):
         parser: Callable = lambda *a: self.parser.parse_args(
             ["drt", *self.data_paths, *a]
         )
+
         long: str
         short: str
         dest: str
@@ -557,21 +566,33 @@ class TestDRT(TestCase):
             ("--threshold", "-t", "peak_threshold", 0.2),
             ("--max-nfev", "", "max_nfev", 4),
             ("--num-procs", "", "num_procs", 2),
+            ("--plot-frequency", "-pF", "plot_frequency", True),
+            ("--analyze-peaks", "-ap", "analyze_peaks", True),
+            ("--num-peaks", "-np", "num_peaks", 2),
+            ("--peak-positions", "-pp", "peak_positions", [1e-1, 0.2]),
+            ("--disallow-skew", "-ds", "disallow_skew", True),
         ]:
             args_long: Namespace
             if isinstance(value, bool):
                 args_long = parser(long)
+            elif isinstance(value, list):
+                args_long = parser(long, *map(str, value))
             else:
                 args_long = parser(long, str(value))
             self.assertEqual(getattr(args_long, dest), value)
+
             if short != "":
                 args_short: Namespace
                 if isinstance(value, bool):
                     args_short = parser(short)
+                elif isinstance(value, list):
+                    args_short = parser(short, *map(str, value))
                 else:
                     args_short = parser(short, str(value))
                 self.assertEqual(getattr(args_long, dest), getattr(args_short, dest))
+
             COMMAND_LINE_ARGUMENTS["drt"].append(args_long)
+
         args: Namespace
         for args in COMMAND_LINE_ARGUMENTS["drt"]:
             lines: List[str] = []
@@ -596,6 +617,7 @@ class TestFit(TestCase):
         parser: Callable = lambda *a: self.parser.parse_args(
             ["fit", "R(RC)(RW)", *self.data_paths, *a]
         )
+
         long: str
         short: str
         dest: str
@@ -612,6 +634,7 @@ class TestFit(TestCase):
             else:
                 args_long = parser(long, str(value))
             self.assertEqual(getattr(args_long, dest), value)
+
             if short != "":
                 args_short: Namespace
                 if isinstance(value, bool):
@@ -619,7 +642,9 @@ class TestFit(TestCase):
                 else:
                     args_short = parser(short, str(value))
                 self.assertEqual(getattr(args_long, dest), getattr(args_short, dest))
+
             COMMAND_LINE_ARGUMENTS["fit"].append(args_long)
+
         args: Namespace
         for args in COMMAND_LINE_ARGUMENTS["fit"]:
             lines: List[str] = []
@@ -638,6 +663,7 @@ class TestCircuit(TestCase):
 
     def test_args(self):
         parser: Callable = lambda *a: self.parser.parse_args(["circuit", *a])
+
         long: str
         short: str
         dest: str
@@ -666,6 +692,7 @@ class TestCircuit(TestCase):
             else:
                 args_long = parser(long, str(value))
             self.assertEqual(getattr(args_long, dest), value)
+
             if short != "":
                 args_short: Namespace
                 if isinstance(value, bool):
@@ -673,7 +700,9 @@ class TestCircuit(TestCase):
                 else:
                     args_short = parser(short, str(value))
                 self.assertEqual(getattr(args_long, dest), getattr(args_short, dest))
+
             COMMAND_LINE_ARGUMENTS["circuit"].append(args_long)
+
         args: Namespace
         for args in COMMAND_LINE_ARGUMENTS["circuit"]:
             lines: List[str] = []
@@ -692,6 +721,7 @@ class TestConfig(TestCase):
 
     def test_args(self):
         parser: Callable = lambda *a: self.parser.parse_args(["config", *a])
+
         long: str
         short: str
         dest: str
@@ -706,6 +736,7 @@ class TestConfig(TestCase):
             else:
                 args_long = parser(long, str(value))
             self.assertEqual(getattr(args_long, dest), value)
+
             if short != "":
                 args_short: Namespace
                 if isinstance(value, bool):
@@ -713,7 +744,9 @@ class TestConfig(TestCase):
                 else:
                     args_short = parser(short, str(value))
                 self.assertEqual(getattr(args_long, dest), getattr(args_short, dest))
+
             COMMAND_LINE_ARGUMENTS["config"].append(args_long)
+
         args: Namespace
         for args in COMMAND_LINE_ARGUMENTS["config"]:
             lines: List[str] = []

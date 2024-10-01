@@ -689,7 +689,7 @@ class DataSet:
         negative_phase: bool = False,
     ) -> "DataFrame":  # noqa: F821
         """
-        Create a |DataFrame| instance from this DataSet.
+        Create a `pandas.DataFrame`_ instance from this DataSet.
 
         Parameters
         ----------
@@ -711,7 +711,7 @@ class DataSet:
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         from pandas import DataFrame
 
@@ -963,12 +963,12 @@ def dataframe_to_data_sets(
     degrees: bool = True,
 ) -> List[DataSet]:
     """
-    Takes a |DataFrame| object, checks if there are multiple frequency sweeps, and, if necessary, splits the data into multiple DataSet objects.
+    Takes a `pandas.DataFrame`_ object, checks if there are multiple frequency sweeps, and, if necessary, splits the data into multiple DataSet objects.
 
     Parameters
     ----------
-    df: DataFrame
-        The DataFrame to be converted.
+    df: `pandas.DataFrame`_
+        The `pandas.DataFrame`_ to be converted.
         The object should contain columns for frequencies and either real and imaginary impedances, or the magnitudes and phases of impedances.
         Multiple labels are supported for the column headers and they are detected based on whether or not the header starts with one of the supported labels.
         The comparisons are case insensitive and inverted signs are detected based on if the column header starts with either a hyphen (-) or a minus sign (:math:`-`).
@@ -980,7 +980,7 @@ def dataframe_to_data_sets(
         - Phases of the impedances: 'phase', 'phz', and 'phi'.
 
     path: Union[str, pathlib.Path]
-        The path to the file that was used to create the DataFrame.
+        The path to the file that was used to create the `pandas.DataFrame`_.
 
     label: str, optional
         The label assigned to the new DataSet.
@@ -990,7 +990,7 @@ def dataframe_to_data_sets(
 
     Returns
     -------
-    List[DataSet]
+    List[|DataSet|]
     """
     from pandas import DataFrame
 

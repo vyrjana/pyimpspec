@@ -18,11 +18,13 @@
 # the LICENSES folder.
 
 from inspect import signature
+from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.data import DataSet
 from pyimpspec.analysis import (
     KramersKronigResult,
     FitResult,
 )
+from pyimpspec.analysis.utility import _interpolate
 from pyimpspec.analysis.drt import DRTResult
 from numpy import angle
 from pyimpspec.typing import (
@@ -158,6 +160,13 @@ def plot_phase(
         x = data.get_frequencies(num_per_decade=num_per_decade)
         y = angle(
             data.get_impedances(num_per_decade=num_per_decade)
+            ** (-1 if admittance else 1),
+            deg=True,
+        )
+    elif line and hasattr(data, "circuit") and isinstance(data.circuit, Circuit):
+        x = _interpolate(data.get_frequencies(), num_per_decade=num_per_decade)
+        y = angle(
+            data.circuit.get_impedances(x)
             ** (-1 if admittance else 1),
             deg=True,
         )

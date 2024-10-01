@@ -8,7 +8,16 @@ A collection of functions and classes for calculating the distribution of relaxa
 Wrapper function and base class
 -------------------------------
 .. automodule:: pyimpspec
-   :members: calculate_drt, DRTResult
+   :members: calculate_drt
+
+.. automodule:: pyimpspec
+   :members: DRTResult
+
+
+Classes related to peak analysis
+--------------------------------
+.. automodule:: pyimpspec
+   :members: DRTPeaks, DRTPeak
 
 
 Method functions and classes
@@ -21,6 +30,15 @@ BHT method
 
 .. automodule:: pyimpspec.analysis.drt
    :members: BHTResult
+
+
+LM method
+~~~~~~~~~~
+.. automodule:: pyimpspec.analysis.drt
+   :members: calculate_drt_lm
+
+.. automodule:: pyimpspec.analysis.drt
+   :members: LMResult
 
 
 m(RQ)fit method

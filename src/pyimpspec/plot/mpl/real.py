@@ -18,11 +18,13 @@
 # the LICENSES folder.
 
 from inspect import signature
+from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.data import DataSet
 from pyimpspec.analysis import (
     KramersKronigResult,
     FitResult,
 )
+from pyimpspec.analysis.utility import _interpolate
 from pyimpspec.analysis.drt import DRTResult
 from pyimpspec.typing import (
     Frequencies,
@@ -158,6 +160,12 @@ def plot_real(
         x = data.get_frequencies(num_per_decade=num_per_decade)
         y = (
             data.get_impedances(num_per_decade=num_per_decade)
+            ** (-1 if admittance else 1)
+        ).real
+    elif line and hasattr(data, "circuit") and isinstance(data.circuit, Circuit):
+        x = _interpolate(data.get_frequencies(), num_per_decade=num_per_decade)
+        y = (
+            data.circuit.get_impedances(x)
             ** (-1 if admittance else 1)
         ).real
     else:

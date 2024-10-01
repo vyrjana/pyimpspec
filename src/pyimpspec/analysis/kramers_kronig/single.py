@@ -67,7 +67,7 @@ def perform_kramers_kronig_test(
 
     Parameters
     ----------
-    data: DataSet
+    data: |DataSet|
         The data set to be tested.
 
     test: str, optional
@@ -134,7 +134,7 @@ def perform_kramers_kronig_test(
 
     Returns
     -------
-    KramersKronigResult
+    |KramersKronigResult|
 
         A single linear Kramers-Kronig test result representing the suggested extension of the range of time constants, the suggested number of RC elements (i.e., time constants), and the suggested representation of the immittance spectrum to test.
     """

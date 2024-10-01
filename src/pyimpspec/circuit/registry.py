@@ -59,6 +59,7 @@ _VALIDATE_IMPEDANCES: bool = False
 _ELEMENTS: Dict[str, Type[Element]] = {}
 _DEFAULT_ELEMENTS: Dict[str, Type[Element]] = {}
 _DEFAULT_ELEMENT_PARAMETERS: Dict[str, Dict[str, float]] = {}
+_PRIVATE_ELEMENTS: Dict[str, Type[Element]] = {}
 
 
 def _initialized():
@@ -138,7 +139,7 @@ class SubcircuitDefinition:
     description: str
         A description of the subcircuit. Can be an empty string.
 
-    value: Optional[Connection]
+    value: Optional[|Connection|]
         The default value for the parameter. Can be a connection such as Series or Parallel, or None.
     """
 
@@ -156,7 +157,7 @@ class ElementDefinition:
 
     Parameters
     ----------
-    Class: Type[Element]
+    Class: Type[|Element|]
         The class representing the circuit element.
 
     symbol: str
@@ -177,7 +178,7 @@ class ElementDefinition:
         For example, "(2*pi*f*C*I)^-1" for a capacitor is valid and will show up in the generated docstring as :math:`Z = \frac{1}{j 2 \pi f C}`.
         This is also used to verify that the circuit element's ``_impedance`` method outputs the same answer as the circuit element's impedance equation.
 
-    parameters: List[ParameterDefinition]
+    parameters: List[|ParameterDefinition|]
         A list of objects that define the circuit element's parameter(s).
     """
 
@@ -507,7 +508,7 @@ def _initialize_element(
     return (symbol, Class)
 
 
-def get_elements(default_only: bool = False) -> Dict[str, Type[Element]]:
+def get_elements(default_only: bool = False, private: bool = False) -> Dict[str, Type[Element]]:
     """
     Returns a dictionary that maps element symbols to their corresponding classes.
 
@@ -516,16 +517,21 @@ def get_elements(default_only: bool = False) -> Dict[str, Type[Element]]:
     default_only: bool, optional
         Return only the elements that are included by default in pyimpspec (i.e., exclude user-defined elements).
 
+    private: bool, optional
+        Include elements that have been marked as private.
+
     Returns
     -------
-    Dict[str, Type[Element]]
+    Dict[str, Type[|Element|]]
     """
     if not _is_boolean(default_only):
         raise TypeError(f"Expected a boolean instead of {default_only=}")
 
     keys: List[str] = sorted(list((_DEFAULT_ELEMENTS if default_only else _ELEMENTS).keys()))
+    if not private:
+        keys = [k for k in keys if k not in _PRIVATE_ELEMENTS]
 
-    elements: Dict[str, Type[Element]] = {_: _ELEMENTS[_] for _ in keys}
+    elements: Dict[str, Type[Element]] = {k: _ELEMENTS[k] for k in keys}
 
     return elements
 
@@ -536,7 +542,7 @@ def register_element(definition: ElementDefinition, **kwargs):
 
     Parameters
     ----------
-    definition: ElementDefinition
+    definition: |ElementDefinition|
         An ElementDefinition instance that defines a class, which inherits from the Element class and implements a method called `_impedance` that takes a float value (i.e., the excitation frequency in hertz) and returns a complex value.
 
     **kwargs
@@ -554,6 +560,8 @@ def register_element(definition: ElementDefinition, **kwargs):
         )
 
     _ELEMENTS[symbol] = Class
+    if kwargs.get("private", False) is True:
+        _PRIVATE_ELEMENTS[symbol] = Class
 
 
 def reset_default_parameter_values(elements: Optional[Union[Type[Element], List[Type[Element]]]] = None):
@@ -562,7 +570,7 @@ def reset_default_parameter_values(elements: Optional[Union[Type[Element], List[
 
     Parameters
     ----------
-    elements: Optional[Union[Type[Element], List[Type[Element]]]], optional
+    elements: Optional[Union[Type[|Element|], List[Type[|Element|]]]], optional
         Specific element class(es) to reset. If none are provided, then all the elements that are included by default in pyimpspec are reset.
     """
     if elements is None:
@@ -589,6 +597,14 @@ def reset_default_parameter_values(elements: Optional[Union[Type[Element], List[
 def reset(elements: bool = True, default_parameters: bool = True):
     """
     Remove all user-defined elements from the registry.
+
+    Parameters
+    ----------
+    elements: bool, optional
+        If true, then remove any user-defined elements.
+
+    default_parameters: bool, optional
+        If true, reset the default parameters of all elements.
     """
     if elements:
         _ELEMENTS.clear()
@@ -604,7 +620,7 @@ def remove_elements(elements: Union[Type[Element], List[Type[Element]]]):
 
     Parameters
     ----------
-    elements: Union[Type[Element], List[Type[Element]]]
+    elements: Union[Type[|Element|], List[Type[|Element|]]]
         The element(s) to remove.
     """
     if isinstance(elements, list):
@@ -631,4 +647,6 @@ def remove_elements(elements: Union[Type[Element], List[Type[Element]]]):
         for key in list(_ELEMENTS.keys()):
             if _ELEMENTS[key] is element:
                 _ELEMENTS.pop(key)
+                if key in _PRIVATE_ELEMENTS and _PRIVATE_ELEMENTS[key] is element:
+                    _PRIVATE_ELEMENTS.pop(key)
                 break

@@ -1,3 +1,36 @@
+# 5.1.0 (2024/MM/DD)
+
+- Added support for analyzing the peaks in DRT results by fitting skew normal distributions:
+  - Added an `analyze_peaks` method to the `DRTResult` class.
+  - Added a `DRTPeaks` class, which can be used to, e.g., calculate the area of a peak.
+- Added an implementation of the Loewner method for calculating the distribution of relaxation times:
+  - Added a `calculate_drt_lm` function.
+  - Added an `LMResult` class.
+  - Added `--model-order` and `--model-order-method` CLI arguments.
+  - Updated the `plot.mpl.plot_gamma` function to support plotting `LMResult` instances.
+- Added the ability to define constraints when fitting circuits:
+  - Added a `generate_fit_identifiers` function.
+  - Added a `FitIdentifiers` class.
+- Added support for plotting DRT results as gamma vs f.
+  - Added CLI argument for plotting DRT results as gamma vs f.
+- Added circuits for generating mock data (`CIRCUIT_13`, `CIRCUIT_13_INVALID`, `CIRCUIT_14`, and `CIRCUIT_14_INVALID`).
+- Updated the TR-RBF implementation to be based off of a newer version of pyDRTtools.
+- Updated plotting functions to support drawing smoother lines if the input result has a `circuit` property.
+- Updated an exception message to provide more information if a variable that is being fitted is out of bounds.
+- Updated documentation.
+- Updated the `generate_mock_data` function so that it attempts to cast arguments to the appropriate type if some other types of values (e.g., integers) are provided instead.
+- Updated the `circuit.registry.register_element` function to support a new `private` keyword argument.
+  - Updated the `circuit.registry.get_elements` function to not include by default `Element` classes that were registered with `private=True`.
+  - Updated the `KramersKronigRC` and `KramersKronigAdmittanceRC` classes to be registered with `private=True`.
+- Fixed a bug that caused methods such as `DRTResult.get_peaks` to miss peaks at the time constant extremes.
+- Fixed a bug that caused an element's parameters in `FitResult.to_parameters_dataframe` to not be in a sorted order.
+- Fixed the previously unimplemented `FitResult.get_parameters` method.
+- Fixed a bug that caused `FitResult.to_parameters_dataframe` to return negative standard errors when the fitted value was negative.
+- Fixed a bug that could cause `FitResult.to_parameters_dataframe` to divide by zero.
+- Fixed a bug where an exception would be raised when whitespace was included between keyword arguments when passing circuit identifiers or CDCs via the CLI (e.g., `<R(RC):noise=5e-2, log_max_f=4>` would previously raise an exception whereas `<R(RC):noise=5e-2,log_max_f=4>` would not).
+- Refactored some of the code.
+
+
 # 5.0.2 (2024/09/10)
 
 - Updated the documentation (e.g., various function and method docstrings have been updated). Notably, the functions related to handling progress updates are now included in the API documentation.

@@ -263,7 +263,7 @@ def _parse_identity(identity: str) -> Tuple[str, dict]:
 
     i: int = identity.rfind(":")
     if ":" in identity and i > max(map(lambda s: identity.rfind(s), ("}", "]", ")"))):
-        for arg in identity[i + 1:].split(","):
+        for arg in map(str.strip, identity[i + 1:].split(",")):
             key, value = arg.split("=")
             if key in kwarg_types:
                 kwargs[key] = kwarg_types[key](value)

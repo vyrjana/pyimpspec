@@ -109,7 +109,7 @@ class MRQFitResult(DRTResult):
     pseudo_chisqr: float
         The pseudo chi-squared value, |pseudo chi-squared|, of the modeled impedance (eq. 14 in Boukamp, 1995).
 
-    circuit: Circuit
+    circuit: |Circuit|
         The fitted circuit.
     """
 
@@ -522,7 +522,7 @@ def calculate_drt_mrq_fit(
 
     Returns
     -------
-    MRQFitResult
+    |MRQFitResult|
     """
     if not isinstance(circuit, Circuit):
         raise TypeError(f"Expected a Circuit instead of {circuit=}")

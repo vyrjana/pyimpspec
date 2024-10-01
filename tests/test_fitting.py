@@ -34,9 +34,13 @@ from pandas import DataFrame
 from pyimpspec import (
     Circuit,
     DataSet,
+    Element,
+    FitIdentifiers,
     FitResult,
     FittedParameter,
     fit_circuit,
+    generate_mock_data,
+    generate_fit_identifiers,
     parse_cdc,
     parse_data,
 )
@@ -51,6 +55,7 @@ from pyimpspec.typing import (
 )
 from pyimpspec.typing.helpers import (
     Callable,
+    Dict,
     List,
     Optional,
     Tuple,
@@ -431,3 +436,119 @@ class Fitting(TestCase):
         check_mpl_return_values(self, *mpl.plot_fit(self.result, data=DATA))
         with self.assertRaises(AttributeError):
             mpl.plot_fit(DATA, data=DATA)
+
+    def test_fit_identifiers(self):
+        data: DataSet = generate_mock_data("CIRCUIT_5", noise=5e-2, seed=42)[0]
+
+        circuit: Circuit = parse_cdc("R(RQ)(RQ)(RQ)")
+        elements: List[Element] = circuit.get_elements()
+        R1, R2, Q1, R3, Q2, R4, Q3 = elements
+        identifiers: Dict[Element, FitIdentifiers] = generate_fit_identifiers(circuit)
+
+        # Make sure the types are as expected
+        self.assertIsInstance(identifiers, dict)
+        self.assertTrue(all(map(lambda k: isinstance(k, Element), identifiers.keys())))
+        self.assertTrue(all(map(lambda v: isinstance(v, FitIdentifiers), identifiers.values())))
+        self.assertTrue(all(map(lambda v: all(map(lambda kv: isinstance(kv[0], str) and isinstance(kv[1], str), v.items())), identifiers.values())))
+
+        # Make sure that each element was processed
+        self.assertTrue(all(map(lambda e: e in identifiers, elements)))
+
+        # Make sure that all parameter symbols are valid
+        for element in elements:
+            for symbol in identifiers[element]:
+                element.get_value(symbol)
+
+        # Make sure all identifiers are unique
+        self.assertEqual(len(set([identifiers[R].R for R in (R1, R2, R3, R4)])), 4)
+        self.assertEqual(len(set([identifiers[Q].Y for Q in (Q1, Q2, Q3)])), 3)
+        self.assertEqual(len(set([identifiers[Q].n for Q in (Q1, Q2, Q3)])), 3)
+
+        # Make sure the identifiers have the expected values
+        self.assertEqual(identifiers[R1].R, "R_0")
+
+        self.assertEqual(identifiers[R2].R, "R_1")
+        self.assertEqual(identifiers[Q1].Y, "Y_2")
+        self.assertEqual(identifiers[Q1].n, "n_2")
+
+        self.assertEqual(identifiers[R3].R, "R_3")
+        self.assertEqual(identifiers[Q2].Y, "Y_4")
+        self.assertEqual(identifiers[Q2].n, "n_4")
+
+        self.assertEqual(identifiers[R4].R, "R_5")
+        self.assertEqual(identifiers[Q3].Y, "Y_6")
+        self.assertEqual(identifiers[Q3].n, "n_6")
+
+        # Make sure the identifiers can be accessed
+        self.assertEqual(identifiers[R1].R, identifiers[R1]["R"])
+        self.assertEqual(identifiers[Q1].Y, identifiers[Q1]["Y"])
+        self.assertEqual(identifiers[Q1].n, identifiers[Q1]["n"])
+
+        with self.assertRaises(AttributeError):
+            identifiers[R1].Y
+
+        with self.assertRaises(AttributeError):
+            identifiers[R1]["Y"]
+
+        with self.assertRaises(AttributeError):
+            identifiers[Q1].N
+
+        with self.assertRaises(AttributeError):
+            identifiers[Q1]["N"]
+
+        with self.assertRaises(AttributeError):
+            identifiers[Q1].R
+
+        with self.assertRaises(AttributeError):
+            identifiers[Q1]["R"]
+
+        fit: FitResult = fit_circuit(
+          circuit,
+          data,
+          method="least_squares",
+          weight="boukamp",
+          constraint_expressions={
+            identifiers[R3].R: f"{identifiers[R2].R} + alpha",
+            identifiers[R4].R: f"{identifiers[R3].R} - beta",
+            identifiers[Q2].Y: f"{identifiers[Q1].Y} + gamma",
+            identifiers[Q3].Y: f"{identifiers[Q2].Y} + delta",
+          },
+          constraint_variables=dict(
+            alpha=dict(
+              value=500,
+              min=0,
+            ),
+            beta=dict(
+              value=300,
+              min=0,
+            ),
+            gamma=dict(
+              value=1e-8,
+              min=0,
+            ),
+            delta=dict(
+              value=2e-7,
+              min=0,
+            ),
+          ),
+        )
+
+        R1, R2, Q1, R3, Q2, R4, Q3 = fit.circuit.get_elements()
+
+        # Make sure the values are in the expected order
+        self.assertLess(R2.get_value("R"), R4.get_value("R"))
+        self.assertLess(R4.get_value("R"), R3.get_value("R"))
+        self.assertLess(Q1.get_value("Y"), Q2.get_value("Y"))
+        self.assertLess(Q2.get_value("Y"), Q3.get_value("Y"))
+
+        # Make sure the values are as expected
+        self.assertAlmostEqual(R1.get_value("R"), 143, delta=1)
+        self.assertAlmostEqual(R2.get_value("R"), 229, delta=1)
+        self.assertAlmostEqual(R3.get_value("R"), 854, delta=1)
+        self.assertAlmostEqual(R4.get_value("R"), 475, delta=1)
+        self.assertAlmostEqual(Q1.get_value("Y"), 1.78e-7, delta=5e-9)
+        self.assertAlmostEqual(Q2.get_value("Y"), 7.83e-7, delta=5e-9)
+        self.assertAlmostEqual(Q3.get_value("Y"), 1.61e-5, delta=5e-7)
+        self.assertAlmostEqual(Q1.get_value("n"), 0.913, delta=5e-2)
+        self.assertAlmostEqual(Q2.get_value("n"), 0.856, delta=5e-2)
+        self.assertAlmostEqual(Q3.get_value("n"), 0.952, delta=5e-2)

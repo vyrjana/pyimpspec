@@ -134,15 +134,14 @@ class TRNNLSResult(DRTResult):
                 f"Expected a list of 2 unique strings instead of {columns=}"
             )
 
-        indices: Indices = self._get_peak_indices(
-            threshold,
-            self.gammas,  # type: ignore
-        )
+        time_constants: TimeConstants
+        gammas: Gammas
+        time_constants, gammas = self.get_peaks(threshold=threshold)
 
         return DataFrame.from_dict(
             {
-                columns[0]: self.time_constants[indices],  # type: ignore
-                columns[1]: self.gammas[indices],  # type: ignore
+                columns[0]: time_constants,  # type: ignore
+                columns[1]: gammas,  # type: ignore
             }
         )
 
@@ -445,7 +444,7 @@ def calculate_drt_tr_nnls(
 
     Returns
     -------
-    TRNNLSResult
+    |TRNNLSResult|
     """
     if not isinstance(mode, str):
         raise TypeError(f"Expected a string instead of {mode=}")
