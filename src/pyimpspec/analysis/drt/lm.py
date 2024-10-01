@@ -573,7 +573,7 @@ def calculate_drt_lm(
     if not isinstance(model_order_method, str):
         raise TypeError(f"Expected a string instead of {model_order_method=}")
     elif model_order_method not in _MODEL_ORDER_METHODS:
-        raise ValueError(f"Unsupported {model_order_method=} encountered instead of one of the following:\n- {'\n- '.join(_MODEL_ORDER_METHODS)}")
+        raise ValueError(f"Unsupported {model_order_method=} encountered instead of one of the following:\n- " + "\n- ".join(_MODEL_ORDER_METHODS))
 
     if not _is_integer(num_procs):
         raise TypeError(f"Expected an integer instead of {num_procs=}")
