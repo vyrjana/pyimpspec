@@ -67,7 +67,10 @@ def _skew_normal(x, h, p, a, s):
     return h * exp(-num/den)
 
 
-def _function(x, parameters: "Parameters") -> NDArray[float64]:
+def _function(
+    x,
+    parameters: "Parameters",  # noqa: F821
+) -> NDArray[float64]:
     params = parameters.valuesdict()
     assert len(params) % 2 == 0, (len(params), params.keys())
 
@@ -90,7 +93,7 @@ def _function(x, parameters: "Parameters") -> NDArray[float64]:
 
 
 def _residual(
-    parameters: "Parameters",
+    parameters: "Parameters",  # noqa: F821
     x: NDArray[float64],
     y: NDArray[float64],
 ):
@@ -359,7 +362,7 @@ class DRTPeaks:
 def _generate_parameters(
     peaks: List[Tuple[float64, float64]],
     disallow_skew: bool,
-) -> "Parameters":
+) -> "Parameters":  # noqa: F821
     from lmfit.parameter import Parameters
 
     parameters: Parameters = Parameters()
