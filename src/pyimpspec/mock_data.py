@@ -355,6 +355,21 @@ _definitions: List[MockDefinition] = [
         num_per_decade=10,
         drift=0.5,
     ),
+    MockDefinition(
+        label="Circuit 15",
+        cdc="(C{C=2e-10}[R{R=1.5e3}(Q{Y=5e-5,n=0.8}[R{R=500}Ws{Y=0.00004,B=150}])])",
+        log_max_f=6.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 15 invalid",
+        cdc="(C{C=2e-10}[R{R=1.5e3}(Q{Y=5e-5,n=0.8}[R{R=500:drift}Ws{Y=0.00004,B=150}])])",
+        log_max_f=6.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+        drift=0.05,
+    ),
 ]
 
 if len(set(d.get_identifier() for d in _definitions)) != len(_definitions):
