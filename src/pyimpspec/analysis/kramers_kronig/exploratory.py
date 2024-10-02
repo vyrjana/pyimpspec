@@ -1449,8 +1449,8 @@ def perform_exploratory_kramers_kronig_tests(
     for _, tests, *_ in evaluations:
         suggestions.append(suggest_num_RC(tests, **kwargs))
 
-    if not (len(suggestions) == len(evaluations) > 1):
-        raise ValueError(f"Expected {len(suggestions)=} == {len(evaluations)=} > 1")
+    if not (len(suggestions) == len(evaluations) >= 1):
+        raise ValueError(f"Expected {len(suggestions)=} == {len(evaluations)=} >= 1")
 
     suggestion = suggest_representation(suggestions)
 
