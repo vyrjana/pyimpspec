@@ -362,10 +362,14 @@ class DRTPeaks:
 def _generate_parameters(
     peaks: List[Tuple[float64, float64]],
     disallow_skew: bool,
-) -> "Parameters":  # noqa: F821
+) -> Tuple["Parameters", int]:  # noqa: F821
     from lmfit.parameter import Parameters
 
+    if len(peaks) < 1:
+        raise ValueError(f"Expected to have at least one peak to analyze!")
+
     parameters: Parameters = Parameters()
+    num_variables: int = 0
 
     i: int
     x: float64
@@ -410,7 +414,9 @@ def _generate_parameters(
             max=1e2,
         )
 
-    return parameters
+        num_variables += 3 if disallow_skew else 4
+
+    return (parameters, num_variables)
 
 
 def _analyze_peaks(
@@ -489,11 +495,25 @@ def _analyze_peaks(
 
             peaks.sort(key=lambda t: t[0])
 
+        parameters: Parameters
+        num_variables: int
+        parameters, num_variables = _generate_parameters(
+            peaks,
+            disallow_skew=disallow_skew,
+        )
+        if num_peaks < 1 and peak_positions is None:
+            while len(peaks) > 1 and num_variables > x.size:
+                peaks.sort(key=lambda t: t[1], reverse=True)
+                peaks.pop()
+                peaks.sort(key=lambda t: t[0])
+                parameters, num_variables = _generate_parameters(
+                    peaks,
+                    disallow_skew=disallow_skew,
+                )
+
         prog.increment()
 
         prog.set_message(f"Fitting {len(peaks)} peaks")
-        parameters: Parameters = _generate_parameters(peaks, disallow_skew=disallow_skew)
-
         fit: MinimizerResult = minimize(
             _residual,
             parameters,
