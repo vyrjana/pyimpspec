@@ -49,7 +49,7 @@ def _interpolate_phase(
 
     if interpolation == "akima":
         return Akima1DInterpolator(ln_omega, phase, method="akima")
-    if interpolation == "makima":
+    elif interpolation == "makima":
         return Akima1DInterpolator(ln_omega, phase, method="makima")
     elif interpolation == "cubic":
         return CubicSpline(ln_omega, phase)
