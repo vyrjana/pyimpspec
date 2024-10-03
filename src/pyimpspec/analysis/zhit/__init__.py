@@ -207,7 +207,7 @@ class ZHITResult:
 def perform_zhit(
     data: DataSet,
     smoothing: str = "modsinc",
-    interpolation: str = "akima",
+    interpolation: str = "makima",
     window: str = "auto",
     num_points: int = 3,
     polynomial_order: int = 2,
@@ -347,7 +347,7 @@ def perform_zhit(
     phase_exp: Phases = angle(X_exp)
 
     num_smoothing: int = 5 if smoothing == "auto" else 1
-    num_interpolation: int = 3 if interpolation == "auto" else 1
+    num_interpolation: int = 4 if interpolation == "auto" else 1
     num_window: int = len(_WINDOW_FUNCTIONS) if window == "auto" else 1
 
     num_steps: int = 0

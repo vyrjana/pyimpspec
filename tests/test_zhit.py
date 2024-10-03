@@ -68,7 +68,7 @@ class ZHIT(TestCase):
         zhit: ZHITResult = perform_zhit(DATA)
         self.assertIsInstance(zhit, ZHITResult)
         self.assertEqual(zhit.smoothing, "modsinc")
-        self.assertEqual(zhit.interpolation, "akima")
+        self.assertEqual(zhit.interpolation, "makima")
         self.assertNotEqual(zhit.window, "auto")
 
     def test_no_smoothing(self):

@@ -1064,9 +1064,9 @@ def zhit_args(parser: ArgumentParser):
         "-i",
         metavar="STRING",
         type=str,
-        default="akima",
+        default="makima",
         dest="interpolation",
-        help="The type of interpolation to apply: 'akima' (Akima spline), 'cubic' (cubic spline), 'pchip' (Piecewise Cubic Hermite Interpolating Polynomial), or 'auto'. Defaults to 'akima'.",
+        help="The type of interpolation to apply: 'akima' (Akima spline), 'makima' (modified Akima spline), 'cubic' (cubic spline), 'pchip' (Piecewise Cubic Hermite Interpolating Polynomial), or 'auto'. Defaults to 'makima'.",
     )
     parser.add_argument(
         "--window",
