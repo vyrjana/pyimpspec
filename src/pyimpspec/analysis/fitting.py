@@ -195,6 +195,8 @@ class FittedParameter:
         """
         if isnan(self.stderr):
             return self.stderr
+        elif self.value == 0.0:
+            return nan
 
         return (self.stderr or 0.0) / self.value
 

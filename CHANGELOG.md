@@ -28,6 +28,7 @@
 - Fixed the previously unimplemented `FitResult.get_parameters` method.
 - Fixed a bug that caused `FitResult.to_parameters_dataframe` to return negative standard errors when the fitted value was negative.
 - Fixed a bug that could cause `FitResult.to_parameters_dataframe` to divide by zero.
+- Fixed a bug that could cause `FittedParameter.get_relative_error` to divide by zero.
 - Fixed a bug where an exception would be raised when whitespace was included between keyword arguments when passing circuit identifiers or CDCs via the CLI (e.g., `<R(RC):noise=5e-2, log_max_f=4>` would previously raise an exception whereas `<R(RC):noise=5e-2,log_max_f=4>` would not).
 - Fixed a bug in the `perform_exploratory_kramers_kronig_tests` function that caused an exception to be raised when `admittance=True` or `admittance=False`.
 - Refactored some of the code.
