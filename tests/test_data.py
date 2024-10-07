@@ -489,6 +489,7 @@ class TestDataSet(TestCase):
         data: DataSet = self.data
         plotter: Callable
         for plotter in primitive_mpl_plotters:
+            check_mpl_return_values(self, *plotter(data=None))
             check_mpl_return_values(self, *plotter(data=data))
             check_mpl_return_values(self, *plotter(data=data, colored_axes=True))
 

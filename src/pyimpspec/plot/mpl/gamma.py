@@ -437,7 +437,7 @@ def _plot_gammas(
 
 
 def plot_gamma(
-    drt: DRTResult,
+    drt: Optional[DRTResult],
     peak_threshold: float = -1.0,
     label: Optional[str] = None,
     bounds_alpha: float = 0.3,
@@ -455,7 +455,7 @@ def plot_gamma(
 
     Parameters
     ----------
-    drt: DRTResult
+    drt: Optional[DRTResult]
         The result to plot.
 
     peak_threshold: float, optional
@@ -510,37 +510,38 @@ def plot_gamma(
     _validate_figure(figure, axes, num_axes=1)
     axis: Axes = axes[0]
 
-    if label is None:
-        if hasattr(drt, "get_label") and callable(drt.get_label):
-            label = drt.get_label()
-        else:
-            label = ""
-    elif not isinstance(label, str):
-        raise TypeError(f"Expected a string or None instead of {label=}")
+    if drt is not None:
+        if label is None:
+            if hasattr(drt, "get_label") and callable(drt.get_label):
+                label = drt.get_label()
+            else:
+                label = ""
+        elif not isinstance(label, str):
+            raise TypeError(f"Expected a string or None instead of {label=}")
 
-    if not _is_boolean(frequency):
-        raise TypeError(f"Expected a boolean instead of {frequency=}")
+        if not _is_boolean(frequency):
+            raise TypeError(f"Expected a boolean instead of {frequency=}")
 
-    if hasattr(drt, "get_drt_credible_intervals_data") and callable(
-        drt.get_drt_credible_intervals_data
-    ):
-        _plot_credible_intervals(
+        if hasattr(drt, "get_drt_credible_intervals_data") and callable(
+            drt.get_drt_credible_intervals_data
+        ):
+            _plot_credible_intervals(
+                drt=drt,
+                label=label,
+                color=color,
+                bounds_alpha=bounds_alpha,
+                axis=axis,
+                versus_frequency=frequency,
+            )
+
+        _plot_gammas(
             drt=drt,
+            peak_threshold=peak_threshold,
             label=label,
             color=color,
-            bounds_alpha=bounds_alpha,
             axis=axis,
             versus_frequency=frequency,
         )
-
-    _plot_gammas(
-        drt=drt,
-        peak_threshold=peak_threshold,
-        label=label,
-        color=color,
-        axis=axis,
-        versus_frequency=frequency,
-    )
 
     if not _is_boolean(adjust_axes):
         raise TypeError(f"Expected a boolean instead of {adjust_axes=}")

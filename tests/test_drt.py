@@ -981,6 +981,7 @@ class TestDRT(TestCase):
                 check_mpl_return_values(self, *plotter(data=drt))
 
             check_mpl_return_values(self, *mpl.plot_residuals(drt))
+            check_mpl_return_values(self, *mpl.plot_gamma(None))
             check_mpl_return_values(self, *mpl.plot_gamma(drt))
             check_mpl_return_values(self, *mpl.plot_gamma(drt, colored_axes=True))
             check_mpl_return_values(self, *mpl.plot_gamma(drt, peak_threshold=0.3))

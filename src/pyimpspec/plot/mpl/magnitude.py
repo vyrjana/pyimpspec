@@ -51,7 +51,7 @@ from .helpers import (
 
 
 def plot_magnitude(
-    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult],
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]],
     label: Optional[str] = None,
     admittance: bool = False,
     colors: Optional[Dict[str, str]] = None,
@@ -70,7 +70,7 @@ def plot_magnitude(
 
     Parameters
     ----------
-    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult]
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]]
         The data to plot.
 
     label: Optional[str], optional
@@ -121,6 +121,12 @@ def plot_magnitude(
     _validate_figure(figure, axes, num_axes=1)
     axis: Axes = axes[0]
 
+    if not _is_boolean(admittance):
+        raise TypeError(f"Expected a boolean instead of {admittance=}")
+
+    if not _is_boolean(line):
+        raise TypeError(f"Expected a boolean instead of {line=}")
+
     if colors is None:
         colors = {}
     elif not isinstance(colors, dict):
@@ -141,45 +147,41 @@ def plot_magnitude(
     elif not isinstance(label, str):
         raise TypeError(f"Expected a string or None instead of {label=}")
 
-    if not _is_boolean(admittance):
-        raise TypeError(f"Expected a boolean instead of {admittance=}")
+    if data is not None:
+        x: Frequencies
+        y: Impedances
+        if line and (
+            "num_per_decade" in signature(data.get_frequencies).parameters
+            and "num_per_decade" in signature(data.get_impedances).parameters
+        ):
+            x = data.get_frequencies(num_per_decade=num_per_decade)
+            y = abs(
+                data.get_impedances(num_per_decade=num_per_decade)
+                ** (-1 if admittance else 1)
+            )
+        elif line and hasattr(data, "circuit") and isinstance(data.circuit, Circuit):
+            x = _interpolate(data.get_frequencies(), num_per_decade=num_per_decade)
+            y = abs(data.circuit.get_impedances(x) ** (-1 if admittance else 1))
+        else:
+            x = data.get_frequencies()
+            y = abs(data.get_impedances() ** (-1 if admittance else 1))
 
-    x: Frequencies
-    y: Impedances
-    if line and (
-        "num_per_decade" in signature(data.get_frequencies).parameters
-        and "num_per_decade" in signature(data.get_impedances).parameters
-    ):
-        x = data.get_frequencies(num_per_decade=num_per_decade)
-        y = abs(
-            data.get_impedances(num_per_decade=num_per_decade)
-            ** (-1 if admittance else 1)
-        )
-    elif line and hasattr(data, "circuit") and isinstance(data.circuit, Circuit):
-        x = _interpolate(data.get_frequencies(), num_per_decade=num_per_decade)
-        y = abs(data.circuit.get_impedances(x) ** (-1 if admittance else 1))
-    else:
-        x = data.get_frequencies()
-        y = abs(data.get_impedances() ** (-1 if admittance else 1))
-
-    if not _is_boolean(line):
-        raise TypeError(f"Expected a boolean instead of {line=}")
-    elif line:
-        axis.plot(
-            x,
-            y,
-            color=color,
-            linestyle=kwargs.get("linestyle", "-"),
-            label=label if label != "" else None,
-        )
-    else:
-        axis.scatter(
-            x,
-            y,
-            marker=marker,
-            **_get_marker_color_args(marker, color),
-            label=label if label != "" else None,
-        )
+        if line:
+            axis.plot(
+                x,
+                y,
+                color=color,
+                linestyle=kwargs.get("linestyle", "-"),
+                label=label if label != "" else None,
+            )
+        else:
+            axis.scatter(
+                x,
+                y,
+                marker=marker,
+                **_get_marker_color_args(marker, color),
+                label=label if label != "" else None,
+            )
 
     if not _is_boolean(adjust_axes):
         raise TypeError(f"Expected a boolean instead of {adjust_axes=}")

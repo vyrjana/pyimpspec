@@ -432,7 +432,9 @@ class Fitting(TestCase):
         plotter: Callable
         for plotter in primitive_mpl_plotters:
             check_mpl_return_values(self, *plotter(data=self.result))
+
         check_mpl_return_values(self, *mpl.plot_residuals(self.result))
+        check_mpl_return_values(self, *mpl.plot_fit(self.result, data=DATA))
         check_mpl_return_values(self, *mpl.plot_fit(self.result, data=DATA))
         with self.assertRaises(AttributeError):
             mpl.plot_fit(DATA, data=DATA)

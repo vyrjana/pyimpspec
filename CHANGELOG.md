@@ -23,6 +23,7 @@
 - Updated the `circuit.registry.register_element` function to support a new `private` keyword argument.
   - Updated the `circuit.registry.get_elements` function to not include by default `Element` classes that were registered with `private=True`.
   - Updated the `KramersKronigRC` and `KramersKronigAdmittanceRC` classes to be registered with `private=True`.
+- Updated some plotting functions (e.g., primitives such as `mpl.plot_nyquist`, `mpl.plot_gamma`) to support `None` as input so that the functions can be used to set up a blank plot.
 - Fixed a bug that caused methods such as `DRTResult.get_peaks` to miss peaks at the time constant extremes.
 - Fixed a bug that caused an element's parameters in `FitResult.to_parameters_dataframe` to not be in a sorted order.
 - Fixed the previously unimplemented `FitResult.get_parameters` method.
