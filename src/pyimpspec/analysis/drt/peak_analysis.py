@@ -166,6 +166,41 @@ class DRTPeak:
             s=self.sigma,
         ) * self.y_scale) + self.y_offset
 
+    def _get_gamma(self, log_tau: float64) -> float64:
+        x: float64 = (log_tau - self.x_offset) / self.x_scale
+
+        return (_skew_normal(
+            x=x,
+            h=self.height,
+            p=self.position,
+            a=self.alpha,
+            s=self.sigma,
+        ) * self.y_scale) + self.y_offset
+
+    def get_area(
+        self,
+        time_constants: TimeConstants,
+    ) -> float64:
+        """
+        Calculate the area (ohms) of this peak for a given set of time constants.
+
+        Parameters
+        ----------
+        time_constants: |TimeConstants|
+
+        Returns
+        -------
+        float64
+        """
+        from scipy.integrate import quad
+
+        return quad(
+            func=self._get_gamma,
+            a=log(min(time_constants)),
+            b=log(max(time_constants)),
+        )[0] / log(exp(1))
+
+
 
 @dataclass(frozen=True)
 class DRTPeaks:
