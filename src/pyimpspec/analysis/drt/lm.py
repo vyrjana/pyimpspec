@@ -58,7 +58,7 @@ from pyimpspec.analysis.kramers_kronig.single import (
 from pyimpspec.analysis.utility import (
     _calculate_pseudo_chisqr,
     _calculate_residuals,
-    _get_default_num_procs,
+    get_default_num_procs,
 )
 from .result import DRTResult
 from .peak_analysis import DRTPeaks
@@ -578,7 +578,7 @@ def calculate_drt_lm(
     if not _is_integer(num_procs):
         raise TypeError(f"Expected an integer instead of {num_procs=}")
     elif num_procs < 1:
-        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
 
     prog: Progress
     with Progress("Preparing matrices", total=3) as prog:

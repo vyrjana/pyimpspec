@@ -58,7 +58,7 @@ from pyimpspec.data import DataSet
 from pyimpspec.analysis.utility import (
     _calculate_residuals,
     _calculate_pseudo_chisqr,
-    _get_default_num_procs,
+    get_default_num_procs,
 )
 from pyimpspec.exceptions import DRTError
 from .result import DRTResult
@@ -1263,7 +1263,7 @@ def calculate_drt_bht(
     if not _is_integer(num_procs):
         raise TypeError(f"Expected an integer instead of {num_procs=}")
     elif num_procs < 1:
-        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
 
     prog: Progress
     with Progress("Preparing matrices", total=5) as prog:

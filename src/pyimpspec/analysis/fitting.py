@@ -52,8 +52,8 @@ from pyimpspec.exceptions import FittingError
 from pyimpspec.analysis.utility import (
     _calculate_pseudo_chisqr,
     _calculate_residuals,
-    _get_default_num_procs,
     _interpolate,
+    get_default_num_procs,
 )
 from pyimpspec.circuit import Circuit
 from pyimpspec.circuit.base import Element
@@ -1017,7 +1017,7 @@ def fit_circuit(
     if not _is_integer(num_procs):
         raise TypeError(f"Expected an integer instead of {num_procs=}")
     elif num_procs < 1:
-        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
 
     if not _is_integer(timeout):
         raise TypeError(f"Expected an integer instead of {timeout=}")

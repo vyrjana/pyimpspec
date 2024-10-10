@@ -140,7 +140,7 @@ def _calculate_pseudo_chisqr(
 NUM_PROCS_OVERRIDE: int = -1
 
 
-def _set_default_num_procs(num_procs: int):
+def set_default_num_procs(num_procs: int):
     """
     Override the default number of parallel process that pyimpspec should use.
     Setting the value to less than one disables any previous override.
@@ -158,7 +158,7 @@ def _set_default_num_procs(num_procs: int):
     NUM_PROCS_OVERRIDE = num_procs
 
 
-def _get_default_num_procs() -> int:
+def get_default_num_procs() -> int:
     """
     Get the default number of parallel processes that pyimpspec would try to use.
     NumPy may be using libraries that are multithreaded, which can lead to poor performance or system responsiveness when combined with pyimpspec's use of multiple processes.

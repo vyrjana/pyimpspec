@@ -52,7 +52,7 @@ from pyimpspec.typing.helpers import (
 from pyimpspec.data import DataSet
 from pyimpspec.analysis.utility import (
     _calculate_residuals,
-    _get_default_num_procs,
+    get_default_num_procs,
 )
 from pyimpspec.exceptions import ZHITError
 from pyimpspec.progress import Progress
@@ -316,7 +316,7 @@ def perform_zhit(
         raise TypeError(f"Expected an integer instead of {num_procs=}")
 
     if num_procs < 1:
-        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
 
     if smoothing in ("auto", "savgol", "whithend"):
         if num_points < 2:

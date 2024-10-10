@@ -148,9 +148,9 @@ def command(parser: ArgumentParser, args: Namespace, print_func: Callable = prin
             dump_json(output, fp, indent=4, sort_keys=True)
 
     elif args.num_procs:
-        from pyimpspec.analysis.utility import _get_default_num_procs
+        from pyimpspec.analysis.utility import get_default_num_procs
 
-        print_func(_get_default_num_procs())
+        print_func(get_default_num_procs())
 
     else:
         print_command_help(parser, args.command)
@@ -269,9 +269,9 @@ def load_user_defined_elements(path: Optional[str]):
 
 
 def set_num_procs_override(num_procs: int):
-    from pyimpspec.analysis.utility import _set_default_num_procs
+    from pyimpspec.analysis.utility import set_default_num_procs
 
-    _set_default_num_procs(num_procs)
+    set_default_num_procs(num_procs)
 
 
 def parse_cli_args(parser: ArgumentParser, argv: List[str]) -> Namespace:
