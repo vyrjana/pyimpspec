@@ -24,6 +24,7 @@
   - Updated the `circuit.registry.get_elements` function to not include by default `Element` classes that were registered with `private=True`.
   - Updated the `KramersKronigRC` and `KramersKronigAdmittanceRC` classes to be registered with `private=True`.
 - Updated some plotting functions (e.g., primitives such as `mpl.plot_nyquist`, `mpl.plot_gamma`) to support `None` as input so that the functions can be used to set up a blank plot.
+- Updated the `get_default_num_procs` function to also support additional environment variables that may be supported by OpenBLAS (depends upon the settings used when OpenBLAS was compiled).
 - Fixed a bug that caused methods such as `DRTResult.get_peaks` to miss peaks at the time constant extremes.
 - Fixed a bug that caused an element's parameters in `FitResult.to_parameters_dataframe` to not be in a sorted order.
 - Fixed the previously unimplemented `FitResult.get_parameters` method.
@@ -32,6 +33,7 @@
 - Fixed a bug that could cause `FittedParameter.get_relative_error` to divide by zero.
 - Fixed a bug where an exception would be raised when whitespace was included between keyword arguments when passing circuit identifiers or CDCs via the CLI (e.g., `<R(RC):noise=5e-2, log_max_f=4>` would previously raise an exception whereas `<R(RC):noise=5e-2,log_max_f=4>` would not).
 - Fixed a bug in the `perform_exploratory_kramers_kronig_tests` function that caused an exception to be raised when `admittance=True` or `admittance=False`.
+- Fixed a bug where `get_default_num_procs` could raise an exception if an environment variable (e.g., `OPENBLAS_NUM_THREADS`) was assigned a non-numerical value.
 - Refactored some of the code.
 
 

@@ -19,12 +19,6 @@
 
 from multiprocessing import cpu_count
 from os import environ
-from typing import (
-    Any,
-    Dict,
-    Optional,
-    Set,
-)
 from numpy import (
     __config__ as numpy_config,
     float64,
@@ -44,6 +38,11 @@ from pyimpspec.typing import (
     Frequency,
 )
 from pyimpspec.typing.helpers import (
+    Any,
+    Dict,
+    List,
+    Optional,
+    Set,
     _cast_to_floating_array,
     _is_complex_array,
     _is_floating_array,
@@ -178,9 +177,9 @@ def _get_default_num_procs() -> int:
         return NUM_PROCS_OVERRIDE
     num_cores: int = cpu_count()
 
-    multithreaded: Dict[str, str] = {
-        "openblas": "OPENBLAS_NUM_THREADS",
-        "mkl": "MKL_NUM_THREADS",
+    multithreaded: Dict[str, List[str]] = {
+        "openblas": ["OPENBLAS_NUM_THREADS", "GOTO_NUM_THREADS", "OMP_NUM_THREADS"],
+        "mkl": ["MKL_NUM_THREADS"],
     }
     libraries: Set[str] = set()
 
@@ -202,10 +201,18 @@ def _get_default_num_procs() -> int:
 
     name: str
     for name in libraries:
-        env: str
-        for lib, env in multithreaded.items():
+        envs: List[str]
+        for lib, envs in multithreaded.items():
             if lib in name:
-                num_threads: int = int(environ.get(env, -1))
+                num_threads: int = -1
+                for env in envs:
+                    try:
+                        num_threads = int(environ.get(env, ""))
+                    except ValueError:
+                        continue
+                    else:
+                        break
+
                 if num_threads < 0:
                     # Assume that the library will use as many threads as there
                     # are cores available to the system.
