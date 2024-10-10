@@ -33,6 +33,7 @@
 - Fixed a bug that could cause `FittedParameter.get_relative_error` to divide by zero.
 - Fixed a bug where an exception would be raised when whitespace was included between keyword arguments when passing circuit identifiers or CDCs via the CLI (e.g., `<R(RC):noise=5e-2, log_max_f=4>` would previously raise an exception whereas `<R(RC):noise=5e-2,log_max_f=4>` would not).
 - Fixed a bug in the `perform_exploratory_kramers_kronig_tests` function that caused an exception to be raised when `admittance=True` or `admittance=False`.
+- Fixed a bug where passing a list of `KramersKronigResult` objects corresponding to a noise-free `DataSet` to the `suggest_num_RC_limits` function could cause an exception to be raised because the lower limit of the number of RC elements was estimated to be greater than the highest tested number of RC elements.
 - Fixed a bug where `get_default_num_procs` could raise an exception if an environment variable (e.g., `OPENBLAS_NUM_THREADS`) was assigned a non-numerical value.
 - Refactored some of the code.
 

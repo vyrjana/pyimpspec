@@ -142,24 +142,28 @@ def suggest_num_RC_limits(
         if possibly_single_resistor_or_capacitor:
             upper_limit = min((max_x, len(f)))
         else:
-            mean_distances: Dict[int, float] = suggest_num_RC_method_5(
-                tests,
-                lower_limit=lower_limit,
-                upper_limit=0,
-                relative_scores=False,
-            )
-
-            for upper_limit, value in reversed(mean_distances.items()):
-                if upper_limit <= max_x and value >= threshold:
-                    upper_limit = min(
-                        (
-                            max_x,
-                            max((lower_limit + (limit_delta or 1), upper_limit)),
-                        )
-                    )
-                    break
+            if lower_limit >= max_x:
+                lower_limit = max_x - 1
+                upper_limit = max_x
             else:
-                upper_limit = min((max_x, lower_limit + (limit_delta or 1)))
+                mean_distances: Dict[int, float] = suggest_num_RC_method_5(
+                    tests,
+                    lower_limit=lower_limit,
+                    upper_limit=0,
+                    relative_scores=False,
+                )
+
+                for upper_limit, value in reversed(mean_distances.items()):
+                    if upper_limit <= max_x and value >= threshold:
+                        upper_limit = min(
+                            (
+                                max_x,
+                                max((lower_limit + (limit_delta or 1), upper_limit)),
+                            )
+                        )
+                        break
+                else:
+                    upper_limit = min((max_x, lower_limit + (limit_delta or 1)))
 
         if upper_limit <= lower_limit:
             upper_limit = min((max_x, lower_limit + 1))
