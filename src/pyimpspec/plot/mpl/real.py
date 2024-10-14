@@ -200,7 +200,7 @@ def plot_real(
 
     if not _is_boolean(legend):
         raise TypeError(f"Expected a boolean instead of {legend=}")
-    elif legend:
+    elif legend and data is not None:
         axis.legend()
 
     if not _is_boolean(colored_axes):

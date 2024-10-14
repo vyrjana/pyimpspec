@@ -553,7 +553,7 @@ def plot_gamma(
 
     if not _is_boolean(legend):
         raise TypeError(f"Expected a boolean instead of {legend=}")
-    elif legend:
+    elif legend and drt is not None:
         axis.legend()
 
     if not _is_boolean(colored_axes):
