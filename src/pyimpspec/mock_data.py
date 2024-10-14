@@ -370,6 +370,21 @@ _definitions: List[MockDefinition] = [
         num_per_decade=10,
         drift=0.05,
     ),
+    MockDefinition(
+        label="Circuit 16",
+        cdc="(R{R=1.2}Q{n=0.85,Y=0.011327051})(R{R=0.8}Q{n=0.95,Y=0.034339661})(R{R=2}Q{n=0.7,Y=0.138116033})(R{R=1.6}Q{n=1,Y=0.000009947})(R{R=0.8}Q{n=1,Y=0.000066315})(R{R=1.6}Q{n=1,Y=0.000099472})",
+        log_max_f=6.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 16 invalid",
+        cdc="(R{R=1.2}Q{n=0.85,Y=0.011327051})(R{R=0.8}Q{n=0.95,Y=0.034339661})(R{R=2}Q{n=0.7,Y=0.138116033})(R{R=1.6:drift}Q{n=1,Y=0.000009947})(R{R=0.8}Q{n=1,Y=0.000066315})(R{R=1.6}Q{n=1,Y=0.000099472})",
+        log_max_f=6.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+        drift=0.00005,
+    ),
 ]
 
 if len(set(d.get_identifier() for d in _definitions)) != len(_definitions):

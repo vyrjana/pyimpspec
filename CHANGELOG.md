@@ -13,7 +13,7 @@
   - Added a `FitIdentifiers` class.
 - Added support for plotting DRT results as gamma vs f.
   - Added CLI argument for plotting DRT results as gamma vs f.
-- Added circuits for generating mock data (`CIRCUIT_13`, `CIRCUIT_13_INVALID`, `CIRCUIT_14`, `CIRCUIT_14_INVALID`, `CIRCUIT_15`, and `CIRCUIT_15_INVALID`).
+- Added circuits for generating mock data (`CIRCUIT_13`, `CIRCUIT_13_INVALID`, `CIRCUIT_14`, `CIRCUIT_14_INVALID`, `CIRCUIT_15`, `CIRCUIT_15_INVALID`, `CIRCUIT_16`, and `CIRCUIT_16_INVALID`).
 - Added support for the modified Akima spline (`makima`) to the interpolation phase of Z-HIT and set it as the default.
 - Updated the TR-RBF implementation to be based off of a newer version of pyDRTtools.
 - Updated plotting functions to support drawing smoother lines if the input result has a `circuit` property.
