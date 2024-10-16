@@ -21,6 +21,7 @@
 # 10.1016/j.electacta.2014.12.059
 # 10.1016/j.ssi.2016.10.009
 
+from copy import deepcopy
 from dataclasses import dataclass
 from numpy import (
     cos,
@@ -549,7 +550,7 @@ def calculate_drt_mrq_fit(
         else:
             fit = fit_circuit(
                 _adjust_initial_values(
-                    parse_cdc(circuit.serialize()),
+                    deepcopy(circuit),
                     data,
                 ),
                 data,
