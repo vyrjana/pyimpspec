@@ -35,6 +35,7 @@
 - Fixed a bug in the `perform_exploratory_kramers_kronig_tests` function that caused an exception to be raised when `admittance=True` or `admittance=False`.
 - Fixed a bug where passing a list of `KramersKronigResult` objects corresponding to a noise-free `DataSet` to the `suggest_num_RC_limits` function could cause an exception to be raised because the lower limit of the number of RC elements was estimated to be greater than the highest tested number of RC elements.
 - Fixed a bug where `get_default_num_procs` could raise an exception if an environment variable (e.g., `OPENBLAS_NUM_THREADS`) was assigned a non-numerical value.
+- Fixed a bug that caused the range of time constants of the m(RQ)-fit results to be incorrect although the peaks were still at the right values.
 - Refactored some of the code.
 
 

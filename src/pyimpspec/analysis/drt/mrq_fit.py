@@ -390,7 +390,7 @@ def _calculate_tau_gamma(
     W: float,
     num_per_decade: int,
 ) -> Tuple[TimeConstants, Gammas]:
-    tau: NDArray[float64] = 1 / (_interpolate(f, num_per_decade=num_per_decade))
+    tau: NDArray[float64] = 1 / (_interpolate(f, num_per_decade=num_per_decade) * 2*pi)
     gamma: NDArray[float64] = zeros(tau.shape, dtype=float64)
     connections: List[Connection] = circuit.get_connections()
 
