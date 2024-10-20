@@ -385,6 +385,20 @@ _definitions: List[MockDefinition] = [
         num_per_decade=10,
         drift=0.00005,
     ),
+    MockDefinition(
+        label="Circuit 17",
+        cdc="Ha{R=1,tau=1,a=0.95,b=0.5}",
+        log_max_f=3.0,
+        log_min_f=-4.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 18",
+        cdc="R{R=10}Ga{R=50,tau=0.01}",
+        log_max_f=5.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+    ),
 ]
 
 if len(set(d.get_identifier() for d in _definitions)) != len(_definitions):
