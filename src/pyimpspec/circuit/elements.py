@@ -21,7 +21,10 @@
 from .capacitor import Capacitor
 from .constant_phase_element import ConstantPhaseElement
 from .de_levie import DeLevieFiniteLength
-from .gerischer import Gerischer
+from .gerischer import (
+    Gerischer,
+    GerischerAlternative,
+)
 from .havriliak_negami import (
     HavriliakNegami,
     HavriliakNegamiAlternative,

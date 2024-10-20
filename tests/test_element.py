@@ -53,6 +53,7 @@ from pyimpspec.circuit.elements import (
     ConstantPhaseElement,
     DeLevieFiniteLength,
     Gerischer,
+    GerischerAlternative,
     HavriliakNegami,
     HavriliakNegamiAlternative,
     Inductor,
@@ -479,6 +480,7 @@ class TestElement(TestCase):
         symbols: List[str] = list(elements.keys())
         check(symbols, elements, "C", Capacitor)
         check(symbols, elements, "G", Gerischer)
+        check(symbols, elements, "Ga", GerischerAlternative)
         check(symbols, elements, "H", HavriliakNegami)
         check(symbols, elements, "Ha", HavriliakNegamiAlternative)
         check(symbols, elements, "K", KramersKronigRC)
