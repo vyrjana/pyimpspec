@@ -16,6 +16,7 @@
 - Added an alternative form of the Gerischer element (`GerischerAlternative`) with the parameters `R`, `tau`, and `n`.
 - Added more circuits for generating mock data.
 - Added support for the modified Akima spline (`makima`) to the interpolation phase of Z-HIT and set it as the default.
+- Added support for specifying multiple methods and/or weights to use when calling the `fit_circuit` function.
 - Updated the TR-RBF implementation to be based off of a newer version of pyDRTtools.
 - Updated plotting functions to support drawing smoother lines if the input result has a `circuit` property.
 - Updated an exception message to provide more information if a variable that is being fitted is out of bounds.

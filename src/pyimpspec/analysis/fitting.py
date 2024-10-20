@@ -935,8 +935,8 @@ def generate_fit_identifiers(circuit: Circuit) -> Dict[Element, FitIdentifiers]:
 def fit_circuit(
     circuit: Circuit,
     data: DataSet,
-    method: str = "auto",
-    weight: str = "auto",
+    method: Union[str, List[str]] = "auto",
+    weight: Union[str, List[str]] = "auto",
     max_nfev: int = -1,
     num_procs: int = -1,
     timeout: int = 0,
@@ -955,23 +955,23 @@ def fit_circuit(
     data: |DataSet|
         The data set that the circuit will be fitted to.
 
-    method: str, optional
-        The iteration method used during fitting.
+    method: Union[str, List[str]], optional
+        The iteration method(s) to use during fitting.
         See `lmfit's documentation <https://lmfit.github.io/lmfit-py/>`_ for valid method names.
         Note that not all methods supported by lmfit are possible in the current implementation (e.g. some methods may require a function that calculates a Jacobian).
-        The "auto" value results in multiple methods being tested in parallel and the best result being returned based on |pseudo chi-squared|.
+        If a list of multiple methods (or "auto") is provided, then multiple methods will be tested and the best result will be returned based on the |pseudo chi-squared| value.
 
-    weight: str, optional
-        The weight function to use when calculating residuals.
+    weight: Union[str, List[str]], optional
+        The weight function(s) to use when calculating residuals.
         Currently supported values: "modulus", "proportional", "unity", "boukamp", and "auto".
-        The "auto" value results in multiple weights being tested in parallel and the best result being returned based on |pseudo chi-squared|.
+        If a list of multiple weights (or "auto") is provided, then multiple weights will be tested and the best result will be returned based on the |pseudo chi-squared| value.
 
     max_nfev: int, optional
         The maximum number of function evaluations when fitting.
         A value less than one equals no limit.
 
     num_procs: int, optional
-        The maximum number of parallel processes to use when method and/or weight are set to "auto".
+        The maximum number of parallel processes to use when performing the fitting with multiple methods and/or weights.
         A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
         Additionally, a negative value can be used to reduce the number of processes by that much (e.g., to leave one core for a GUI thread).
 
@@ -998,18 +998,36 @@ def fit_circuit(
     else:
         validate_circuit(circuit)
 
-    if not isinstance(method, str):
-        raise TypeError(f"Expected a string instead of {method=}")
-    elif not (method in _METHODS or method == "auto"):
+    methods: List[str] = []
+    if isinstance(method, list) and all(map(lambda m: isinstance(m, str), method)):
+        methods.extend(method)
+    elif isinstance(method, str):
+        if method == "auto":
+            methods.extend(_METHODS)
+        else:
+            methods.append(method)
+    else:
+        raise TypeError(f"Expected a string or a list of strings instead of {method=}")
+
+    if not all(map(lambda m: m in _METHODS, methods)):
         raise ValueError(
-            "Valid method values: '" + "', '".join(_METHODS) + "', and 'auto'"
+            "Valid methods include: '" + "', '".join(_METHODS) + "', and 'auto'"
         )
 
-    if not isinstance(weight, str):
-        raise TypeError(f"Expected a string instead of {weight=}")
-    elif not (weight in _WEIGHT_FUNCTIONS or weight == "auto"):
+    weights: List[str] = []
+    if isinstance(weight, list) and all(map(lambda w: isinstance(w, str), weight)):
+        weights.extend(weight)
+    elif isinstance(weight, str):
+        if weight == "auto":
+            weights.extend(list(_WEIGHT_FUNCTIONS.keys()))
+        else:
+            weights.append(weight)
+    else:
+        raise TypeError(f"Expected a string or a list of strings instead of {weight=}")
+    
+    if not all(map(lambda w: w in _WEIGHT_FUNCTIONS, weights)):
         raise ValueError(
-            "Valid weight values: '" + "', '".join(_WEIGHT_FUNCTIONS) + "', and 'auto'"
+            "Valid weights include: '" + "', '".join(_WEIGHT_FUNCTIONS) + "', and 'auto'"
         )
 
     if not _is_integer(max_nfev):
@@ -1054,11 +1072,6 @@ def fit_circuit(
         fits: List[
             Tuple[Circuit, float, Optional["MinimizerResult"], str, str, str]
         ] = []
-
-        methods: List[str] = [method] if method != "auto" else _METHODS
-        weights: List[str] = (
-            [weight] if weight != "auto" else list(_WEIGHT_FUNCTIONS.keys())
-        )
 
         method_weight_combos: List[Tuple[str, str]] = []
         for method in methods:

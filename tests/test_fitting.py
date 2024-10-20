@@ -150,6 +150,32 @@ class Fitting(TestCase):
         self.assertNotEqual(result.method, "auto")
         self.assertNotEqual(result.weight, "auto")
 
+    def test_methods_list(self):
+        methods: List[str] = ["powell"]
+        result: FitResult = fit_circuit(
+            circuit=self.circuit,
+            data=DATA,
+            method=methods,
+            weight="boukamp",
+            max_nfev=self.arg_max_nfev,
+            num_procs=1,
+        )
+        self.assertTrue(result.method in methods)
+        self.assertEqual(result.weight, "boukamp")
+
+    def test_weights_list(self):
+        weights: List[str] = ["unity"]
+        result: FitResult = fit_circuit(
+            circuit=self.circuit,
+            data=DATA,
+            method="leastsq",
+            weight=weights,
+            max_nfev=self.arg_max_nfev,
+            num_procs=1,
+        )
+        self.assertEqual(result.method, "leastsq")
+        self.assertTrue(result.weight in weights)
+
     def test_single_process(self):
         result: FitResult = fit_circuit(
             circuit=self.circuit,
