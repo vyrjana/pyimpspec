@@ -399,6 +399,13 @@ _definitions: List[MockDefinition] = [
         log_min_f=-3.0,
         num_per_decade=10,
     ),
+    MockDefinition(
+        label="Circuit 19",
+        cdc="Ws{Y=1.0,B=1.0,n=0.47}",
+        log_max_f=4.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+    ),
 ]
 
 if len(set(d.get_identifier() for d in _definitions)) != len(_definitions):
