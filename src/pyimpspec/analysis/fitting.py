@@ -834,6 +834,7 @@ def _fit_process(
         if auto:
             filterwarnings("error")
             filterwarnings("ignore", category=DeprecationWarning)
+            filterwarnings("ignore", category=RuntimeWarning)
 
         try:
             fit: MinimizerResult = minimize(

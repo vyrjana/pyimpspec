@@ -26,6 +26,7 @@
   - Updated the `KramersKronigRC` and `KramersKronigAdmittanceRC` classes to be registered with `private=True`.
 - Updated some plotting functions (e.g., primitives such as `mpl.plot_nyquist`, `mpl.plot_gamma`) to support `None` as input so that the functions can be used to set up a blank plot.
 - Updated the `get_default_num_procs` function to also support additional environment variables that may be supported by OpenBLAS (depends upon the settings used when OpenBLAS was compiled).
+- Updated the `fit_circuit` function to ignore `RuntimeWarning`s during fitting.
 - Fixed a bug that caused methods such as `DRTResult.get_peaks` to miss peaks at the time constant extremes.
 - Fixed a bug that caused an element's parameters in `FitResult.to_parameters_dataframe` to not be in a sorted order.
 - Fixed the previously unimplemented `FitResult.get_parameters` method.
