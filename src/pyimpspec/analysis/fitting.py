@@ -1146,14 +1146,31 @@ def fit_circuit(
 
         fits.sort(key=lambda _: log(_[1]) if _[2] is not None else inf)
 
-        fit: Optional[MinimizerResult]
-        error_msg: str
-        Xps: float
-        circuit, Xps, fit, method, weight, error_msg = fits[0]
-        if fit is None:
-            raise FittingError(error_msg)
+    return _convert_intermediate_result(fits[0], f, Z_exp)
 
-        Z_fit: ComplexImpedances = circuit.get_impedances(f)
+
+def _convert_intermediate_result(
+    intermediate: Tuple[
+        Circuit,
+        float,
+        Optional["MinimizerResult"],  # noqa: F821
+        str,
+        str,
+        str,
+    ],
+    f: Frequencies,
+    Z_exp: ComplexImpedances,
+) -> FitResult:
+    from lmfit.minimizer import MinimizerResult
+
+    fit: Optional[MinimizerResult]
+    error_msg: str
+    Xps: float
+    circuit, Xps, fit, method, weight, error_msg = intermediate
+    if fit is None:
+        raise FittingError(error_msg)
+
+    Z_fit: ComplexImpedances = circuit.get_impedances(f)
 
     return FitResult(
         circuit=circuit,
