@@ -62,6 +62,7 @@ from pyimpspec.typing.helpers import (
     Tuple,
     Union,
     _is_floating,
+    _is_integer,
 )
 from .utility import _l_curve_corner_search
 
@@ -271,10 +272,14 @@ def _generate_tikhonov_matrix(
     return (A.T @ A) + lambda_value * I
 
 
-def _solve(A: NDArray[float64], b: NDArray[float64]) -> NDArray[float64]:
+def _solve(
+    A: NDArray[float64],
+    b: NDArray[float64],
+    maxiter: Optional[int],
+) -> NDArray[float64]:
     from scipy.optimize import nnls
 
-    return nnls(A, b)[0]
+    return nnls(A, b, maxiter=maxiter)[0]
 
 
 def _generate_lambda_values(
@@ -294,6 +299,7 @@ def _test_lambda_values(
     b: NDArray[float64],
     I: NDArray[float64],
     lambda_values: NDArray[float64],
+    maxiter: Optional[int],
 ) -> Tuple[NDArray[float64], NDArray[float64]]:
     prog: Progress
     with Progress(
@@ -305,7 +311,7 @@ def _test_lambda_values(
         i: int
         for i, lambda_value in enumerate(lambda_values):
             A_tikh: NDArray[float64] = _generate_tikhonov_matrix(A, I, lambda_value)
-            g_tau: NDArray[float64] = _solve(A_tikh, b)
+            g_tau: NDArray[float64] = _solve(A_tikh, b, maxiter)
             solution_norms[i] = sqrt(array_sum(g_tau**2))
             prog.increment()
 
@@ -402,9 +408,10 @@ def _l_curve_P(
     A: NDArray[float64],
     b: NDArray[float64],
     I: NDArray[float64],
+    maxiter: Optional[int],
 ) -> Tuple[float64, float64]:
     A_tikh: NDArray[float64] = _generate_tikhonov_matrix(A, I, lambda_value)
-    g_tau: NDArray[float64] = _solve(A_tikh, b)
+    g_tau: NDArray[float64] = _solve(A_tikh, b, maxiter)
 
     return (
         log(norm(A_tikh @ g_tau - b) ** 2),
@@ -416,6 +423,7 @@ def calculate_drt_tr_nnls(
     data: DataSet,
     mode: str = "real",
     lambda_value: float = -1.0,
+    max_iter: int = -1,
     **kwargs,
 ) -> TRNNLSResult:
     """
@@ -442,6 +450,10 @@ def calculate_drt_tr_nnls(
         If the value is between -1.5 and 0.0, then a custom approach is used.
         If the value is less than -1.5, then the L-curve corner search algorithm (DOI:10.1088/2633-1357/abad0d) is used.
 
+    max_iter: int, optional
+        The maximum number of iterations.
+        If set to less than one, then the default of `scipy.optimize.nnls`_ is used.
+
     Returns
     -------
     |TRNNLSResult|
@@ -453,6 +465,11 @@ def calculate_drt_tr_nnls(
 
     if not _is_floating(lambda_value):
         raise TypeError(f"Expected a float instead of {lambda_value=}")
+
+    if not _is_integer(max_iter):
+        raise TypeError("Expected an integer instead of {max_iter=}")
+
+    maxiter: Optional[int] = max_iter if max_iter > 0 else None
 
     prog: Progress
     with Progress("Preparing matrices", total=6) as prog:
@@ -487,7 +504,7 @@ def calculate_drt_tr_nnls(
         # been provided.
         if lambda_value < -1.5:
             lambda_value = _l_curve_corner_search(
-                lambda _: _l_curve_P(_, A, b, I),
+                lambda _: _l_curve_P(_, A, b, I, maxiter),
                 minimum=1e-10,
                 maximum=1,
             )
@@ -503,6 +520,7 @@ def calculate_drt_tr_nnls(
                         log_maximum=0,
                         num_per_decade=10,
                     ),
+                    maxiter,
                 ),
             )
 
@@ -510,7 +528,7 @@ def calculate_drt_tr_nnls(
         A_tikh = _generate_tikhonov_matrix(A, I, lambda_value)
         prog.increment()
 
-        g_tau = _solve(A_tikh, b)
+        g_tau = _solve(A_tikh, b, maxiter)
         prog.increment()
 
         # R_pol_synthetic: float = array_sum(g_tau * delta_ln_tau)  # Should be (close to) 1.0

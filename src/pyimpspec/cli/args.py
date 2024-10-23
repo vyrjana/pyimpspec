@@ -560,6 +560,13 @@ def drt_args(parser: ArgumentParser):
         help="The maximum number of function evaluations to use when fitting a circuit (m(RQ)fit method only). A value below 1 means no limit. Defaults to -1.",
     )
     parser.add_argument(
+        "--max-iter",
+        dest="max_iter",
+        default=-1,
+        type=int,
+        help="The maximum number of iterations (TR-NNLS method only). A value below 1 means no limit. Defaults to -1.",
+    )
+    parser.add_argument(
         "--model-order",
         "-k",
         dest="model_order",

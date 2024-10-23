@@ -116,5 +116,6 @@
 .. _schemdraw.drawing: https://schemdraw.readthedocs.io/en/latest/classes/drawing.html#schemdraw.Drawing
 .. _schemdraw: https://schemdraw.readthedocs.io/en/latest/
 .. _scipy.signal.savgol_filter: https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html
+.. _scipy.optimize.nnls: https://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.nnls.html
 .. _statsmodels.nonparametric.smoothers_lowess.lowess: https://www.statsmodels.org/dev/generated/statsmodels.nonparametric.smoothers_lowess.lowess.html
 .. _sympy: https://www.sympy.org/en/index.html

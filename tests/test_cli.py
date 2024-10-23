@@ -565,6 +565,7 @@ class TestDRT(TestCase):
             ("--num-per-decade", "-npd", "num_per_decade", 5),
             ("--threshold", "-t", "peak_threshold", 0.2),
             ("--max-nfev", "", "max_nfev", 4),
+            ("--max-iter", "--max-iter", "max_iter", 100000),
             ("--num-procs", "", "num_procs", 2),
             ("--plot-frequency", "-pF", "plot_frequency", True),
             ("--analyze-peaks", "-ap", "analyze_peaks", True),
