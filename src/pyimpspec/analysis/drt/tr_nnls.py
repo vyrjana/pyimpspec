@@ -465,7 +465,7 @@ def calculate_drt_tr_nnls(
 
         Z_exp: ComplexImpedances = data.get_impedances()
         omega: NDArray[float64] = 2 * pi * f
-        tau: TimeConstants = 1 / f
+        tau: TimeConstants = 1 / omega
         delta_ln_tau: NDArray[float64] = _calculate_delta_ln_tau(tau)
         prog.increment()
 
