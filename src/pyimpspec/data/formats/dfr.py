@@ -28,7 +28,10 @@ from pyimpspec.typing.helpers import (
     Path,
     Union,
 )
-from .helpers import _validate_path
+from .helpers import (
+    _parse_string_as_float,
+    _validate_path,
+)
 
 
 def parse_dfr(path: Union[str, Path]) -> List[DataSet]:
@@ -81,9 +84,9 @@ def parse_dfr(path: Union[str, Path]) -> List[DataSet]:
                 "Expected to have nine lines to parse for each measured frequency"
             )
 
-        freq.append(float(lines.pop(0)))
-        real.append(float(lines.pop(0)))
-        imag.append(-float(lines.pop(0)))
+        freq.append(_parse_string_as_float(lines.pop(0)))
+        real.append(_parse_string_as_float(lines.pop(0)))
+        imag.append(-_parse_string_as_float(lines.pop(0)))
         lines.pop(0)  # E_dc
         lines.pop(0)  # I_dc
         lines.pop(0)  # time

@@ -48,7 +48,9 @@ def _interpolate_phase(
     phase = flip(phase)
 
     if interpolation == "akima":
-        return Akima1DInterpolator(ln_omega, phase)
+        return Akima1DInterpolator(ln_omega, phase, method="akima")
+    elif interpolation == "makima":
+        return Akima1DInterpolator(ln_omega, phase, method="makima")
     elif interpolation == "cubic":
         return CubicSpline(ln_omega, phase)
     elif interpolation == "pchip":
@@ -71,7 +73,7 @@ def _generate_interpolation_options(
     phase: Phases
     interpolator: Callable
     for interpolation in (
-        ["akima", "cubic", "pchip"] if interpolation == "auto" else [interpolation]
+        ["akima", "makima", "cubic", "pchip"] if interpolation == "auto" else [interpolation]
     ):
         interpolation_options[interpolation] = {}
         simulated_phase[interpolation] = {}

@@ -18,11 +18,13 @@
 # the LICENSES folder.
 
 from inspect import signature
+from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.data import DataSet
 from pyimpspec.analysis import (
     KramersKronigResult,
     FitResult,
 )
+from pyimpspec.analysis.utility import _interpolate
 from pyimpspec.analysis.drt import DRTResult
 from pyimpspec.typing import (
     Frequencies,
@@ -49,7 +51,7 @@ from .helpers import (
 
 
 def plot_imaginary(
-    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult],
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]],
     label: Optional[str] = None,
     admittance: bool = False,
     colors: Optional[Dict[str, str]] = None,
@@ -68,7 +70,7 @@ def plot_imaginary(
 
     Parameters
     ----------
-    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult]
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]]
         The data to plot.
 
     label: Optional[str], optional
@@ -131,6 +133,12 @@ def plot_imaginary(
     _validate_figure(figure, axes, num_axes=1)
     axis: Axes = axes[0]
 
+    if not _is_boolean(admittance):
+        raise TypeError(f"Expected a boolean instead of {admittance=}")
+
+    if not _is_boolean(line):
+        raise TypeError(f"Expected a boolean instead of {line=}")
+
     if label is None:
         if hasattr(data, "get_label") and callable(data.get_label):
             label = data.get_label()
@@ -139,45 +147,46 @@ def plot_imaginary(
     elif not isinstance(label, str):
         raise TypeError(f"Expected a string or None instead of {label=}")
 
-    if not _is_boolean(line):
-        raise TypeError(f"Expected a boolean instead of {line=}")
+    if data is not None:
+        x: Frequencies
+        y: Impedances
+        if line and (
+            "num_per_decade" in signature(data.get_frequencies).parameters
+            and "num_per_decade" in signature(data.get_impedances).parameters
+        ):
+            x = data.get_frequencies(num_per_decade=num_per_decade)
+            y = (
+                data.get_impedances(num_per_decade=num_per_decade)
+                ** (-1 if admittance else 1)
+            ).imag
+        elif line and hasattr(data, "circuit") and isinstance(data.circuit, Circuit):
+            x = _interpolate(data.get_frequencies(), num_per_decade=num_per_decade)
+            y = (
+                data.circuit.get_impedances(x)
+                ** (-1 if admittance else 1)
+            ).imag
+        else:
+            x = data.get_frequencies()
+            y = (data.get_impedances() ** (-1 if admittance else 1)).imag
 
-    if not _is_boolean(admittance):
-        raise TypeError(f"Expected a boolean instead of {admittance=}")
+        y *= 1 if admittance else -1
 
-    x: Frequencies
-    y: Impedances
-    if line and (
-        "num_per_decade" in signature(data.get_frequencies).parameters
-        and "num_per_decade" in signature(data.get_impedances).parameters
-    ):
-        x = data.get_frequencies(num_per_decade=num_per_decade)
-        y = (
-            data.get_impedances(num_per_decade=num_per_decade)
-            ** (-1 if admittance else 1)
-        ).imag
-    else:
-        x = data.get_frequencies()
-        y = (data.get_impedances() ** (-1 if admittance else 1)).imag
-
-    y *= 1 if admittance else -1
-
-    if line:
-        axis.plot(
-            x,
-            y,
-            color=color,
-            linestyle=kwargs.get("linestyle", "-"),
-            label=label if label != "" else None,
-        )
-    else:
-        axis.scatter(
-            x,
-            y,
-            marker=marker,
-            **_get_marker_color_args(marker, color),
-            label=label if label != "" else None,
-        )
+        if line:
+            axis.plot(
+                x,
+                y,
+                color=color,
+                linestyle=kwargs.get("linestyle", "-"),
+                label=label if label != "" else None,
+            )
+        else:
+            axis.scatter(
+                x,
+                y,
+                marker=marker,
+                **_get_marker_color_args(marker, color),
+                label=label if label != "" else None,
+            )
 
     if not _is_boolean(adjust_axes):
         raise TypeError(f"Expected a boolean instead of {adjust_axes=}")
@@ -189,7 +198,7 @@ def plot_imaginary(
 
     if not _is_boolean(legend):
         raise TypeError(f"Expected a boolean instead of {legend=}")
-    elif legend:
+    elif legend and data is not None:
         axis.legend()
 
     if not _is_boolean(colored_axes):

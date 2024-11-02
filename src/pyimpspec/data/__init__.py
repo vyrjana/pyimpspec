@@ -136,7 +136,7 @@ def parse_data(
 
     Returns
     -------
-    List[DataSet]
+    List[|DataSet|]
     """
     _validate_path(path)
     if not (isinstance(file_format, str) or file_format is None):

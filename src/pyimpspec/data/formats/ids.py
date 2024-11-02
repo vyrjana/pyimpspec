@@ -36,7 +36,10 @@ from pyimpspec.typing.helpers import (
     Union,
     _is_integer,
 )
-from .helpers import _validate_path
+from .helpers import (
+    _parse_string_as_float,
+    _validate_path,
+)
 
 
 def _extract_primary_data(
@@ -58,16 +61,16 @@ def _extract_primary_data(
 
     while lines:
         line: str = lines.pop(0)
-        values: List[str] = line.replace(",", ".").split()
+        values: List[str] = line.split()
 
         if len(values) != 3:
             raise UnsupportedFileFormat(
                 f"Expected to parse three values instead of {values=}"
             )
 
-        re.append(float(values.pop(0)))
-        im.append(float(values.pop(0)))
-        f.append(float(values.pop(0)))
+        re.append(_parse_string_as_float(values.pop(0)))
+        im.append(_parse_string_as_float(values.pop(0)))
+        f.append(_parse_string_as_float(values.pop(0)))
 
         if len(re) == num_freq:
             break

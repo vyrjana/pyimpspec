@@ -18,11 +18,13 @@
 # the LICENSES folder.
 
 from inspect import signature
+from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.data import DataSet
 from pyimpspec.analysis import (
     KramersKronigResult,
     FitResult,
 )
+from pyimpspec.analysis.utility import _interpolate
 from pyimpspec.analysis.drt import (
     DRTResult,
 )
@@ -50,7 +52,7 @@ from .helpers import (
 
 
 def plot_nyquist(
-    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult],
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]],
     label: Optional[str] = None,
     admittance: bool = False,
     colors: Optional[Dict[str, str]] = None,
@@ -68,7 +70,7 @@ def plot_nyquist(
 
     Parameters
     ----------
-    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult]
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]]
         The data to plot.
 
     label: Optional[str], optional
@@ -140,39 +142,48 @@ def plot_nyquist(
     if not _is_boolean(admittance):
         raise TypeError(f"Expected a boolean instead of {admittance=}")
 
-    X: NDArray[complex128]
-    if line and ("num_per_decade" in signature(data.get_impedances).parameters):
-        X = data.get_impedances(num_per_decade=num_per_decade) ** (
-            -1 if admittance else 1
-        )
-    else:
-        X = data.get_impedances() ** (-1 if admittance else 1)
-
-    x: Impedances = X.real
-    y: Impedances = X.imag * (1 if admittance else -1)
-
     if not _is_boolean(line):
         raise TypeError(f"Expected a boolean instead of {line=}")
-    elif isclose(x, x[0]).all() and isclose(y, y[0]).all():
-        # Can happen when, e.g., fitting just a resistance.
-        line = False
 
-    if line:
-        axis.plot(
-            x,
-            y,
-            color=color,
-            linestyle=kwargs.get("linestyle", "-"),
-            label=label if label != "" else None,
-        )
-    else:
-        axis.scatter(
-            x,
-            y,
-            marker=marker,
-            **_get_marker_color_args(marker, color),
-            label=label if label != "" else None,
-        )
+    if data is not None:
+        X: NDArray[complex128]
+        if line and ("num_per_decade" in signature(data.get_impedances).parameters):
+            X = data.get_impedances(num_per_decade=num_per_decade) ** (
+                -1 if admittance else 1
+            )
+        elif line and hasattr(data, "circuit") and isinstance(data.circuit, Circuit):
+            X = data.circuit.get_impedances(
+                _interpolate(
+                    data.get_frequencies(),
+                    num_per_decade=num_per_decade,
+                ),
+            ) ** (-1 if admittance else 1)
+        else:
+            X = data.get_impedances() ** (-1 if admittance else 1)
+
+        x: Impedances = X.real
+        y: Impedances = X.imag * (1 if admittance else -1)
+
+        if isclose(x, x[0]).all() and isclose(y, y[0]).all():
+            # Can happen when, e.g., fitting just a resistance.
+            line = False
+
+        if line:
+            axis.plot(
+                x,
+                y,
+                color=color,
+                linestyle=kwargs.get("linestyle", "-"),
+                label=label if label != "" else None,
+            )
+        else:
+            axis.scatter(
+                x,
+                y,
+                marker=marker,
+                **_get_marker_color_args(marker, color),
+                label=label if label != "" else None,
+            )
 
     if not _is_boolean(adjust_axes):
         raise TypeError(f"Expected a boolean instead of {adjust_axes=}")
@@ -185,7 +196,7 @@ def plot_nyquist(
 
     if not _is_boolean(legend):
         raise TypeError(f"Expected a boolean instead of {legend=}")
-    elif legend:
+    elif legend and data is not None:
         axis.legend()
 
     return (

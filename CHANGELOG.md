@@ -1,3 +1,53 @@
+# 5.1.0 (2024/11/02)
+
+- Added support for analyzing the peaks in DRT results by fitting skew normal distributions:
+  - Added an `analyze_peaks` method to the `DRTResult` class.
+  - Added a `DRTPeaks` class, which can be used to, e.g., calculate the area of a peak.
+- Added an implementation of the Loewner method for calculating the distribution of relaxation times:
+  - Added a `calculate_drt_lm` function.
+  - Added an `LMResult` class.
+  - Added `--model-order` and `--model-order-method` CLI arguments.
+  - Updated the `plot.mpl.plot_gamma` function to support plotting `LMResult` instances.
+- Added the ability to define constraints when fitting circuits:
+  - Added a `generate_fit_identifiers` function.
+  - Added a `FitIdentifiers` class.
+- Added support for plotting DRT results as gamma vs f.
+  - Added CLI argument for plotting DRT results as gamma vs f.
+- Added an alternative form of the Gerischer element (`GerischerAlternative`) with the parameters `R`, `tau`, and `n`.
+- Added more circuits for generating mock data.
+- Added support for the modified Akima spline (`makima`) to the interpolation phase of Z-HIT and set it as the default.
+- Added support for specifying multiple methods and/or weights to use when calling the `fit_circuit` function.
+- Added a `max_iter` argument to the TR-NNLS method in case the default number of iterations is insufficient.
+- Updated the TR-RBF implementation to be based off of a newer version of pyDRTtools.
+- Updated plotting functions to support drawing smoother lines if the input result has a `circuit` property.
+- Updated an exception message to provide more information if a variable that is being fitted is out of bounds.
+- Updated documentation.
+- Updated the `generate_mock_data` function so that it attempts to cast arguments to the appropriate type if some other types of values (e.g., integers) are provided instead.
+- Updated the `circuit.registry.register_element` function to support a new `private` keyword argument.
+  - Updated the `circuit.registry.get_elements` function to not include by default `Element` classes that were registered with `private=True`.
+  - Updated the `KramersKronigRC` and `KramersKronigAdmittanceRC` classes to be registered with `private=True`.
+- Updated some plotting functions (e.g., primitives such as `mpl.plot_nyquist`, `mpl.plot_gamma`) to support `None` as input so that the functions can be used to set up a blank plot.
+- Updated the `get_default_num_procs` function to also support additional environment variables that may be supported by OpenBLAS (depends upon the settings used when OpenBLAS was compiled).
+- Updated the `fit_circuit` function to ignore `RuntimeWarning`s during fitting.
+- Updated the `Warburg` element class to include an `n` exponent (fixed at 0.5 by default).
+- Updated the `plot_gamma` function to include a horizontal line marking zero on the y-axis.
+- Updated the automatic adjustment of initial values of circuit parameters to be bypassed when a non-default value is detected in a `Circuit` that is provided to the m(RQ)-fit method without a corresponding `FitResult`.
+- Updated the m(RQ)-fit method to support resistive-inductive `(RQ)` elements. The `n` parameter of the `ConstantPhaseElement` instance would then need to be `-1.0 <= n < 0.0`.
+- Updated the parsing of data files to better support cases where a decimal comma is used instead of a decimal point.
+- Fixed a bug that caused methods such as `DRTResult.get_peaks` to miss peaks at the time constant extremes.
+- Fixed a bug that caused an element's parameters in `FitResult.to_parameters_dataframe` to not be in a sorted order.
+- Fixed the previously unimplemented `FitResult.get_parameters` method.
+- Fixed a bug that caused `FitResult.to_parameters_dataframe` to return negative standard errors when the fitted value was negative.
+- Fixed a bug that could cause `FitResult.to_parameters_dataframe` to divide by zero.
+- Fixed a bug that could cause `FittedParameter.get_relative_error` to divide by zero.
+- Fixed a bug where an exception would be raised when whitespace was included between keyword arguments when passing circuit identifiers or CDCs via the CLI (e.g., `<R(RC):noise=5e-2, log_max_f=4>` would previously raise an exception whereas `<R(RC):noise=5e-2,log_max_f=4>` would not).
+- Fixed a bug in the `perform_exploratory_kramers_kronig_tests` function that caused an exception to be raised when `admittance=True` or `admittance=False`.
+- Fixed a bug where passing a list of `KramersKronigResult` objects corresponding to a noise-free `DataSet` to the `suggest_num_RC_limits` function could cause an exception to be raised because the lower limit of the number of RC elements was estimated to be greater than the highest tested number of RC elements.
+- Fixed a bug where `get_default_num_procs` could raise an exception if an environment variable (e.g., `OPENBLAS_NUM_THREADS`) was assigned a non-numerical value.
+- Fixed a bug that caused the range of time constants of the m(RQ)-fit and TR-NNLS results to be incorrect although the peaks were still at the right values.
+- Refactored some of the code.
+
+
 # 5.0.2 (2024/09/10)
 
 - Updated the documentation (e.g., various function and method docstrings have been updated). Notably, the functions related to handling progress updates are now included in the API documentation.

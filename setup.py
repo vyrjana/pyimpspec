@@ -12,7 +12,7 @@ dependencies = [
     "lmfit~=1.3",  # Needed for performing non-linear fitting.
     "matplotlib~=3.9",  # Needed for the plotting module.
     "numdifftools~=0.9",  # Needed for estimating uncertainties during circuit fitting
-    "numpy~=2.0",
+    "numpy~=2.1",
     "odfpy~=1.4",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
     "openpyxl~=3.1",  # Needed by pandas for parsing newer Excel files (.xlsx).
     "pandas~=2.2",  # Needed for dealing with various file formats.
@@ -29,9 +29,9 @@ dependencies = [
 dev_dependencies = [
     "build~=1.2",
     "flake8~=7.1",
-    "setuptools~=74.0",
-    "sphinx~=8.0",
-    "sphinx-rtd-theme~=2.0",
+    "setuptools~=75.3",
+    "sphinx~=8.1",
+    "sphinx-rtd-theme~=3.0",
 ]
 
 optional_dependencies = {
@@ -40,7 +40,7 @@ optional_dependencies = {
     "dev": dev_dependencies,
 }
 
-version = "5.0.2"
+version = "5.1.0"
 
 if __name__ == "__main__":
     with open("requirements.txt", "w") as fp:

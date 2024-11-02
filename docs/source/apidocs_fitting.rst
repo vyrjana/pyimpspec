@@ -9,12 +9,12 @@ A collection of functions and classes for fitting equivalent circuits to data se
 Function
 --------
 .. automodule:: pyimpspec
-   :members: fit_circuit
+   :members: fit_circuit, generate_fit_identifiers
 
 Classes
 -------
 .. automodule:: pyimpspec
-   :members: FitResult, FittedParameter
+   :members: FitResult, FittedParameter, FitIdentifiers
 
 .. raw:: latex
 

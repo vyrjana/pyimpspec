@@ -53,7 +53,7 @@ from .phase import plot_phase
 
 
 def plot_bode(
-    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult],
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]],
     label: Optional[str] = None,
     admittance: bool = False,
     colors: Optional[Dict[str, str]] = None,
@@ -72,7 +72,7 @@ def plot_bode(
 
     Parameters
     ----------
-    data: Union[DataSet, KramersKronigResult, FitResult, DRTResult]
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]]
         The data to plot.
 
     label: Optional[str], optional

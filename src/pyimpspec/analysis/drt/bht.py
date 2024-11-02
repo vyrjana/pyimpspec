@@ -58,10 +58,14 @@ from pyimpspec.data import DataSet
 from pyimpspec.analysis.utility import (
     _calculate_residuals,
     _calculate_pseudo_chisqr,
-    _get_default_num_procs,
+    get_default_num_procs,
 )
 from pyimpspec.exceptions import DRTError
 from .result import DRTResult
+from .peak_analysis import (
+    DRTPeaks,
+    _analyze_peaks,
+)
 from .tr_rbf import (
     _RBF_SHAPES,
     _RBF_TYPES,
@@ -84,9 +88,11 @@ from pyimpspec.typing.helpers import (
     Dict,
     IO,
     List,
+    NDArray,
     Optional,
     Tuple,
     Union,
+    float64,
     _is_integer,
     _is_floating,
 )
@@ -244,7 +250,7 @@ class BHTResult(DRTResult):
         threshold: float = 0.0,
     ) -> Tuple[TimeConstants, Gammas, TimeConstants, Gammas]:
         """
-        Get the time constants (in seconds) of peaks with magnitudes greater than the threshold.
+        Get the time constants (in seconds) and gammas (in ohms) of peaks with magnitudes greater than the threshold.
         The threshold and the magnitudes are all relative to the magnitude of the highest peak.
 
         Parameters
@@ -284,7 +290,7 @@ class BHTResult(DRTResult):
         rows: Optional[List[str]] = None,
     ) -> "DataFrame":  # noqa: F821
         """
-        Get the scores for the data set as a |DataFrame| object that can be used to generate, e.g., a Markdown table.
+        Get the scores for the data set as a `pandas.DataFrame`_ object that can be used to generate, e.g., a Markdown table.
 
         Parameters
         ----------
@@ -296,7 +302,7 @@ class BHTResult(DRTResult):
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         from pandas import DataFrame
 
@@ -356,6 +362,51 @@ class BHTResult(DRTResult):
                 ],
             }
         )
+
+    def analyze_peaks(
+        self,
+        num_peaks: int = 0,
+        peak_positions: Optional[Union[List[float], NDArray[float64]]] = None,
+        disallow_skew: bool = False,
+    ) -> Tuple[DRTPeaks, DRTPeaks]:
+        """
+        Analyze the peaks present in a distribution of relaxation times using skew normal distributions.
+
+        Parameters
+        ----------
+        num_peaks: int, optional
+            If greater than zero, then analyze only that number of peaks (sorted from highest to lowest gamma values).
+
+        peak_positions: Optional[Union[List[float], NDArray[float64]]], optional
+            Analyze only the peaks at the provided positions.
+
+        disallow_skew: bool, optional
+            If true, then normal distributions are used instead of skew normal distributions.
+
+        Returns
+        -------
+        Tuple[|DRTPeaks|, |DRTPeaks|]
+            The first and second |DRTPeaks| instance corresponds to the DRT generated based on the real or imaginary part, respectively, of the impedance spectrum.
+        """
+        peaks_real: DRTPeaks = _analyze_peaks(
+            self.time_constants,
+            self.real_gammas,
+            num_peaks=num_peaks,
+            peak_positions=peak_positions,
+            disallow_skew=disallow_skew,
+            suffix="real",
+        )
+        peaks_imag: DRTPeaks = _analyze_peaks(
+            self.time_constants,
+            self.imaginary_gammas,
+            num_peaks=num_peaks,
+            peak_positions=peak_positions,
+            disallow_skew=disallow_skew,
+            suffix="imag.",
+        )
+        object.__setattr__(self, "_peak_analysis", (peaks_real, peaks_imag))
+
+        return (peaks_real, peaks_imag)
 
 
 def _compute_res_scores(
@@ -1095,7 +1146,6 @@ def _calculate_model_impedance(
     )
 
 
-# TODO: Add support for admittance?
 def calculate_drt_bht(
     data: DataSet,
     rbf_type: str = "gaussian",
@@ -1173,7 +1223,7 @@ def calculate_drt_bht(
 
     Returns
     -------
-    BHTResult
+    |BHTResult|
     """
     if not isinstance(rbf_type, str):
         raise TypeError(f"Expected a string instead of {rbf_type=}")
@@ -1213,7 +1263,7 @@ def calculate_drt_bht(
     if not _is_integer(num_procs):
         raise TypeError(f"Expected an integer instead of {num_procs=}")
     elif num_procs < 1:
-        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
 
     prog: Progress
     with Progress("Preparing matrices", total=5) as prog:

@@ -28,8 +28,10 @@ from numpy import (
     pi,
 )
 from pyimpspec.analysis.fitting import (
+    FitIdentifiers,
     _from_lmfit,
     _to_lmfit,
+    generate_fit_identifiers,
 )
 from numpy.typing import NDArray
 from pyimpspec.circuit.base import Element
@@ -137,13 +139,17 @@ def _test_wrapper(args: tuple) -> Tuple[int, Circuit]:
         admittance,
     )
 
-    identifiers: Dict[int, Element] = {
-        v: k for k, v in circuit.generate_element_identifiers(running=True).items()
-    }
+    identifiers: Dict[Element, FitIdentifiers]
+    identifiers = generate_fit_identifiers(circuit)
+
     fit: MinimizerResult
     fit = minimize(
         _complex_residual,
-        _to_lmfit(identifiers),
+        _to_lmfit(
+            identifiers,
+            constraint_expressions={},
+            constraint_variables={},
+        ),
         method,
         args=(
             circuit,

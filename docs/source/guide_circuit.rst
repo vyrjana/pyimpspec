@@ -75,7 +75,7 @@ It is also possible to obtain a SymPy_ expression for the impedance of a circuit
    >>>
    >>> circuit: Circuit = parse_cdc("R(C[RW])")
    >>> circuit.to_sympy()
-   R_0 + 1/(2*I*pi*C_1*f + 1/(R_2 + sqrt(2)/(2*sqrt(pi)*Y_3*sqrt(I*f))))
+   R_0 + 1/(2*I*pi*C_1*f + 1/(R_2 + 1/(Y_3*(2*I*pi*f)**n_3)))
 
 .. note::
 
@@ -122,7 +122,7 @@ Below are the updated SymPy expression and circuit diagram:
    >>>
    >>> circuit: Circuit = parse_cdc("R{R=20f:sol}(C{C=25e-6//1e-3:dl}[R{R=100/50/100:ct}W{Y=2.357e-3/inf/150%:diff}])")
    >>> circuit.to_sympy()
-   R_sol + 1/(2*I*pi*C_dl*f + 1/(R_ct + sqrt(2)/(2*sqrt(pi)*Y_diff*sqrt(I*f))))
+   R_sol + 1/(2*I*pi*C_dl*f + 1/(R_ct + 1/(Y_diff*(2*I*pi*f)**n_diff)))
 
 .. plot::
 
@@ -143,7 +143,7 @@ The extended CDC syntax is also useful for sharing/storing circuits in text form
    >>>
    >>> circuit: Circuit = parse_cdc("R{R=20f:sol}(C{C=25e-6//1e-3:dl}[R{R=100/50/200:ct}W{Y=2.357e-3/inf/150%:diff}])")
    >>> circuit.to_string(decimals=3)  # Use scientific notation and three decimal places for values.
-   '[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/1.000E-24/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03:diff}])]'
+   '[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/1.000E-24/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03,n=5.000E-01F/0.000E+00/1.000E+00:diff}])]'
 
 There is also a dedicated method for generating a CDC with some metadata that should help ensure compatibility when parsing a CDC generated before some breaking changes were made in a newer version of the API:
 
@@ -153,7 +153,7 @@ There is also a dedicated method for generating a CDC with some metadata that sh
    >>>
    >>> circuit: Circuit = parse_cdc("R{R=20f:sol}(C{C=25e-6//1e-3:dl}[R{R=100/50/100:ct}W{Y=2.357e-3/inf/150%:diff}])")
    >>> circuit.serialize()  # Includes metadata (e.g., version number) and uses 12 decimal places by default.
-   '!V=1![R{R=2.000000000000E+01F/0.000000000000E+00/inf:sol}(C{C=2.500000000000E-05/1.000000000000E-24/1.000000000000E-03:dl}[R{R=1.000000000000E+02/5.000000000000E+01/1.000000000000E+02:ct}W{Y=2.357000000000E-03/inf/3.535500000000E-03:diff}])]'
+   '!V=1![R{R=2.000000000000E+01F/0.000000000000E+00/inf:sol}(C{C=2.500000000000E-05/1.000000000000E-24/1.000000000000E-03:dl}[R{R=1.000000000000E+02/5.000000000000E+01/1.000000000000E+02:ct}W{Y=2.357000000000E-03/inf/3.535500000000E-03,n=5.000000000000E-01F/0.000000000000E+00/1.000000000000E+00:diff}])]'
 
 
 Other ways of creating circuits
@@ -196,7 +196,7 @@ Ultimately the outermost |Connection| object is placed within a |Circuit| object
    >>> outer_series: Series = Series([R_sol, parallel])
    >>> circuit: Circuit = Circuit(outer_series)
    >>> circuit.to_string(3)
-   '[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/inf/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03:diff}])]'
+   '[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/inf/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03,n=5.000E-01F/0.000E+00/1.000E+00:diff}])]'
 
 
 However, using the |CircuitBuilder| context manager class may be more convenient:
@@ -234,7 +234,7 @@ However, using the |CircuitBuilder| context manager class may be more convenient
    ...       )
    >>> circuit: Circuit = outer_series.to_circuit()
    >>> circuit.to_string(3)
-   '[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/inf/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03:diff}])]'
+   '[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/inf/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03,n=5.000E-01F/0.000E+00/1.000E+00:diff}])]'
 
 
 .. _User-defined elements:

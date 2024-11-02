@@ -29,6 +29,7 @@ from pyimpspec.typing.helpers import (
     Dict,
     IO,
     List,
+    Optional,
     Tuple,
 )
 from .utility import (
@@ -53,6 +54,7 @@ def overlay_plot(
         mpl,
         parse_cdc,
     )
+    from pyimpspec.analysis.drt import LMResult
 
     if not (args.output_name[0] != "" or not args.output):
         raise ValueError("Expected an output name")
@@ -92,6 +94,9 @@ def overlay_plot(
                 gaussian_width=args.gaussian_width,
                 num_per_decade=args.num_per_decade,
                 max_nfev=args.max_nfev,
+                max_iter=args.max_iter,
+                model_order=args.model_order,
+                model_order_method=args.model_order_method,
                 num_procs=args.num_procs,
             )
             drts.append(
@@ -142,6 +147,7 @@ def overlay_plot(
             colors={"gamma": color},
             figure=figure,
             axes=axes,
+            frequency=args.plot_frequency,
         )
 
     if not args.plot_no_legend:
@@ -180,13 +186,16 @@ def individual_plots(
     args: Namespace,
     print_func: Callable,
 ):
+    from pandas import DataFrame
     from pyimpspec import (
+        DRTPeaks,
         DRTResult,
         DataSet,
         calculate_drt,
         mpl,
         parse_cdc,
     )
+    from pyimpspec.analysis.drt import LMResult
     from pyimpspec.plot.colors import COLOR_BLACK
     from pyimpspec.plot.mpl.helpers import _color_axis
 
@@ -247,8 +256,24 @@ def individual_plots(
                 gaussian_width=args.gaussian_width,
                 num_per_decade=args.num_per_decade,
                 max_nfev=args.max_nfev,
+                max_iter=args.max_iter,
+                model_order=args.model_order,
+                model_order_method=args.model_order_method,
                 num_procs=args.num_procs,
             )
+
+            peaks: Optional[DRTPeaks] = None
+            if (
+                args.analyze_peaks
+                and hasattr(drt, "analyze_peaks")
+                and not isinstance(drt, LMResult)
+            ):
+                 peaks = drt.analyze_peaks(
+                    num_peaks=args.num_peaks,
+                    peak_positions=args.peak_positions or None,
+                    disallow_skew=args.disallow_skew,
+                )
+
             clear_default_handler_output()
 
             label: str = f"{data.get_label()}\n{drt.get_label()}"
@@ -257,6 +282,7 @@ def individual_plots(
                     drt,
                     title=label if args.plot_title else "",
                     peak_threshold=args.peak_threshold,
+                    frequency=args.plot_frequency,
                     **kwargs,
                 )
             else:
@@ -265,6 +291,7 @@ def individual_plots(
                     data=data,
                     title=label if args.plot_title else "",
                     peak_threshold=args.peak_threshold,
+                    frequency=args.plot_frequency,
                     **kwargs,
                 )
 
@@ -339,12 +366,24 @@ def individual_plots(
             if args.peak_threshold >= 0.0:
                 fragments.append(
                     format_text(
-                        drt.to_peaks_dataframe(threshold=args.peak_threshold), args
+                        drt.to_peaks_dataframe(threshold=args.peak_threshold),
+                        args,
                     )
                 )
 
             if args.method == "bht":
                 fragments.append(format_text(drt.to_scores_dataframe(), args))
+
+            if (
+                args.analyze_peaks
+                and peaks is not None
+                and not isinstance(drt, LMResult)
+            ):
+                if isinstance(peaks, tuple):
+                    for df in (p.to_peaks_dataframe() for p in peaks):
+                        fragments.append(format_text(df, args))
+                else:
+                    fragments.append(format_text(peaks.to_peaks_dataframe(), args))
 
             report: str = "\n\n".join(fragments)
             if args.output:

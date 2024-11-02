@@ -52,7 +52,7 @@ from pyimpspec.typing.helpers import (
 from pyimpspec.data import DataSet
 from pyimpspec.analysis.utility import (
     _calculate_residuals,
-    _get_default_num_procs,
+    get_default_num_procs,
 )
 from pyimpspec.exceptions import ZHITError
 from pyimpspec.progress import Progress
@@ -182,11 +182,11 @@ class ZHITResult:
 
     def to_statistics_dataframe(self) -> "DataFrame":  # noqa: F821
         """
-        Get the statistics related to the modulus reconstruction as a |DataFrame| object.
+        Get the statistics related to the modulus reconstruction as a `pandas.DataFrame`_ object.
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         from pandas import DataFrame
 
@@ -207,7 +207,7 @@ class ZHITResult:
 def perform_zhit(
     data: DataSet,
     smoothing: str = "modsinc",
-    interpolation: str = "akima",
+    interpolation: str = "makima",
     window: str = "auto",
     num_points: int = 3,
     polynomial_order: int = 2,
@@ -234,7 +234,7 @@ def perform_zhit(
 
     Parameters
     ----------
-    data: DataSet
+    data: |DataSet|
         The data set for which the modulus of the impedance should be reconstructed.
 
     smoothing: str, optional
@@ -274,7 +274,7 @@ def perform_zhit(
 
     Returns
     -------
-    ZHITResult
+    |ZHITResult|
     """
     if not isinstance(smoothing, str):
         raise TypeError(f"Expected a string instead of {smoothing=}")
@@ -316,7 +316,7 @@ def perform_zhit(
         raise TypeError(f"Expected an integer instead of {num_procs=}")
 
     if num_procs < 1:
-        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
 
     if smoothing in ("auto", "savgol", "whithend"):
         if num_points < 2:
@@ -347,7 +347,7 @@ def perform_zhit(
     phase_exp: Phases = angle(X_exp)
 
     num_smoothing: int = 5 if smoothing == "auto" else 1
-    num_interpolation: int = 3 if interpolation == "auto" else 1
+    num_interpolation: int = 4 if interpolation == "auto" else 1
     num_window: int = len(_WINDOW_FUNCTIONS) if window == "auto" else 1
 
     num_steps: int = 0

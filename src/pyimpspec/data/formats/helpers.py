@@ -33,3 +33,10 @@ def _validate_path(path: Union[str, Path]):
             raise FileNotFoundError(path)
     else:
         raise TypeError(f"Expected a string or pathlib.Path instead of {path=}")
+
+
+def _parse_string_as_float(string: str) -> float:
+    try:
+        return float(string)
+    except ValueError:
+        return float(string.replace(",", "."))

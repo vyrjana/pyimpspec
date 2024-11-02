@@ -27,6 +27,7 @@ from pyimpspec.analysis.drt.tr_rbf import (
     _RBF_SHAPES,
     _CROSS_VALIDATION_METHODS,
 )
+from pyimpspec.analysis.drt.lm import _MODEL_ORDER_METHODS
 from pyimpspec.analysis.fitting import (
     _METHODS as FIT_METHODS,
     _WEIGHT_FUNCTIONS as FIT_WEIGHTS,
@@ -513,7 +514,7 @@ def drt_args(parser: ArgumentParser):
         metavar="FLOAT",
         type=float,
         default=0.5,
-        help="A maximum limit (between 0.0 and 1.0) for the relative vertical symmetry of the DRT. A high degree of symmetry is common for results where the gamma value oscillates wildly (e.g., due to a small regularization parameter). A low value for the limit should improve the results but may cause the BHT method to take longer to finish. The TR-RBF method only uses this limit when the regularization parameter (lambda) is not provided.",
+        help="A maximum limit (between 0.0 and 1.0) for the relative vertical symmetry of the DRT. A high degree of symmetry is common for results where the gamma value oscillates wildly (e.g., due to a small regularization parameter). A low value for the limit should improve the results but may cause the BHT method to take longer to finish.",
     )
     parser.add_argument(
         "--circuit",
@@ -559,6 +560,33 @@ def drt_args(parser: ArgumentParser):
         help="The maximum number of function evaluations to use when fitting a circuit (m(RQ)fit method only). A value below 1 means no limit. Defaults to -1.",
     )
     parser.add_argument(
+        "--max-iter",
+        dest="max_iter",
+        default=-1,
+        type=int,
+        help="The maximum number of iterations (TR-NNLS method only). A value below 1 means no limit. Defaults to -1.",
+    )
+    parser.add_argument(
+        "--model-order",
+        "-k",
+        dest="model_order",
+        metavar="INTEGER",
+        type=int,
+        default=0,
+        help="The model order (k) to use (Loewner method only). Defaults to 0.",
+    )
+    parser.add_argument(
+        "--model-order-method",
+        "-km",
+        dest="model_order_method",
+        metavar="STRING",
+        type=str,
+        default="matrix_rank",
+        help="The approach to use to automatically pick the model order (k) if a model order is not specified (Loewner method only). " 
+        + ", ".join(sorted(map(lambda _: f"'{_}'", _MODEL_ORDER_METHODS))) 
+        + ". Defaults to 'matrix_rank'.",
+    )
+    parser.add_argument(
         "--num-procs",
         dest="num_procs",
         metavar="INTEGER",
@@ -571,6 +599,38 @@ Negative values can be used to select, e.g., one less than the maximum.
 Defaults to -1.
 """.strip(),
     )
+    parser.add_argument(
+        "--analyze-peaks",
+        "-ap",
+        dest="analyze_peaks",
+        action="store_true",
+        help="Perform peak analyses by fitting skew normal distributions.",
+    )
+    parser.add_argument(
+        "--num-peaks",
+        "-np",
+        dest="num_peaks",
+        type=int,
+        default=0,
+        help="The number of peaks to include in the peak analysis. The tallest peaks are prioritized. Only applicable when peak positions are not provided manually.",
+    )
+    parser.add_argument(
+        "--peak-positions",
+        "-pp",
+        dest="peak_positions",
+        metavar="FLOAT",
+        type=float,
+        nargs="*",
+        default=[],
+        help="The positions of the peaks to analyze. If not provided, then peaks and their positions are detected automatically.",
+    )
+    parser.add_argument(
+        "--disallow-skew",
+        "-ds",
+        dest="disallow_skew",
+        action="store_true",
+        help="If true, then normal distributions are used instead of skew normal distributions when analyzing peaks.",
+    )
     add_output_args(parser)
     add_plot_args(parser)
     parser.add_argument(
@@ -581,6 +641,13 @@ Defaults to -1.
         type=str,
         default="drt",
         help="The type of plot to generate: 'bode', 'drt', 'imaginary', 'magnitude', 'nyquist', 'phase', 'real', or 'real-imaginary'. Defaults to 'drt'.",
+    )
+    parser.add_argument(
+        "--plot-frequency",
+        "-pF",
+        dest="plot_frequency",
+        action="store_true",
+        help="Plot gamma vs frequency instead of time constant.",
     )
 
 
@@ -1004,9 +1071,9 @@ def zhit_args(parser: ArgumentParser):
         "-i",
         metavar="STRING",
         type=str,
-        default="akima",
+        default="makima",
         dest="interpolation",
-        help="The type of interpolation to apply: 'akima' (Akima spline), 'cubic' (cubic spline), 'pchip' (Piecewise Cubic Hermite Interpolating Polynomial), or 'auto'. Defaults to 'akima'.",
+        help="The type of interpolation to apply: 'akima' (Akima spline), 'makima' (modified Akima spline), 'cubic' (cubic spline), 'pchip' (Piecewise Cubic Hermite Interpolating Polynomial), or 'auto'. Defaults to 'makima'.",
     )
     parser.add_argument(
         "--window",

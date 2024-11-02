@@ -603,7 +603,7 @@ class KramersKronigResult:
         extended_statistics: int = 3,
     ) -> "DataFrame":  # noqa: F821
         r"""
-        Get the statistics related to the test as a |DataFrame| object.
+        Get the statistics related to the test as a `pandas.DataFrame`_ object.
 
         Parameters
         ----------
@@ -626,7 +626,7 @@ class KramersKronigResult:
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         from pandas import DataFrame
 

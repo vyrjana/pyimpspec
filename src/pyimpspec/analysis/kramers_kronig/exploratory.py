@@ -21,6 +21,10 @@ from collections import namedtuple
 from functools import partial
 from multiprocessing import Pool
 from multiprocessing.context import TimeoutError as MPTimeoutError
+from warnings import (
+    catch_warnings,
+    filterwarnings,
+)
 from numpy import (
     argmin,
     argwhere,
@@ -60,7 +64,7 @@ from pyimpspec.typing.helpers import (
 from pyimpspec.analysis.utility import (
     _calculate_pseudo_chisqr,
     _calculate_residuals,
-    _get_default_num_procs,
+    get_default_num_procs,
 )
 from .result import KramersKronigResult
 from .cnls import _test_wrapper as _cnls_test
@@ -666,7 +670,10 @@ def _fit_logistic_function(
     p0: Optional[Tuple[float, ...]] = None,
     bounds: Optional[Tuple[NDArray[float64], NDArray[float64]]] = None,
 ) -> Tuple[float, ...]:
-    from scipy.optimize import curve_fit
+    from scipy.optimize import (
+        OptimizeWarning,
+        curve_fit,
+    )
 
     kwargs = {}
     if p0 is None:
@@ -680,12 +687,15 @@ def _fit_logistic_function(
     if bounds is not None:
         kwargs["bounds"] = bounds
 
-    p: Tuple[float, ...] = curve_fit(
-        _logistic_function,
-        x,
-        y,
-        **kwargs,
-    )[0]
+    with catch_warnings():
+        filterwarnings("ignore", category=OptimizeWarning)
+        filterwarnings("ignore", category=RuntimeWarning)
+        p: Tuple[float, ...] = curve_fit(
+            _logistic_function,
+            x,
+            y,
+            **kwargs,
+        )[0]
 
     return p
 
@@ -1025,7 +1035,7 @@ def evaluate_log_F_ext(
 
     Parameters
     ----------
-    data: DataSet
+    data: |DataSet|
         The data set to be tested.
 
     test: str, optional
@@ -1074,7 +1084,7 @@ def evaluate_log_F_ext(
 
     Returns
     -------
-    List[Tuple[float, List[KramersKronigResult], float]]
+    List[Tuple[float, List[|KramersKronigResult|], float]]
 
         A list of tuples containing:
 
@@ -1136,7 +1146,7 @@ def evaluate_log_F_ext(
     if not _is_integer(num_procs):
         raise TypeError(f"Expected an integer instead of {num_procs=}")
     elif num_procs < 1:
-        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
 
     f: Frequencies = data.get_frequencies()
     Z_exp: ComplexImpedances = data.get_impedances()
@@ -1365,7 +1375,7 @@ def perform_exploratory_kramers_kronig_tests(
 
     Parameters
     ----------
-    data: DataSet
+    data: |DataSet|
         The data set to be tested.
 
     test: str, optional
@@ -1416,7 +1426,7 @@ def perform_exploratory_kramers_kronig_tests(
 
     Returns
     -------
-    Tuple[List[KramersKronigResult], Tuple[KramersKronigResult, Dict[int, float], int, int]]
+    Tuple[List[|KramersKronigResult|], Tuple[|KramersKronigResult|, Dict[int, float], int, int]]
 
         A tuple containing a list of |KramersKronigResult| and the corresponding result of |suggest_num_RC| for the suggested extension of the range of time constants and the suggested representation of the immittance spectrum to test.
     """
@@ -1449,8 +1459,8 @@ def perform_exploratory_kramers_kronig_tests(
     for _, tests, *_ in evaluations:
         suggestions.append(suggest_num_RC(tests, **kwargs))
 
-    if not (len(suggestions) == len(evaluations) > 1):
-        raise ValueError(f"Expected {len(suggestions)=} == {len(evaluations)=} > 1")
+    if not (len(suggestions) == len(evaluations) >= 1):
+        raise ValueError(f"Expected {len(suggestions)=} == {len(evaluations)=} >= 1")
 
     suggestion = suggest_representation(suggestions)
 

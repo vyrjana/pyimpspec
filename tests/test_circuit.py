@@ -827,16 +827,20 @@ class TestCircuits(TestCase):
         )
 
     def test_serialize_deserialize(self):
-        cdc: str = "[R{R=2.5E+02/0.0E+00/inf}([R{R=5.0E+02/0.0E+00/inf}W{Y=1.0E-04/1.0E-24/inf}]C{C=1.0E-06/1.0E-24/1.0E+03})]"
+        cdc: str = "[R{R=2.5E+02/0.0E+00/inf}([R{R=5.0E+02/0.0E+00/inf}W{Y=1.0E-04/1.0E-24/inf,n=5.0E-01F/0.0E+00/1.0E+00}]C{C=1.0E-06/1.0E-24/1.0E+03})]"
 
         circuit: Circuit = parse_cdc(cdc)
         self.assertEqual(cdc, circuit.to_string(decimals=1))
 
         serialized_cdc: str = (
             f"!V={VERSION}!"
-            + "[R{R=2.500000000000E+02/0.000000000000E+00/inf}([R{R=5.000000000000E+02/0.000000000000E+00/inf}W{Y=1.000000000000E-04/1.000000000000E-24/inf}]C{C=1.000000000000E-06/1.000000000000E-24/1.000000000000E+03})]"
+            + "[R{R=2.500000000000E+02/0.000000000000E+00/inf}([R{R=5.000000000000E+02/0.000000000000E+00/inf}W{Y=1.000000000000E-04/1.000000000000E-24/inf,n=5.000000000000E-01F/0.000000000000E+00/1.000000000000E+00}]C{C=1.000000000000E-06/1.000000000000E-24/1.000000000000E+03})]"
         )
-        self.assertEqual(serialized_cdc, circuit.serialize())
+        self.assertEqual(
+            serialized_cdc,
+            circuit.serialize(),
+            msg=f"{serialized_cdc=}, {circuit.serialize()=}",
+        )
 
         deserialized_circuit: Circuit = parse_cdc(serialized_cdc)
         self.assertEqual(cdc, deserialized_circuit.to_string(decimals=1))

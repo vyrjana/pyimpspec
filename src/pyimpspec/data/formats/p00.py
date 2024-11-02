@@ -28,7 +28,10 @@ from pyimpspec.typing.helpers import (
     Path,
     Union,
 )
-from .helpers import _validate_path
+from .helpers import (
+    _parse_string_as_float,
+    _validate_path,
+)
 
 
 def parse_p00(path: Union[str, Path]) -> List[DataSet]:
@@ -71,9 +74,9 @@ def parse_p00(path: Union[str, Path]) -> List[DataSet]:
         if len(columns) != 6:
             raise UnsupportedFileFormat(f"Expected to parse 6 columns instead of {len(columns)} columns")
 
-        freq.append(float(columns[0]))
-        real.append(float(columns[1]))
-        imag.append(-float(columns[2]))
+        freq.append(_parse_string_as_float(columns[0]))
+        real.append(_parse_string_as_float(columns[1]))
+        imag.append(-_parse_string_as_float(columns[2]))
 
     if not (len(freq) == len(real) == len(imag) > 0):
         raise ValueError(

@@ -1799,6 +1799,25 @@ class KramersKronigPerformExploratoryTests(TestCase):
             )
         )
 
+    def test_admittance(self):
+        results: Tuple[
+            List[KramersKronigResult],
+            Tuple[KramersKronigResult, Dict[int, float], int, int],
+        ]
+        results = pyimpspec.analysis.kramers_kronig.perform_exploratory_kramers_kronig_tests(
+            VALID_DATA,
+            admittance=False,
+        )
+        self.assertTrue(all(map(lambda t: t.admittance is False, results[0])))
+        self.assertEqual(results[1][0].admittance, False)
+
+        results = pyimpspec.analysis.kramers_kronig.perform_exploratory_kramers_kronig_tests(
+            VALID_DATA,
+            admittance=True,
+        )
+        self.assertTrue(all(map(lambda t: t.admittance is True, results[0])))
+        self.assertEqual(results[1][0].admittance, True)
+
     def test_return_value(self):
         self.assertIsInstance(self.results, tuple)
         self.assertEqual(len(self.results), 2)

@@ -68,6 +68,7 @@ register_element(
             ),
         ],
     ),
+    private=True,
 )
 
 
@@ -105,4 +106,5 @@ register_element(
             ),
         ],
     ),
+    private=True,
 )

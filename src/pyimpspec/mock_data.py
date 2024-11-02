@@ -114,9 +114,12 @@ class MockDefinition:
 
         drift: float = kwargs.get("drift", 1.0)
         if not _is_floating(drift):
-            raise TypeError(f"Expected a float instead of {drift=}")
-        else:
-            drift *= self.drift
+            try:
+                drift = float(drift)
+            except ValueError:
+                raise TypeError(f"Expected a float instead of {drift=}")
+
+        drift *= self.drift
 
         connection: Connection
         for connection in circuit.get_connections(recursive=True):
@@ -322,6 +325,87 @@ _definitions: List[MockDefinition] = [
         num_per_decade=10,
         drift=0.5,
     ),
+    MockDefinition(
+        label="Circuit 13",
+        cdc="R{R=70}(R{R=200}C{C=2.5e-3})(R{R=100}C{C=1e-4})(R{R=50}L{L=3e2})",
+        log_max_f=2.0,
+        log_min_f=-2.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 13 invalid",
+        cdc="R{R=70}(R{R=200}C{C=2.5e-3})(R{R=100}C{C=1e-4})(R{R=50:drift}L{L=3e2})",
+        log_max_f=2.0,
+        log_min_f=-2.0,
+        num_per_decade=10,
+        drift=0.5,
+    ),
+    MockDefinition(
+        label="Circuit 14",
+        cdc="R{R=70}(R{R=200}Q{Y=2.5e-3,n=0.9})(R{R=100}Q{Y=1e-4,n=0.85})(R{R=50}La{L=3e2,n=0.95})",
+        log_max_f=2.0,
+        log_min_f=-2.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 14 invalid",
+        cdc="R{R=70}(R{R=200}Q{Y=2.5e-3,n=0.9})(R{R=100}Q{Y=1e-4,n=0.85})(R{R=50:drift}La{L=3e2,n=0.95})",
+        log_max_f=2.0,
+        log_min_f=-2.0,
+        num_per_decade=10,
+        drift=0.5,
+    ),
+    MockDefinition(
+        label="Circuit 15",
+        cdc="(C{C=2e-10}[R{R=1.5e3}(Q{Y=5e-5,n=0.8}[R{R=500}Ws{Y=0.00004,B=150}])])",
+        log_max_f=6.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 15 invalid",
+        cdc="(C{C=2e-10}[R{R=1.5e3}(Q{Y=5e-5,n=0.8}[R{R=500:drift}Ws{Y=0.00004,B=150}])])",
+        log_max_f=6.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+        drift=0.05,
+    ),
+    MockDefinition(
+        label="Circuit 16",
+        cdc="(R{R=1.2}Q{n=0.85,Y=0.011327051})(R{R=0.8}Q{n=0.95,Y=0.034339661})(R{R=2}Q{n=0.7,Y=0.138116033})(R{R=1.6}Q{n=1,Y=0.000009947})(R{R=0.8}Q{n=1,Y=0.000066315})(R{R=1.6}Q{n=1,Y=0.000099472})",
+        log_max_f=6.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 16 invalid",
+        cdc="(R{R=1.2}Q{n=0.85,Y=0.011327051})(R{R=0.8}Q{n=0.95,Y=0.034339661})(R{R=2}Q{n=0.7,Y=0.138116033})(R{R=1.6:drift}Q{n=1,Y=0.000009947})(R{R=0.8}Q{n=1,Y=0.000066315})(R{R=1.6}Q{n=1,Y=0.000099472})",
+        log_max_f=6.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+        drift=0.00005,
+    ),
+    MockDefinition(
+        label="Circuit 17",
+        cdc="Ha{R=1,tau=1,a=0.95,b=0.5}",
+        log_max_f=3.0,
+        log_min_f=-4.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 18",
+        cdc="R{R=10}Ga{R=50,tau=0.01}",
+        log_max_f=5.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+    ),
+    MockDefinition(
+        label="Circuit 19",
+        cdc="Ws{Y=1.0,B=1.0,n=0.47}",
+        log_max_f=4.0,
+        log_min_f=-3.0,
+        num_per_decade=10,
+    ),
 ]
 
 if len(set(d.get_identifier() for d in _definitions)) != len(_definitions):
@@ -341,7 +425,8 @@ def _add_noise(
         seed = seed & (2**32 - 1)  # Truncate to 32 bits just to be safe
     rs: RandomState = RandomState(seed=seed)
 
-    Z_noisy: ComplexImpedances = zeros(data.get_num_points(), dtype=ComplexImpedance)
+    f: Frequencies = data.get_frequencies()
+    Z_noisy: ComplexImpedances = zeros(len(f), dtype=ComplexImpedance)
     Z_noisy.real = rs.normal(0, sd)
     Z_noisy.imag = rs.normal(0, sd)
     Z_noisy += Z_ideal
@@ -377,15 +462,23 @@ def _simulate_spectrum(
         "log_max_f",
         5.0 if definition is None else definition.log_max_f,
     )
+    if not _is_floating(log_max_f):
+        try:
+            log_max_f = float(log_max_f)
+        except ValueError:
+            raise TypeError(f"Expected a float instead of {log_max_f=}")
+    
     log_min_f: float = kwargs.get(
         "log_min_f",
         -1.0 if definition is None else definition.log_min_f,
     )
-    if not _is_floating(log_max_f):
-        raise TypeError(f"Expected a float instead of {log_max_f=}")
-    elif not _is_floating(log_min_f):
-        raise TypeError(f"Expected a float instead of {log_min_f=}")
-    elif log_max_f <= log_min_f:
+    if not _is_floating(log_min_f):
+        try:
+            log_min_f = float(log_min_f)
+        except ValueError:
+            raise TypeError(f"Expected a float instead of {log_min_f=}")
+    
+    if log_max_f <= log_min_f:
         raise ValueError(f"Expected {log_min_f=} < {log_max_f=}")
 
     num_per_decade: int = kwargs.get(
@@ -393,16 +486,24 @@ def _simulate_spectrum(
         10 if definition is None else definition.num_per_decade,
     )
     if not _is_integer(num_per_decade):
-        raise TypeError(f"Expected an integer instead of {num_per_decade=}")
-    elif num_per_decade < 1:
+        try:
+            num_per_decade = int(num_per_decade)
+        except ValueError:
+            raise TypeError(f"Expected an integer instead of {num_per_decade=}")
+    
+    if num_per_decade < 1:
         raise ValueError(
             f"Expected a value greater than zero instead of {num_per_decade=}"
         )
 
     noise: float = kwargs.get("noise", 0.0)
     if not _is_floating(noise):
-        raise TypeError(f"Expected a float instead of {noise=}")
-    elif noise < 0.0:
+        try:
+            noise = float(noise)
+        except ValueError:
+            raise TypeError(f"Expected a float instead of {noise=}")
+    
+    if noise < 0.0:
         raise ValueError(
             f"Expected a value greater than or equal to zero instead of {noise=}"
         )

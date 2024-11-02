@@ -21,6 +21,7 @@
 # 10.1016/j.electacta.2014.12.059
 # 10.1016/j.ssi.2016.10.009
 
+from copy import deepcopy
 from dataclasses import dataclass
 from numpy import (
     cos,
@@ -109,7 +110,7 @@ class MRQFitResult(DRTResult):
     pseudo_chisqr: float
         The pseudo chi-squared value, |pseudo chi-squared|, of the modeled impedance (eq. 14 in Boukamp, 1995).
 
-    circuit: Circuit
+    circuit: |Circuit|
         The fitted circuit.
     """
 
@@ -333,6 +334,16 @@ def _validate_circuit(circuit: Circuit):
 
 
 def _adjust_initial_values(circuit: Circuit, data: DataSet) -> Circuit:
+    element: Union[Element, Connection]
+    for element in circuit.get_elements(recursive=True):
+        defaults: Dict[str, float] = element.get_default_values()
+
+        key: str
+        value: float
+        for key, value in element.get_values().items():
+            if not isclose(value, defaults[key]):
+                return circuit
+
     f: Frequencies = data.get_frequencies()
     Z_exp: ComplexImpedances = data.get_impedances()
 
@@ -341,7 +352,6 @@ def _adjust_initial_values(circuit: Circuit, data: DataSet) -> Circuit:
     if not isinstance(series, Series):
         raise TypeError(f"Expected a Series instead of {series=}")
 
-    element: Union[Element, Connection]
     for element in series:
         if isinstance(element, Resistor):
             if not element.is_fixed("R"):
@@ -390,7 +400,7 @@ def _calculate_tau_gamma(
     W: float,
     num_per_decade: int,
 ) -> Tuple[TimeConstants, Gammas]:
-    tau: NDArray[float64] = 1 / (_interpolate(f, num_per_decade=num_per_decade))
+    tau: NDArray[float64] = 1 / (_interpolate(f, num_per_decade=num_per_decade) * 2*pi)
     gamma: NDArray[float64] = zeros(tau.shape, dtype=float64)
     connections: List[Connection] = circuit.get_connections()
 
@@ -416,8 +426,11 @@ def _calculate_tau_gamma(
 
         n: float = parameters.get("n", 1.0)
         tau_0: float = (R * Y) ** (1.0 / n)
-        if isclose(n, 1.0, atol=1e-2):
-            gamma += R / (W * sqrt(pi)) * exp(-((ln(tau / tau_0) / W) ** 2))
+        if isclose(abs(n), 1.0, atol=1e-2):
+            gamma += (
+                R / (W * sqrt(pi)) * exp(-((ln(tau / tau_0) / W) ** 2))
+                * (-1 if n < 0.0 else 1)
+            )
         else:
             gamma += (
                 (R / (2 * pi))
@@ -522,7 +535,7 @@ def calculate_drt_mrq_fit(
 
     Returns
     -------
-    MRQFitResult
+    |MRQFitResult|
     """
     if not isinstance(circuit, Circuit):
         raise TypeError(f"Expected a Circuit instead of {circuit=}")
@@ -549,7 +562,7 @@ def calculate_drt_mrq_fit(
         else:
             fit = fit_circuit(
                 _adjust_initial_values(
-                    parse_cdc(circuit.serialize()),
+                    deepcopy(circuit),
                     data,
                 ),
                 data,

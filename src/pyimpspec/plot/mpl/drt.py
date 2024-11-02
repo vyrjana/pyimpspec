@@ -55,6 +55,7 @@ def plot_drt(
     axes: Optional[List["Axes"]] = None,  # noqa: F821
     adjust_axes: bool = True,
     colored_axes: bool = False,
+    frequency: bool = False,
     **kwargs,
 ) -> Tuple["Figure", List["Axes"]]:  # noqa: F821
     """
@@ -102,6 +103,9 @@ def plot_drt(
 
     colored_axes: bool, optional
         Color the y-axes.
+
+    frequency: bool, optional
+        Plot gamma as a function of frequency.
 
     **kwargs
 
@@ -224,6 +228,7 @@ def plot_drt(
         figure=figure,
         axes=[axes[2]],
         adjust_axes=adjust_axes,
+        frequency=frequency,
     )
 
     plot_residuals(

@@ -60,7 +60,7 @@ class CircuitBuilder:
 
         Returns
         -------
-        CircuitBuilder
+        |CircuitBuilder|
         """
         series: "CircuitBuilder" = CircuitBuilder(parallel=False)
         self._elements.append(series)
@@ -73,7 +73,7 @@ class CircuitBuilder:
 
         Returns
         -------
-        CircuitBuilder
+        |CircuitBuilder|
         """
         parallel: "CircuitBuilder" = CircuitBuilder(parallel=True)
         self._elements.append(parallel)
@@ -91,7 +91,7 @@ class CircuitBuilder:
 
         Parameters
         ----------
-        element: Element
+        element: |Element|
             The element to add to the current series or parallel connection.
         """
         if not isinstance(element, Element):
@@ -135,6 +135,6 @@ class CircuitBuilder:
 
         Returns
         -------
-        Circuit
+        |Circuit|
         """
         return Parser().process(self._to_string())

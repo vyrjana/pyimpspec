@@ -40,7 +40,7 @@ from .helpers import (
 
 
 def plot_pseudo_chisqr(
-    tests: List[KramersKronigResult],
+    tests: Optional[List[KramersKronigResult]],
     lower_limit: int = -1,
     upper_limit: int = -1,
     colors: Optional[Dict[str, str]] = None,
@@ -57,7 +57,7 @@ def plot_pseudo_chisqr(
 
     Parameters
     ----------
-    tests: List[KramersKronigResult]
+    tests: Optional[List[KramersKronigResult]]
         The results to plot.
 
     lower_limit: int, optional
@@ -118,69 +118,71 @@ def plot_pseudo_chisqr(
         raise TypeError(f"Expected a dictionary or None instead of {markers=}")
     marker_chisqr: str = markers.get("chisqr", MARKER_CIRCLE)
 
-    x: List[int] = []
-    y: List[float] = []
-    for t in sorted(tests, key=lambda _: _.num_RC):
-        x.append(t.num_RC)
-        y.append(t.pseudo_chisqr)
-
-    included_kwargs: dict = {
-        "color": color_chisqr,
-        "marker": marker_chisqr,
-        "label": r"$\chi^2_{\rm ps.}$",
-    }
     if not _is_integer(lower_limit):
         raise TypeError(f"Expected an integer instead of {lower_limit=}")
     elif not _is_integer(upper_limit):
         raise TypeError(f"Expected an integer instead of {upper_limit=}")
-    elif lower_limit > 0 or upper_limit > 0:
-        excluded_kwargs: dict = {
-            "edgecolor": color_chisqr,
-            "facecolor": "none",
+
+    if tests is not None:
+        x: List[int] = []
+        y: List[float] = []
+        for t in sorted(tests, key=lambda _: _.num_RC):
+            x.append(t.num_RC)
+            y.append(t.pseudo_chisqr)
+
+        included_kwargs: dict = {
+            "color": color_chisqr,
             "marker": marker_chisqr,
-            "label": included_kwargs["label"] + ", excl.",
+            "label": r"$\chi^2_{\rm ps.}$",
         }
-        included_kwargs["label"] += ", incl."
+        if lower_limit > 0 or upper_limit > 0:
+            excluded_kwargs: dict = {
+                "edgecolor": color_chisqr,
+                "facecolor": "none",
+                "marker": marker_chisqr,
+                "label": included_kwargs["label"] + ", excl.",
+            }
+            included_kwargs["label"] += ", incl."
 
-        if lower_limit > 0:
-            axis.scatter(
-                [_ for _ in x if _ <= lower_limit],
-                [_ for i, _ in enumerate(y) if x[i] <= lower_limit],
-                **excluded_kwargs,
-            )
-            del excluded_kwargs["label"]
-
-        if upper_limit > 0:
-            axis.scatter(
-                [_ for _ in x if _ >= upper_limit],
-                [_ for i, _ in enumerate(y) if x[i] >= upper_limit],
-                **excluded_kwargs,
-            )
-
-        if lower_limit > 0 and upper_limit > 0:
-            if lower_limit >= upper_limit:
-                raise ValueError(
-                    f"Expected {lower_limit=} to be less than {upper_limit=}"
+            if lower_limit > 0:
+                axis.scatter(
+                    [_ for _ in x if _ <= lower_limit],
+                    [_ for i, _ in enumerate(y) if x[i] <= lower_limit],
+                    **excluded_kwargs,
                 )
-            axis.scatter(
-                [_ for _ in x if lower_limit <= _ <= upper_limit],
-                [_ for i, _ in enumerate(y) if lower_limit <= x[i] <= upper_limit],
-                **included_kwargs,
-            )
-        elif lower_limit > 0:
-            axis.scatter(
-                [_ for _ in x if lower_limit <= _],
-                [_ for i, _ in enumerate(y) if lower_limit <= x[i]],
-                **included_kwargs,
-            )
-        elif upper_limit > 0:
-            axis.scatter(
-                [_ for _ in x if _ <= upper_limit],
-                [_ for i, _ in enumerate(y) if x[i] <= upper_limit],
-                **included_kwargs,
-            )
-    else:
-        axis.scatter(x, y, **included_kwargs)
+                del excluded_kwargs["label"]
+
+            if upper_limit > 0:
+                axis.scatter(
+                    [_ for _ in x if _ >= upper_limit],
+                    [_ for i, _ in enumerate(y) if x[i] >= upper_limit],
+                    **excluded_kwargs,
+                )
+
+            if lower_limit > 0 and upper_limit > 0:
+                if lower_limit >= upper_limit:
+                    raise ValueError(
+                        f"Expected {lower_limit=} to be less than {upper_limit=}"
+                    )
+                axis.scatter(
+                    [_ for _ in x if lower_limit <= _ <= upper_limit],
+                    [_ for i, _ in enumerate(y) if lower_limit <= x[i] <= upper_limit],
+                    **included_kwargs,
+                )
+            elif lower_limit > 0:
+                axis.scatter(
+                    [_ for _ in x if lower_limit <= _],
+                    [_ for i, _ in enumerate(y) if lower_limit <= x[i]],
+                    **included_kwargs,
+                )
+            elif upper_limit > 0:
+                axis.scatter(
+                    [_ for _ in x if _ <= upper_limit],
+                    [_ for i, _ in enumerate(y) if x[i] <= upper_limit],
+                    **included_kwargs,
+                )
+        else:
+            axis.scatter(x, y, **included_kwargs)
 
     if not _is_boolean(adjust_axes):
         raise TypeError(f"Expected a boolean instead of {adjust_axes=}")
@@ -214,7 +216,7 @@ def plot_pseudo_chisqr(
 
     if not _is_boolean(legend):
         raise TypeError(f"Expected a boolean instead of {legend=}")
-    elif legend:
+    elif legend and tests is not None:
         axis.legend()
 
     if not _is_boolean(colored_axes):

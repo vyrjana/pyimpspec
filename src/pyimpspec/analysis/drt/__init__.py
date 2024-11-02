@@ -20,7 +20,11 @@
 from typing import List
 from pyimpspec.data import DataSet
 from pyimpspec.exceptions import DRTError
-from .result import DRTResult
+from .result import (
+    DRTPeaks,
+    DRTPeak,
+    DRTResult,
+)
 from .tr_nnls import (
     TRNNLSResult,
     calculate_drt_tr_nnls,
@@ -37,10 +41,15 @@ from .mrq_fit import (
     MRQFitResult,
     calculate_drt_mrq_fit,
 )
+from .lm import (
+    LMResult,
+    calculate_drt_lm,
+)
 
 
 _METHODS: List[str] = [
     "bht",
+    "lm",
     "mrq-fit",
     "tr-nnls",
     "tr-rbf",
@@ -61,7 +70,13 @@ def calculate_drt(
         The data set to use in the calculations.
 
     method: str, optional
-        Valid values include: "bht", "mrq-fit", "tr-nnls", "tr-rbf".
+        Valid values include:
+
+        - "bht"
+        - "lm"
+        - "mrq-fit"
+        - "tr-nnls"
+        - "tr-rbf"
 
     **kwargs
         Additional keyword arguments are passed to the chosen method's function.
@@ -89,6 +104,7 @@ def calculate_drt(
 
     return {
         "bht": calculate_drt_bht,
+        "lm": calculate_drt_lm,
         "mrq-fit": calculate_drt_mrq_fit,
         "tr-nnls": calculate_drt_tr_nnls,
         "tr-rbf": calculate_drt_tr_rbf,

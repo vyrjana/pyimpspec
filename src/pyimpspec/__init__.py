@@ -46,17 +46,21 @@ from pyimpspec.circuit.elements import *
 from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.circuit.circuit_builder import CircuitBuilder
 from pyimpspec.analysis.utility import (
-    _get_default_num_procs as get_default_num_procs,
-    _set_default_num_procs as set_default_num_procs,
+    get_default_num_procs,
+    set_default_num_procs,
 )
 from pyimpspec.analysis.drt import (
+    DRTPeaks,
+    DRTPeak,
     DRTResult,
     calculate_drt,
 )
 from pyimpspec.analysis.fitting import (
+    FitIdentifiers,
     FitResult,
     FittedParameter,
     fit_circuit,
+    generate_fit_identifiers,
 )
 from pyimpspec.analysis.kramers_kronig import (
     KramersKronigResult,

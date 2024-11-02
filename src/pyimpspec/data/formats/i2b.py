@@ -27,7 +27,10 @@ from pyimpspec.typing.helpers import (
     Path,
     Union,
 )
-from .helpers import _validate_path
+from .helpers import (
+    _parse_string_as_float,
+    _validate_path,
+)
 
 
 def parse_i2b(path: Union[str, Path]) -> List[DataSet]:
@@ -65,7 +68,7 @@ def parse_i2b(path: Union[str, Path]) -> List[DataSet]:
         f: float
         re: float
         im: float
-        f, re, im = tuple(map(float, line.split(" ")))
+        f, re, im = tuple(map(_parse_string_as_float, line.split(" ")))
 
         freq.append(f)
         real.append(re)

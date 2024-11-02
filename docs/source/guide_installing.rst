@@ -60,9 +60,9 @@ For example, open a terminal and run the following command to confirm that pip (
    Such a virtual environment needs to be activated before running a script that imports a package installed inside the virtual environment.
    The system-wide Python environment may also be `externally managed <https://peps.python.org/pep-0668/>`_ in order to prevent the user from accidentally breaking that environment since the operating system depends upon the packages in that environment.
 
-   A third-party tool called `pipx <https://pypa.github.io/pipx/>`_ can automatically manage such virtual environments but it is primarily for installing programs that provide, e.g., a command-line interface (CLI) or a graphical user interface (GUI).
+   A third-party tool called `pipx <https://pypa.github.io/pipx/>`_ can automatically manage such virtual environments, but it is primarily for installing programs that provide, e.g., a command-line interface (CLI) or a graphical user interface (GUI).
    These programs can then be run without having to manually activate the virtual environment since pipx handles that.
-   The virtual environment would still need to be activated before running a script that imports DearEIS and makes use of DearEIS's application programming interface (API).
+   The virtual environment would still need to be activated before running a script that imports pyimpspec and makes use of pyimpspec's application programming interface (API).
 
 If using pipx, then run the following command to make sure that pipx is available.
 If pipx is not available, then follow the `instructions to install pipx <https://pypa.github.io/pipx/installation/>`_.
@@ -75,39 +75,41 @@ If pipx is not available, then follow the `instructions to install pipx <https:/
 If there are no errors, then run one of the following commands to install pyimpspec and its dependencies:
 
 .. code:: bash
+   
+   # If pipx is used to automatically manage the virtual environment.
+   pipx install pyimpspec
 
    # If manually managing the virtual environment,
    # follow the relevant pip documentation for creating
    # and activating a virtual environment before running
    # the following command.
    pip install pyimpspec
-   
-   # If pipx is used to automatically manage the virtual environment.
-   pipx install pyimpspec
 
 Pyimpspec should now be importable in, e.g., Python scripts and Jupyter notebooks provided that the virtual environment has been activated.
 
-If you wish to install the optional dependencies, then they can be specified explicitly when installing pyimpspec via pip:
-
-.. code:: bash
-
-   pip install pyimpspec[cvxopt]
-
-
-Optional dependencies can also be install after the fact if pipx was used:
+If you wish to install the optional dependencies, then they can be installed using the following command:
 
 .. code:: bash
 
    pipx inject pyimpspec cvxopt
 
 
+If pip was used instead of pipx, then the optional dependencies can be installed using the following command:
+
+.. code:: bash
+
+   pip install pyimpspec[cvxopt]
+
+
 Newer versions of pyimpspec can be installed in the following ways:
 
 .. code:: bash
    
-   pip install pyimpspec --upgrade
-
    pipx upgrade pyimpspec --include-injected
+
+   # or
+
+   pip install pyimpspec --upgrade
 
 
 Using the API

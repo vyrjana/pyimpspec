@@ -74,7 +74,7 @@ def to_circuitikz(
     running: bool, optional
         Whether or not to use running counts as the lower indices of elements.
 
-    custom_labels: Optional[Dict[Element, str]], optional
+    custom_labels: Optional[Dict[|Element|, str]], optional
         A mapping of elements to their custom labels that are used instead of the automatically generated labels.
         The labels can make use of LaTeX's math mode.
 

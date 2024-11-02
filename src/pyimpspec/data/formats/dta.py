@@ -32,7 +32,10 @@ from pyimpspec.typing.helpers import (
     Path,
     Union,
 )
-from .helpers import _validate_path
+from .helpers import (
+    _parse_string_as_float,
+    _validate_path,
+)
 
 
 def parse_dta(path: Union[str, Path]) -> List[DataSet]:
@@ -99,7 +102,7 @@ def parse_dta(path: Union[str, Path]) -> List[DataSet]:
         # Pt    Time    Freq	Zreal	Zimag	Zsig	Zmod	Zphz	Idc	Vdc	IERange
         #       s       Hz      ohm     ohm     V       ohm     °       A   V
         try:
-            values: List[float] = list(map(float, line.split()))
+            values: List[float] = list(map(_parse_string_as_float, line.split()))
         except ValueError:
             break
 

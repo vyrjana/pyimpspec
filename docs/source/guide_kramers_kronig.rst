@@ -78,7 +78,10 @@ Pyimpspec includes an implementation for automatically optimizing |F_ext| and wh
      generate_mock_data,
      mpl,
    )
-   from pyimpspec.analysis.kramers_kronig import evaluate_log_F_ext
+   from pyimpspec.analysis.kramers_kronig import (
+     evaluate_log_F_ext,
+     suggest_num_RC,
+   )
 
    data = generate_mock_data("CIRCUIT_4", noise=5e-2, seed=42)[0]
    evaluations = evaluate_log_F_ext(data, min_log_F_ext=-1.0, max_log_F_ext=1.0, num_F_ext_evaluations=20)
@@ -86,6 +89,17 @@ Pyimpspec includes an implementation for automatically optimizing |F_ext| and wh
    figure.tight_layout()
 
    figure, axes = mpl.plot_log_F_ext(evaluations, projection="2d", legend=False)
+   figure.tight_layout()
+   
+   tests = evaluate_log_F_ext(data)[0][1]
+   suggestion = suggest_num_RC(tests)
+   figure, axes = mpl.plot_kramers_kronig_tests(
+     tests,
+     suggestion,
+     data,
+     legend=False,
+     colored_axes=True,
+   )
    figure.tight_layout()
 
 In the eaxmple above, the default range of time constants (:math:`\log{F_{\rm ext}} = 0`) exhibits a wide range of |N_tau| (:math:`8 < N_\tau < 45`) with a gradual decrease of |pseudo chi-squared|.
@@ -200,9 +214,14 @@ A single |KramersKronigResult| can be plotted on its own, but it is also possibl
 
 .. plot::
 
-   from pyimpspec import generate_mock_data
-   from pyimpspec.analysis.kramers_kronig import evaluate_log_F_ext, suggest_num_RC
-   from pyimpspec import mpl
+   from pyimpspec import (
+     generate_mock_data,
+     mpl,
+   )
+   from pyimpspec.analysis.kramers_kronig import (
+     evaluate_log_F_ext,
+     suggest_num_RC,
+   )
 
    data = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
    tests = evaluate_log_F_ext(data)[0][1]

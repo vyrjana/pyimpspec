@@ -88,7 +88,7 @@ class Parser:
     def __init__(self):
         self._tokens: List[Token] = []
         self._stack: List[Stackable] = []
-        self._valid_elements: Dict[str, Type[Element]] = get_elements()
+        self._valid_elements: Dict[str, Type[Element]] = get_elements(private=True)
 
         if not isinstance(self._valid_elements, dict):
             raise TypeError(f"Expected a dictionary instead of {self._valid_elements=}")

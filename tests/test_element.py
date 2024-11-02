@@ -40,21 +40,26 @@ from numpy import (
     inf,
 )
 from pyimpspec import (
-    Capacitor,
     Connection,
-    ConstantPhaseElement,
     Container,
-    DeLevieFiniteLength,
     Element,
     ElementDefinition,
+    ParameterDefinition,
+    get_elements,
+    register_element,
+)
+from pyimpspec.circuit.elements import (
+    Capacitor,
+    ConstantPhaseElement,
+    DeLevieFiniteLength,
     Gerischer,
+    GerischerAlternative,
     HavriliakNegami,
     HavriliakNegamiAlternative,
     Inductor,
-    KramersKronigRC,
     KramersKronigAdmittanceRC,
+    KramersKronigRC,
     ModifiedInductor,
-    ParameterDefinition,
     Resistor,
     TransmissionLineModel,
     TransmissionLineModelBlockingCPE,
@@ -67,8 +72,6 @@ from pyimpspec import (
     WarburgOpen,
     WarburgShort,
     ZARC,
-    get_elements,
-    register_element,
 )
 from pyimpspec.circuit.registry import (
     _validate_impedances,
@@ -473,10 +476,11 @@ class TestElement(TestCase):
         with self.assertRaises(TypeError):
             get_elements(default_only="test")
 
-        elements: Dict[str, Type[Element]] = get_elements()
+        elements: Dict[str, Type[Element]] = get_elements(private=True)
         symbols: List[str] = list(elements.keys())
         check(symbols, elements, "C", Capacitor)
         check(symbols, elements, "G", Gerischer)
+        check(symbols, elements, "Ga", GerischerAlternative)
         check(symbols, elements, "H", HavriliakNegami)
         check(symbols, elements, "Ha", HavriliakNegamiAlternative)
         check(symbols, elements, "K", KramersKronigRC)

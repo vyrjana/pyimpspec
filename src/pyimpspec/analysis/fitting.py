@@ -21,7 +21,9 @@ from copy import deepcopy
 from dataclasses import dataclass
 from multiprocessing import Pool
 from multiprocessing.context import TimeoutError as MPTimeoutError
+from types import SimpleNamespace
 from typing import (
+    Any,
     Callable,
     Dict,
     List,
@@ -50,8 +52,8 @@ from pyimpspec.exceptions import FittingError
 from pyimpspec.analysis.utility import (
     _calculate_pseudo_chisqr,
     _calculate_residuals,
-    _get_default_num_procs,
     _interpolate,
+    get_default_num_procs,
 )
 from pyimpspec.circuit import Circuit
 from pyimpspec.circuit.base import Element
@@ -68,9 +70,41 @@ from pyimpspec.typing import (
 from pyimpspec.typing.helpers import (
     _is_boolean,
     _is_complex_array,
+    _is_floating,
     _is_floating_array,
     _is_integer,
 )
+
+
+class FitIdentifiers(SimpleNamespace):
+    """
+    An object that maps an |Element|'s parameters to the name/identifier used by the corresponding `lmfit Parameter <https://lmfit.github.io/lmfit-py/parameters.html>`_. The values can be accessed in two ways:
+
+    - ``name: str = identifiers.R``
+    - ``name: str = identifiers["R"]``
+
+    In this example, the |FitIdentifiers| instance ``identifiers`` was generated based on a |Resistor| instance. Thus, ``identifiers`` has a property called ``R``.
+
+    It is also possible to do the following as if ``identifiers`` was a dictionary:
+
+    - ``{symbol: identifiers[symbol] for symbol in identifiers}``
+    - ``{symbol: name for symbol, name in identifiers.items()}``
+    """
+
+    def __iter__(self):
+        return iter(self.__dict__)
+
+    def items(self):
+        return self.__dict__.items()
+
+    def keys(self):
+        return self.__dict__.keys()
+
+    def values(self):
+        return self.__dict__.values()
+
+    def __getitem__(self, key: str):
+        return getattr(self, key)
 
 
 @dataclass(frozen=True)
@@ -161,6 +195,8 @@ class FittedParameter:
         """
         if isnan(self.stderr):
             return self.stderr
+        elif self.value == 0.0:
+            return nan
 
         return (self.stderr or 0.0) / self.value
 
@@ -172,13 +208,13 @@ class FitResult:
 
     Parameters
     ----------
-    circuit: Circuit
+    circuit: |Circuit|
         The fitted circuit.
 
-    parameters: Dict[str, Dict[str, FittedParameter]]
+    parameters: Dict[str, Dict[str, |FittedParameter|]]
         Fitted parameters and their estimated standard errors (if possible to estimate).
 
-    minimizer_result: |MinimizerResult|
+    minimizer_result: `lmfit.MinimizerResult`_
         The results of the fit as provided by the `lmfit.minimize`_ function.
 
     frequencies: |Frequencies|
@@ -355,14 +391,14 @@ class FitResult:
         -------
         Dict[str, Dict[str, FittedParameter]]
         """
-        # TODO: Deprecated or unimplemented?
+        return self.parameters
 
     def to_parameters_dataframe(
         self,
         running: bool = False,
     ) -> "DataFrame":  # noqa: F821
         """
-        Get the fitted parameters and the corresponding estimated errors as a |DataFrame| object.
+        Get the fitted parameters and the corresponding estimated errors as a `pandas.DataFrame`_ object.
         Parameters
         ----------
         running: bool, optional
@@ -370,7 +406,7 @@ class FitResult:
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         from pandas import DataFrame
 
@@ -402,8 +438,8 @@ class FitResult:
             parameters = self.parameters[element_name]
 
             parameter_label: str
-            parameter: FittedParameter
-            for parameter_label, parameter in parameters.items():
+            for parameter_label in sorted(parameters.keys()):
+                parameter: FittedParameter = parameters[parameter_label]
                 element_names.append(
                     self.circuit.get_element_name(
                         element,
@@ -416,8 +452,12 @@ class FitResult:
 
                 fitted_values.append(parameter.value)
                 stderr_values.append(
-                    parameter.stderr / parameter.value * 100
-                    if parameter.stderr is not None and not parameter.fixed
+                    abs(parameter.stderr / parameter.value * 100)
+                    if (
+                        parameter.stderr is not None
+                        and not parameter.fixed
+                        and parameter.value != 0.0
+                    )
                     else nan
                 )
                 fixed.append("Yes" if parameter.fixed else "No")
@@ -436,11 +476,11 @@ class FitResult:
 
     def to_statistics_dataframe(self) -> "DataFrame":  # noqa: F821
         """
-        Get the statistics related to the fit as a |DataFrame| object.
+        Get the statistics related to the fit as a `pandas.DataFrame`_ object.
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         from lmfit.minimizer import MinimizerResult
         from pandas import DataFrame
@@ -468,67 +508,117 @@ class FitResult:
 
 
 def _to_lmfit(
-    identifiers: Dict[int, Element],
+    identifiers: Dict[Element, FitIdentifiers],
+    constraint_expressions: Dict[str, str],
+    constraint_variables: Dict[str, Dict[str, Any]],
 ) -> "Parameters":  # noqa: F821
     from lmfit import Parameters
 
-    if not isinstance(identifiers, dict):
-        raise TypeError(f"Expected a dictionary instead of {identifiers=}")
-
     result: Parameters = Parameters()
 
-    ident: int
+    name: str
+    kwargs: dict
+    for name, kwargs in constraint_variables.items():
+        if "value" in kwargs:
+            value: float = kwargs["value"]
+            minimum: Union[int, float] = kwargs.get("min", -inf)
+            maximum: Union[int, float] = kwargs.get("max", inf)
+
+            if not (minimum <= value <= maximum):
+                raise ValueError(
+                    f"Expected {minimum} <= {value} <= {maximum} for {name=}"
+                )
+
+        result.add(name=name, **kwargs)
+
+    queued_kwargs: List[Dict[str, Any]] = []
+
     element: Element
-    for ident, element in identifiers.items():
+    mapping: FitIdentifiers
+    for element, mapping in identifiers.items():
         lower_limits: Dict[str, float] = element.get_lower_limits()
         upper_limits: Dict[str, float] = element.get_upper_limits()
         fixed: Dict[str, bool] = element.are_fixed()
 
         symbol: str
-        value: float
         for symbol, value in element.get_values().items():
             if not (lower_limits[symbol] <= value <= upper_limits[symbol]):
                 raise ValueError(
-                    f"Expected {lower_limits[symbol]} <= {value} <= {upper_limits[symbol]}"
+                    f"Expected {lower_limits[symbol]=} <= {value} <= {upper_limits[symbol]=} for {symbol=}"
                 )
 
-            result.add(
-                f"{symbol}_{ident}",
-                value,
+            name: str = mapping[symbol]
+            kwargs = dict(
+                name=name,
+                value=value,
                 min=lower_limits[symbol],
                 max=upper_limits[symbol],
                 vary=not fixed[symbol],
             )
+
+            # Parameters with constraint expressions may need to be added in a
+            # specific order since a NameError may be raised if the expression
+            # makes use of a parameter that has not yet been defined.
+            if name in constraint_expressions:
+                kwargs["expr"] = constraint_expressions[name]
+                queued_kwargs.append(kwargs)
+            else:
+                result.add(**kwargs)
+
+    # Brute force any queued parameters with constraint expressions until
+    # either all of them slot nicely into place or we run out of attempts.
+    num_attempts_left: int = len(queued_kwargs)
+
+    while num_attempts_left > 0:
+        kwargs = queued_kwargs.pop(0)
+        try:
+            result.add(**kwargs)
+            num_attempts_left = len(queued_kwargs)
+        except NameError:
+            queued_kwargs.append(kwargs)
+            num_attempts_left -= 1
+
+    if len(queued_kwargs) > 0:
+        raise FittingError(
+            "Failed to generate parameters for lmfit. Make sure that all"
+            + " constraint expressions are valid and all the required"
+            + " variables have been defined!"
+        )
 
     return result
 
 
 def _from_lmfit(
     parameters: "Parameters",  # noqa: F821
-    identifiers: Dict[int, Element],
+    identifiers: Dict[Element, Dict[str, str]],
 ):
     from lmfit import Parameters
 
     if not isinstance(parameters, Parameters):
         raise TypeError(f"Expected a Parameters instead of {parameters=}")
 
-    if not isinstance(identifiers, dict):
-        raise TypeError(f"Expected a dictionary instead of {identifiers=}")
-
-    result: Dict[int, Dict[str, float]] = {_: {} for _ in identifiers}
-
-    key: str
-    value: float
-    for key, value in parameters.valuesdict().items():
-        ident: int
-        symbol: str
-        symbol, ident = key.rsplit("_", 1)  # type: ignore
-        ident = int(ident)
-        result[ident][symbol] = float(value)
+    lookup: Dict[str, Tuple[Element, str]] = {}
+    fitted_values: Dict[Element, Dict[str, float]] = {}
 
     element: Element
-    for ident, element in identifiers.items():
-        element.set_values(**result[ident])
+    mapping: Dict[str, str]
+    for element, mapping in identifiers.items():
+        symbol: str
+        key: str
+        for symbol, key in mapping.items():
+            lookup[key] = (element, symbol)
+            fitted_values[element] = {}
+
+    value: float
+    for key, value in parameters.valuesdict().items():
+        if key not in lookup:
+            continue
+
+        element, symbol = lookup[key]
+        fitted_values[element][symbol] = value
+
+    for element, values in fitted_values.items():
+        element.set_values(**values)
 
 
 def _residual(
@@ -627,6 +717,7 @@ def _extract_parameters(
     from lmfit.minimizer import MinimizerResult
 
     parameters: Dict[str, Dict[str, FittedParameter]] = {}
+
     internal_identifiers: Dict[int, Element] = {
         v: k for k, v in circuit.generate_element_identifiers(running=True).items()
     }
@@ -691,15 +782,28 @@ def _fit_process(
     from lmfit import minimize
     from lmfit.minimizer import MinimizerResult
 
-    circuit: Circuit
+    original_circuit: Circuit
     f: Frequencies
     Z_exp: ComplexImpedances
     method: str
     weight: str
     max_nfev: int
     auto: bool
-    circuit, f, Z_exp, method, weight, max_nfev, auto = args
+    constraint_expressions: Dict[str, str]
+    constraint_variables: Dict[str, Dict[str, Any]]
+    (
+        original_circuit,
+        f,
+        Z_exp,
+        method,
+        weight,
+        max_nfev,
+        auto,
+        constraint_expressions,
+        constraint_variables,
+    ) = args
 
+    circuit = deepcopy(original_circuit)
     if not isinstance(circuit, Circuit):
         raise TypeError(f"Expected a Circuit instead of {circuit=}")
 
@@ -721,20 +825,21 @@ def _fit_process(
     if not _is_boolean(auto):
         raise TypeError(f"Expected a boolean instead of {auto=}")
 
+    identifiers: Dict[Element, FitIdentifiers]
+    identifiers = generate_fit_identifiers(circuit)
+
     weight_func: Callable = _WEIGHT_FUNCTIONS[weight]
-    identifiers: Dict[int, Element] = {
-        v: k for k, v in circuit.generate_element_identifiers(running=True).items()
-    }
 
     with catch_warnings():
         if auto:
             filterwarnings("error")
             filterwarnings("ignore", category=DeprecationWarning)
+            filterwarnings("ignore", category=RuntimeWarning)
 
         try:
             fit: MinimizerResult = minimize(
                 _residual,
-                _to_lmfit(identifiers),
+                _to_lmfit(identifiers, constraint_expressions, constraint_variables),
                 method,
                 args=(
                     circuit,
@@ -746,7 +851,7 @@ def _fit_process(
                 max_nfev=None if max_nfev < 1 else max_nfev,
             )
 
-        except (Exception, Warning):  # TODO
+        except (Exception, Warning):  # TODO: Be more specific
             return (
                 circuit,
                 inf,
@@ -799,43 +904,74 @@ def validate_circuit(circuit: Circuit):
             element_names.add(name)
 
 
+def generate_fit_identifiers(circuit: Circuit) -> Dict[Element, FitIdentifiers]:
+    """
+    Generate the identifiers that are provided to `lmfit`_ when fitting the provided circuit. These identifiers can be used to define optional `constraints <https://lmfit.github.io/lmfit-py/constraints.html>`_ when calling |fit_circuit|.
+
+    Parameters
+    ----------
+    circuit: |Circuit|
+        The circuit to process.
+
+    Returns
+    -------
+    Dict[|Element|, |FitIdentifiers|]
+        A dictionary that maps each element to a |FitIdentifiers| instance that maps each parameter of that element to the identifier that is used by `lmfit`_ during fitting.
+    """
+    identifiers: Dict[Element, Dict[str, str]] = {}
+
+    element: Element
+    ident: int
+    for element, ident in circuit.generate_element_identifiers(running=True).items():
+        identifiers[element] = {}
+
+        symbol: str
+        for symbol in element.get_values().keys():
+            identifiers[element][symbol] = f"{symbol}_{ident}"
+
+    return {element: FitIdentifiers(**mapping) for element, mapping in identifiers.items()}
+
+
 def fit_circuit(
     circuit: Circuit,
     data: DataSet,
-    method: str = "auto",
-    weight: str = "auto",
+    method: Union[str, List[str]] = "auto",
+    weight: Union[str, List[str]] = "auto",
     max_nfev: int = -1,
     num_procs: int = -1,
     timeout: int = 0,
+    constraint_expressions: Optional[Dict[str, str]] = None,
+    constraint_variables: Optional[Dict[str, dict]] = None,
+    **kwargs,
 ) -> FitResult:
     """
     Fit a circuit to a data set.
 
     Parameters
     ----------
-    circuit: Circuit
+    circuit: |Circuit|
         The circuit to fit to a data set.
 
-    data: DataSet
+    data: |DataSet|
         The data set that the circuit will be fitted to.
 
-    method: str, optional
-        The iteration method used during fitting.
+    method: Union[str, List[str]], optional
+        The iteration method(s) to use during fitting.
         See `lmfit's documentation <https://lmfit.github.io/lmfit-py/>`_ for valid method names.
         Note that not all methods supported by lmfit are possible in the current implementation (e.g. some methods may require a function that calculates a Jacobian).
-        The "auto" value results in multiple methods being tested in parallel and the best result being returned based on |pseudo chi-squared|.
+        If a list of multiple methods (or "auto") is provided, then multiple methods will be tested and the best result will be returned based on the |pseudo chi-squared| value.
 
-    weight: str, optional
-        The weight function to use when calculating residuals.
+    weight: Union[str, List[str]], optional
+        The weight function(s) to use when calculating residuals.
         Currently supported values: "modulus", "proportional", "unity", "boukamp", and "auto".
-        The "auto" value results in multiple weights being tested in parallel and the best result being returned based on |pseudo chi-squared|.
+        If a list of multiple weights (or "auto") is provided, then multiple weights will be tested and the best result will be returned based on the |pseudo chi-squared| value.
 
     max_nfev: int, optional
         The maximum number of function evaluations when fitting.
         A value less than one equals no limit.
 
     num_procs: int, optional
-        The maximum number of parallel processes to use when method and/or weight are set to "auto".
+        The maximum number of parallel processes to use when performing the fitting with multiple methods and/or weights.
         A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
         Additionally, a negative value can be used to reduce the number of processes by that much (e.g., to leave one core for a GUI thread).
 
@@ -843,9 +979,17 @@ def fit_circuit(
         The amount of time in seconds that a single fit is allowed to take before being timed out.
         If this values is less than one, then no time limit is imposed.
 
+    constraint_expressions: Optional[Dict[str, str]], optional
+        A mapping of the optional `constraints <https://lmfit.github.io/lmfit-py/constraints.html>`_ to apply.
+
+    constraint_variables: Optional[Dict[str, dict]], optional
+        A mapping of variable names to their keyword arguments (see `lmfit.Parameters <https://lmfit.github.io/lmfit-py/parameters.html#lmfit.parameter.Parameter>`_ for more information). These variables may be referenced in the optional `constraints <https://lmfit.github.io/lmfit-py/constraints.html>`_.
+
+    **kwargs
+
     Returns
     -------
-    FitResult
+    |FitResult|
     """
     from lmfit.minimizer import MinimizerResult
 
@@ -854,18 +998,36 @@ def fit_circuit(
     else:
         validate_circuit(circuit)
 
-    if not isinstance(method, str):
-        raise TypeError(f"Expected a string instead of {method=}")
-    elif not (method in _METHODS or method == "auto"):
+    methods: List[str] = []
+    if isinstance(method, list) and all(map(lambda m: isinstance(m, str), method)):
+        methods.extend(method)
+    elif isinstance(method, str):
+        if method == "auto":
+            methods.extend(_METHODS)
+        else:
+            methods.append(method)
+    else:
+        raise TypeError(f"Expected a string or a list of strings instead of {method=}")
+
+    if not all(map(lambda m: m in _METHODS, methods)):
         raise ValueError(
-            "Valid method values: '" + "', '".join(_METHODS) + "', and 'auto'"
+            "Valid methods include: '" + "', '".join(_METHODS) + "', and 'auto'"
         )
 
-    if not isinstance(weight, str):
-        raise TypeError(f"Expected a string instead of {weight=}")
-    elif not (weight in _WEIGHT_FUNCTIONS or weight == "auto"):
+    weights: List[str] = []
+    if isinstance(weight, list) and all(map(lambda w: isinstance(w, str), weight)):
+        weights.extend(weight)
+    elif isinstance(weight, str):
+        if weight == "auto":
+            weights.extend(list(_WEIGHT_FUNCTIONS.keys()))
+        else:
+            weights.append(weight)
+    else:
+        raise TypeError(f"Expected a string or a list of strings instead of {weight=}")
+    
+    if not all(map(lambda w: w in _WEIGHT_FUNCTIONS, weights)):
         raise ValueError(
-            "Valid weight values: '" + "', '".join(_WEIGHT_FUNCTIONS) + "', and 'auto'"
+            "Valid weights include: '" + "', '".join(_WEIGHT_FUNCTIONS) + "', and 'auto'"
         )
 
     if not _is_integer(max_nfev):
@@ -874,7 +1036,7 @@ def fit_circuit(
     if not _is_integer(num_procs):
         raise TypeError(f"Expected an integer instead of {num_procs=}")
     elif num_procs < 1:
-        num_procs = max((_get_default_num_procs() - abs(num_procs), 1))
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
 
     if not _is_integer(timeout):
         raise TypeError(f"Expected an integer instead of {timeout=}")
@@ -882,6 +1044,24 @@ def fit_circuit(
         raise ValueError(
             f"Expected an integer equal to or greater than zero instead of {timeout=}"
         )
+
+    if constraint_expressions is None:
+        pass
+    elif not isinstance(constraint_expressions, dict):
+        raise TypeError(f"Expected either None or a dictionary instead of {constraint_expressions=}")
+    elif not all(map(lambda k: isinstance(k, str), constraint_expressions.keys())):
+        raise TypeError(f"Expected all keys to be strings instead of {constraint_expressions=}")
+    elif not all(map(lambda v: isinstance(v, str), constraint_expressions.values())):
+        raise TypeError(f"Expected all values to be strings instead of {constraint_expressions=}")
+
+    if constraint_variables is None:
+        pass
+    elif not isinstance(constraint_variables, dict):
+        raise TypeError(f"Expected either None or a dictionary instead of {constraint_variables=}")
+    elif not all(map(lambda k: isinstance(k, str), constraint_variables.keys())):
+        raise TypeError(f"Expected all keys to be strings instead of {constraint_variables=}")
+    elif not all(map(lambda v: isinstance(v, dict), constraint_variables.values())):
+        raise TypeError(f"Expected all values to be dictionaries instead of {constraint_variables=}")
 
     num_steps: int = (len(_METHODS) if method == "auto" else 1) * (
         len(_WEIGHT_FUNCTIONS) if weight == "auto" else 1
@@ -892,11 +1072,6 @@ def fit_circuit(
         fits: List[
             Tuple[Circuit, float, Optional["MinimizerResult"], str, str, str]
         ] = []
-
-        methods: List[str] = [method] if method != "auto" else _METHODS
-        weights: List[str] = (
-            [weight] if weight != "auto" else list(_WEIGHT_FUNCTIONS.keys())
-        )
 
         method_weight_combos: List[Tuple[str, str]] = []
         for method in methods:
@@ -915,15 +1090,20 @@ def fit_circuit(
             )
 
         Z_exp: ComplexImpedances = data.get_impedances()
+        if len(Z_exp) != len(f):
+            raise ValueError(f"Expected {len(Z_exp)=} == {len(f)=}")
+
         args = (
             (
-                deepcopy(circuit),
+                circuit,
                 f,
                 Z_exp,
                 method,
                 weight,
                 max_nfev,
                 True,
+                constraint_expressions or {},
+                constraint_variables or {},
             )
             for (method, weight) in method_weight_combos
         )
@@ -966,14 +1146,31 @@ def fit_circuit(
 
         fits.sort(key=lambda _: log(_[1]) if _[2] is not None else inf)
 
-        fit: Optional[MinimizerResult]
-        error_msg: str
-        Xps: float
-        circuit, Xps, fit, method, weight, error_msg = fits[0]
-        if fit is None:
-            raise FittingError(error_msg)
+    return _convert_intermediate_result(fits[0], f, Z_exp)
 
-        Z_fit: ComplexImpedances = circuit.get_impedances(f)
+
+def _convert_intermediate_result(
+    intermediate: Tuple[
+        Circuit,
+        float,
+        Optional["MinimizerResult"],  # noqa: F821
+        str,
+        str,
+        str,
+    ],
+    f: Frequencies,
+    Z_exp: ComplexImpedances,
+) -> FitResult:
+    from lmfit.minimizer import MinimizerResult
+
+    fit: Optional[MinimizerResult]
+    error_msg: str
+    Xps: float
+    circuit, Xps, fit, method, weight, error_msg = intermediate
+    if fit is None:
+        raise FittingError(error_msg)
+
+    Z_fit: ComplexImpedances = circuit.get_impedances(f)
 
     return FitResult(
         circuit=circuit,
