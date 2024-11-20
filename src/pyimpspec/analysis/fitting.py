@@ -1063,9 +1063,16 @@ def fit_circuit(
     elif not all(map(lambda v: isinstance(v, dict), constraint_variables.values())):
         raise TypeError(f"Expected all values to be dictionaries instead of {constraint_variables=}")
 
-    num_steps: int = (len(_METHODS) if method == "auto" else 1) * (
-        len(_WEIGHT_FUNCTIONS) if weight == "auto" else 1
-    )
+    num_steps: int = 0
+    if isinstance(method, str):
+        num_steps = len(_METHODS) if method == "auto" else 1
+    elif isinstance(method, list):
+        num_steps = len(method)
+
+    if isinstance(weight, str):
+        num_steps *= len(_WEIGHT_FUNCTIONS) if weight == "auto" else 1
+    elif isinstance(weight, list):
+        num_steps *= len(weight)
 
     prog: Progress
     with Progress("Preparing to fit", total=num_steps + 1) as prog:

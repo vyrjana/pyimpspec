@@ -152,7 +152,7 @@ class Fitting(TestCase):
         self.assertNotEqual(result.weight, "auto")
 
     def test_methods_list(self):
-        methods: List[str] = ["powell"]
+        methods: List[str] = ["least_squares", "powell"]
         result: FitResult = fit_circuit(
             circuit=self.circuit,
             data=DATA,
@@ -165,7 +165,7 @@ class Fitting(TestCase):
         self.assertEqual(result.weight, "boukamp")
 
     def test_weights_list(self):
-        weights: List[str] = ["unity"]
+        weights: List[str] = ["unity", "boukamp"]
         result: FitResult = fit_circuit(
             circuit=self.circuit,
             data=DATA,

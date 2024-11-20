@@ -29,7 +29,7 @@ dependencies = [
 dev_dependencies = [
     "build~=1.2",
     "flake8~=7.1",
-    "setuptools~=75.3",
+    "setuptools~=75.5",
     "sphinx~=8.1",
     "sphinx-rtd-theme~=3.0",
 ]
@@ -40,7 +40,7 @@ optional_dependencies = {
     "dev": dev_dependencies,
 }
 
-version = "5.1.0"
+version = "5.1.1"
 
 if __name__ == "__main__":
     with open("requirements.txt", "w") as fp:

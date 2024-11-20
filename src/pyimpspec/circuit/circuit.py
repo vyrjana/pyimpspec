@@ -113,6 +113,22 @@ class Circuit:
         return stack
 
     def serialize(self, decimals: int = 12) -> str:
+        """
+        Generate a circuit description code (CDC) that represents this circuit.
+        This CDC is modified to also include the current version of the CDC syntax supported by pyimpspec.
+
+        Parameters
+        ----------
+        decimals: int, optional
+            The number of decimals to include for the current element parameter values and limits.
+
+        Returns
+        -------
+        str
+        """
+        if decimals < 1:
+            raise ValueError(f"Expected a value greater than or equal to 1 instead of {decimals=}")
+
         return (
             "!"
             + "/".join(

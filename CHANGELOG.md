@@ -1,3 +1,9 @@
+# 5.1.1 (2024/11/20)
+
+- Added a docstring to the `Circuit.serialize` method.
+- Fixed a bug that caused an exception to be raised when attempting to pass multiple methods and/or weights to the `fit_circuit` function.
+
+
 # 5.1.0 (2024/11/02)
 
 - Added support for analyzing the peaks in DRT results by fitting skew normal distributions:
