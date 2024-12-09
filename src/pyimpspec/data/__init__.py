@@ -73,6 +73,7 @@ def get_parsers() -> Dict[str, Callable]:
         ".txt": parse_csv,
         ".csv": parse_csv,
         ".par": parse_par,
+        ".par": parse_par,
     }
 
 
