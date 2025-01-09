@@ -27,3 +27,4 @@ from .p00 import parse_p00
 from .spreadsheet import parse_spreadsheet
 from .z import parse_z
 from .pssession import parse_pssession
+from .par import parse_par
