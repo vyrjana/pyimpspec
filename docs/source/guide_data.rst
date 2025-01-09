@@ -4,12 +4,14 @@ Data parsing
 ============
 
 Individual impedance spectra are represented in pyimpspec as |DataSet| objects.
-The |parse_data| function acts as a wrapper for the various parsing functions available for different file formats:
+The |parse_data| function acts as a wrapper for the various parsing functions available for different file formats such as:
 
 - BioLogic: ``.mpt``
 - Eco Chemie: ``.dfr``
 - Gamry: ``.dta``
 - Ivium: ``.idf`` and ``.ids``
+- PalmSens: ``.pssession``
+- ZView: ``.z``
 - Spreadsheets: ``.xlsx`` and ``.ods``
 - Plain-text character-separated values (CSV)
 
@@ -17,16 +19,18 @@ The parsing functions and |parse_data| always return a list of |DataSet| objects
 
 .. doctest::
 
-   >>> from pyimpspec import DataSet, parse_data
+   >>> from pyimpspec import DataSet, Frequencies, ComplexImpedances, parse_data
    >>>
    >>> data: DataSet
    >>> for data in parse_data("./tests/data.dta"):
    ...   # Do something with 'data'.
-   ...   pass
+   ...   f: Frequencies = data.get_frequencies()
+   ...   Z: ComplexImpedances = data.get_impedances()
 
 .. note::
 
-  The data points are sorted from highest to lowest frequency when a |DataSet| object is created.
+  The data points are sorted from highest to lowest frequency when a |DataSet| instance is created.
+  If a file contains multiple frequency sweeps, then they are returned as separate |DataSet| instances.
 
 
 Plotting data
@@ -42,18 +46,26 @@ Below is a Nyquist plot of some example data (test circuit 1 or TC-1 from `Bouka
    
    >>> from pyimpspec import DataSet, parse_data
    >>> from pyimpspec import mpl
-   >>> import matplotlib.pyplot as plt
    >>>
    >>> data: DataSet
    >>> for data in parse_data("./tests/data.dta"):
    ...   figure, axes = mpl.plot_nyquist(data)
-   >>> plt.show()
+   >>>
+   >>> mpl.show()
+
+
+.. note::
+
+   The ``figure`` and ``axes`` values can be reused if one wishes to plot multiple immittance spectra in the same figure: ``mpl.plot_nyquist(data, figure=figure, axes=axes)``
+
 
 .. plot::
 
    from pyimpspec import mpl
-   from pyimpspec.mock_data import EXAMPLE
-   figure, axes = mpl.plot_nyquist(EXAMPLE)
+   from pyimpspec import generate_mock_data
+
+   data = generate_mock_data("CIRCUIT_1")[0]
+   figure, axes = mpl.plot_nyquist(data)
 
 
 More information and examples about these functions can be found in the API documentation (:doc:`/apidocs_plot_mpl`).
@@ -106,19 +118,20 @@ Masking a data point means that the data point will not be processed when analyz
 
 |DataSet| objects have various methods for getting certain types of values while taking the applied mask into account (e.g., |DataSet.get_frequencies|  or |DataSet.get_phases|).
 
-Below are two Bode plots of the example above from just before and after the low- and high-pass filters was applied.
+Below are two Bode plots of the example above before and after the low- and high-pass filters were applied.
 
 .. plot::
 
    from pyimpspec import DataSet
    from pyimpspec import mpl
-   from pyimpspec.mock_data import EXAMPLE
-   data = DataSet.duplicate(EXAMPLE)
+   from pyimpspec import generate_mock_data
+
+   data = generate_mock_data("CIRCUIT_1")[0]
    figure, axes = mpl.plot_bode(data)
+
    data.low_pass(1e3)
    data.high_pass(1e1)
    figure, axes = mpl.plot_bode(data)
-   data.set_mask({})
 
 .. raw:: latex
 

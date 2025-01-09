@@ -1,6 +1,6 @@
 #!/bin/bash
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -84,6 +84,9 @@ if [ "$(git status --porcelain=v1 | wc -l)" -ne 0 ]; then
 fi
 
 # Check for major issues
+# NOTE: May need to skip flake8 in some cases when trying to build. Currently
+#       (2024-08-29) raising exceptions when running flake8 v7.1.1 on:
+#       'Python 3.12.4 (main, Jun  7 2024, 06:33:07) [GCC 14.1.1 20240522] on linux'
 flake8 . --select=E9,F63,F7,F82 --show-source --statistics
 echo "flake8 didn't find any issues..."
 echo

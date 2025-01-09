@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,37 +18,44 @@
 # the LICENSES folder.
 
 from inspect import signature
+from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.data import DataSet
 from pyimpspec.analysis import (
-    TestResult,
+    KramersKronigResult,
     FitResult,
 )
+from pyimpspec.analysis.utility import _interpolate
 from pyimpspec.analysis.drt import DRTResult
 from numpy import angle
-from typing import (
+from pyimpspec.typing import (
+    Frequencies,
+    Phases,
+)
+from pyimpspec.typing.helpers import (
     Dict,
     List,
     Optional,
     Tuple,
     Union,
-)
-from pyimpspec.typing import (
-    Frequencies,
-    Phases,
+    _is_boolean,
+    _is_integer,
 )
 from pyimpspec.plot.colors import COLOR_ORANGE
-from pyimpspec.plot.mpl.markers import MARKER_SQUARE
-from pyimpspec.plot.mpl.utility import (
+from .markers import MARKER_SQUARE
+from .helpers import (
     _color_axis,
     _configure_log_limits,
     _configure_log_scale,
     _get_marker_color_args,
+    _initialize_figure,
+    _validate_figure,
 )
 
 
 def plot_phase(
-    data: Union[DataSet, TestResult, FitResult, DRTResult],
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]],
     label: Optional[str] = None,
+    admittance: bool = False,
     colors: Optional[Dict[str, str]] = None,
     markers: Optional[Dict[str, str]] = None,
     line: bool = False,
@@ -65,11 +72,14 @@ def plot_phase(
 
     Parameters
     ----------
-    data: Union[DataSet, TestResult, FitResult, DRTResult]
+    data: Optional[Union[DataSet, KramersKronigResult, FitResult, DRTResult]]
         The data to plot.
 
     label: Optional[str], optional
         The optional label to use in the legend.
+
+    admittance: bool, optional
+        Plot the admittance representation of the immittance data.
 
     colors: Optional[Dict[str, str]], optional
         The colors of the markers or lines. Valid keys: 'phase'.
@@ -81,7 +91,7 @@ def plot_phase(
         Whether or not a line should be used instead of markers.
 
     num_per_decade: int, optional
-        If the data being plotted is not a DataSet instance (e.g. a TestResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
+        If the data being plotted is not a DataSet instance (e.g. a KramersKronigResult instance), then this parameter can be used to change how many points are used to draw the line (i.e. how smooth or angular the line looks).
 
     figure: Optional[|Figure|], optional
         The matplotlib.figure.Figure instance to use when plotting the data.
@@ -104,76 +114,107 @@ def plot_phase(
     -------
     Tuple[|Figure|, List[|Axes|]]
     """
-    import matplotlib.pyplot as plt
     from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
 
-    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
-    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
+    if figure is None:
+        figure, axes = _initialize_figure(num_rows=1, num_cols=1)
+    assert axes is not None
+
+    _validate_figure(figure, axes, num_axes=1)
+    axis: Axes = axes[0]
+
+    if not _is_boolean(admittance):
+        raise TypeError(f"Expected a boolean instead of {admittance=}")
+
+    if not _is_boolean(line):
+        raise TypeError(f"Expected a boolean instead of {line=}")
+
     if colors is None:
         colors = {}
+    elif not isinstance(colors, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {colors=}")
+    color: str = colors.get("phase", COLOR_ORANGE)
+
     if markers is None:
         markers = {}
-    assert isinstance(colors, dict), colors
-    assert isinstance(markers, dict), markers
-    assert isinstance(line, bool), line
-    assert isinstance(label, str) or label is None, label
-    assert isinstance(legend, bool), legend
-    assert isinstance(colored_axes, bool), colored_axes
-    assert isinstance(figure, Figure) or figure is None, figure
-    axis: Axes
-    if figure is None:
-        assert axes is None
-        figure, axis = plt.subplots()
-        axes = [axis]
-    assert isinstance(axes, list)
-    assert len(axes) == 1
-    assert all(map(lambda _: isinstance(_, Axes), axes))
-    axis = axes[0]
-    assert axis is not None, axis
+    elif not isinstance(markers, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {markers=}")
+    marker: str = markers.get("phase", MARKER_SQUARE)
+
     if label is None:
         if hasattr(data, "get_label") and callable(data.get_label):
             label = data.get_label()
         else:
             label = ""
-    color: str = colors.get("phase", COLOR_ORANGE)
-    marker: str = markers.get("phase", MARKER_SQUARE)
-    x: Frequencies
-    y: Phases
-    if (
-        "num_per_decade" in signature(data.get_frequencies).parameters
-        and "num_per_decade" in signature(data.get_impedances).parameters
-    ):
-        x = data.get_frequencies(num_per_decade=num_per_decade)
-        y = -angle(data.get_impedances(num_per_decade=num_per_decade), deg=True)
-    else:
-        x = data.get_frequencies()
-        y = -angle(data.get_impedances(), deg=True)
-    if line is True:
-        axis.plot(
-            x,
-            y,
-            color=color,
-            linestyle=":",
-            label=label if label != "" else None,
-        )
-    else:
-        axis.scatter(
-            x,
-            y,
-            marker=marker,
-            **_get_marker_color_args(marker, color),
-            label=label if label != "" else None,
-        )
-    if adjust_axes:
+    elif not isinstance(label, str):
+        raise TypeError(f"Expected a string or None instead of {label=}")
+
+    if data is not None:
+        x: Frequencies
+        y: Phases
+        if line and (
+            "num_per_decade" in signature(data.get_frequencies).parameters
+            and "num_per_decade" in signature(data.get_impedances).parameters
+        ):
+            if not _is_integer(num_per_decade):
+                raise TypeError(f"Expected an integer instead of {num_per_decade=}")
+
+            x = data.get_frequencies(num_per_decade=num_per_decade)
+            y = angle(
+                data.get_impedances(num_per_decade=num_per_decade)
+                ** (-1 if admittance else 1),
+                deg=True,
+            )
+        elif line and hasattr(data, "circuit") and isinstance(data.circuit, Circuit):
+            x = _interpolate(data.get_frequencies(), num_per_decade=num_per_decade)
+            y = angle(
+                data.circuit.get_impedances(x)
+                ** (-1 if admittance else 1),
+                deg=True,
+            )
+        else:
+            x = data.get_frequencies()
+            y = angle(data.get_impedances() ** (-1 if admittance else 1), deg=True)
+
+        y *= 1 if admittance else -1
+
+        if line:
+            axis.plot(
+                x,
+                y,
+                color=color,
+                linestyle=kwargs.get("linestyle", "-"),
+                label=label if label != "" else None,
+            )
+        else:
+            axis.scatter(
+                x,
+                y,
+                marker=marker,
+                **_get_marker_color_args(marker, color),
+                label=label if label != "" else None,
+            )
+
+    if not _is_boolean(adjust_axes):
+        raise TypeError(f"Expected a boolean instead of {adjust_axes=}")
+    elif adjust_axes:
         axis.set_xlabel(r"$f$ (Hz)")
-        axis.set_ylabel(r"$-$Phase($Z$) ($^\circ$)")
+        axis.set_ylabel(
+            r"Phase($Y$) ($^\circ$)" if admittance else r"$-$Phase($Z$) ($^\circ$)"
+        )
         _configure_log_scale(axis, x=True)
         _configure_log_limits(axis, x=True)
-    if legend is True:
+
+    if not _is_boolean(legend):
+        raise TypeError(f"Expected a boolean instead of {legend=}")
+    elif legend and data is not None:
         axis.legend()
-    if colored_axes is True:
+
+    if not _is_boolean(colored_axes):
+        raise TypeError(f"Expected a boolean instead of {colored_axes=}")
+    elif colored_axes:
         _color_axis(axis, color, left=True, right=False)
+
     return (
         figure,
         axes,

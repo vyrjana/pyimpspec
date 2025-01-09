@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,8 +45,9 @@ from .utility import (
     format_text,
     get_color,
     get_marker,
-    get_text_extension,
     get_output_name,
+    get_text_extension,
+    parse_circuits,
     set_figure_size,
     validate_output_dir,
 )
@@ -65,6 +66,7 @@ def print_circuit_limits(cdc: str, args: Namespace, print_func: Callable):
     circuit: Union[Circuit, Element] = parse_cdc(cdc)
     if len(circuit.get_elements()) == 1:
         circuit = circuit.get_elements()[0]
+
     if args.min_frequency == 0.0:
         try:
             dc_limit: ComplexImpedance = circuit.get_impedances(array([0.0]))[0]
@@ -72,6 +74,7 @@ def print_circuit_limits(cdc: str, args: Namespace, print_func: Callable):
         except InfiniteLimit as e:
             print_func("- Z(f -> 0) = inf")
             print_func(f"  {e}")
+
     if isinf(args.max_frequency):
         try:
             inf_limit: ComplexImpedance = circuit.get_impedances(array([inf]))[0]
@@ -94,6 +97,7 @@ def print_elements(args: Namespace, print_func: Callable):
     from pyimpspec.analysis.utility import _interpolate
 
     elements: Dict[str, Type[Element]] = get_elements()
+
     symbol: str
     Class: Type[Element]
     if not args.element:
@@ -102,13 +106,19 @@ def print_elements(args: Namespace, print_func: Callable):
             print_func(f"- {Class.get_description()}")
         return
     num_elements: int = len(args.element)
+
     i: int
     for i, symbol in enumerate(args.element):
-        assert symbol in elements, f"Invalid symbol '{symbol}'!"
+        if symbol not in elements:
+            raise ValueError(
+                f"Expected an element symbol that exists in {elements} instead of {symbol=}"
+            )
+
         if args.simulate:
             print_limits: bool = args.min_frequency == 0.0 or isinf(args.max_frequency)
-            if print_limits is True:
+            if print_limits:
                 print_circuit_limits(symbol, args, print_func)
+
             else:
                 circuit: Circuit = parse_cdc(symbol)
                 data_sets: List[DataSet] = [
@@ -121,6 +131,7 @@ def print_elements(args: Namespace, print_func: Callable):
                         label=circuit.to_string(),
                     )
                 ]
+
                 marked_data_sets: List[DataSet] = []
                 if args.mark_frequency:
                     marked_data_sets.append(
@@ -130,13 +141,14 @@ def print_elements(args: Namespace, print_func: Callable):
                             label="",
                         )
                     )
+
                 plot: Callable = {
                     "data": mpl.plot_data,
                     "nyquist": mpl.plot_nyquist,
                     "bode": mpl.plot_bode,
                     "magnitude": mpl.plot_magnitude,
                     "phase": mpl.plot_phase,
-                    "complex": mpl.plot_complex,
+                    "real-imaginary": mpl.plot_real_imaginary,
                     "real": mpl.plot_real,
                     "imaginary": mpl.plot_imaginary,
                 }[args.plot_type]
@@ -147,9 +159,11 @@ def print_elements(args: Namespace, print_func: Callable):
                     args,
                     print_func=lambda *a, **k: (a, k),
                 )
+
         else:
             Class = elements[symbol]
             element: Element = Class()
+
             if args.sympy or args.latex:
                 from sympy import (
                     Expr,
@@ -163,8 +177,10 @@ def print_elements(args: Namespace, print_func: Callable):
                     pprint(expr)
                 elif args.latex:
                     print_func(f"Z = {latex(expr, imaginary_unit='j')}")
+
             else:
                 print_func(element.get_extended_description())
+
         if num_elements > 1 and i < num_elements - 1:
             print_func("\n")
 
@@ -181,7 +197,9 @@ def overlay_plot(
         mpl,
     )
 
-    assert not args.output or args.output_name[0] != "", "Expected an output name!"
+    if not (args.output_name[0] != "" or not args.output):
+        raise ValueError("Expected an output name")
+
     data: DataSet = data_sets.pop(0)
     Z: ComplexImpedances = data.get_impedances()
     color: str = get_color(args.plot_color)
@@ -204,7 +222,9 @@ def overlay_plot(
             "phase": marker,
         },
         "colored_axes": args.plot_colored_axes,
+        "admittance": args.plot_admittance,
     }
+
     figure, axes = plot(
         data,
         **kwargs,
@@ -216,6 +236,7 @@ def overlay_plot(
             "axes": axes,
         }
     )
+
     marked_kwargs: dict
     if args.mark_frequency:
         marked_kwargs = kwargs.copy()
@@ -230,6 +251,7 @@ def overlay_plot(
             data,
             **marked_kwargs,
         )
+
         if plot == mpl.plot_nyquist and args.annotate_frequency:
             for f, Z in zip(data.get_frequencies(), data.get_impedances()):
                 axes[0].annotate(
@@ -245,6 +267,7 @@ def overlay_plot(
                     textcoords="offset points",
                     color=color,
                 )
+
     i: int
     for i, data in enumerate(data_sets):
         Z = data.get_impedances()
@@ -274,6 +297,7 @@ def overlay_plot(
             data,
             **kwargs,
         )
+
         if args.mark_frequency:
             marked_kwargs = kwargs.copy()
             marked_kwargs.update(
@@ -286,6 +310,7 @@ def overlay_plot(
                 marked_data_sets[i],
                 **marked_kwargs,
             )
+
             if plot == mpl.plot_nyquist and args.annotate_frequency:
                 for f, Z in zip(
                     marked_data_sets[i].get_frequencies(),
@@ -304,11 +329,14 @@ def overlay_plot(
                         textcoords="offset points",
                         color=color,
                     )
+
     figure.tight_layout()
+
     if args.output:
         extension: str = args.plot_format
         if extension.startswith("."):
             extension = extension[1:]
+
         output_path: str = abspath(
             join(
                 args.output_dir,
@@ -316,8 +344,10 @@ def overlay_plot(
             )
         )
         figure.savefig(output_path, dpi=args.plot_dpi)
+
     elif not get_backend().lower() == "agg":
         plt.show()
+
     plt.close()
 
 
@@ -334,15 +364,17 @@ def individual_plots(
         mpl,
     )
 
-    assert not args.output or len(args.output_name) == len(
-        args.circuit
-    ), f"Expected {len(args.circuit)} output names!"
+    if not (len(args.output_name) == len(args.input) or not args.output):
+        raise ValueError(f"Expected {len(args.input)} output names")
+
     agg_backend: bool = get_backend().lower() == "agg"
     kwargs = {
         "legend": not args.plot_no_legend,
         "colored_axes": args.plot_colored_axes,
+        "admittance": args.plot_admittance,
     }
     num_data: int = len(data_sets)
+
     i: int
     data: DataSet
     for i, data in enumerate(data_sets):
@@ -350,11 +382,13 @@ def individual_plots(
         kwargs["title"] = data.get_label() if args.plot_title else None
         Z: ComplexImpedances = data.get_impedances()
         kwargs["line"] = not array_all(Z == Z[0])
+
         if "figure" in kwargs:
             del kwargs["figure"]
         if "axes" in kwargs:
             del kwargs["axes"]
         figure, axes = plot(data, **kwargs)
+
         if args.mark_frequency:
             marked_kwargs = kwargs.copy()
             marked_kwargs.update(
@@ -369,6 +403,7 @@ def individual_plots(
                 marked_data_sets[i],
                 **marked_kwargs,
             )
+
             if plot == mpl.plot_nyquist and args.annotate_frequency:
                 for f, Z in zip(
                     marked_data_sets[i].get_frequencies(),
@@ -386,12 +421,15 @@ def individual_plots(
                         ),
                         textcoords="offset points",
                     )
+
         result: str = format_text(data.to_dataframe(), args)
         figure.tight_layout()
+
         if args.output:
             extension: str = args.plot_format
             if extension.startswith("."):
                 extension = extension[1:]
+
             output_path: str = abspath(
                 join(
                     args.output_dir,
@@ -399,9 +437,11 @@ def individual_plots(
                 )
             )
             figure.savefig(output_path, dpi=args.plot_dpi)
+
             extension = get_text_extension(args.output_format)
             if extension.startswith("."):
                 extension = extension[1:]
+
             output_path = abspath(
                 join(
                     args.output_dir,
@@ -411,10 +451,13 @@ def individual_plots(
             fp: IO
             with open(output_path, "w") as fp:
                 fp.write(result)
-        elif agg_backend is False:
+
+        elif not agg_backend:
             print_func(result)
             plt.show()
+
         plt.close()
+
         if i < num_data - 1:
             print_func("")
 
@@ -431,18 +474,22 @@ def simulate_spectra(args: Namespace, print_func: Callable):
 
     data_sets: List[DataSet] = []
     marked_data_sets: List[DataSet] = []
+
     print_limits: bool = args.min_frequency == 0.0 or isinf(args.max_frequency)
-    if print_limits is True:
-        num_circuits: int = len(args.circuit)
+    if print_limits:
+        num_circuits: int = len(args.input)
+
         i: int
         cdc: str
-        for i, cdc in enumerate(args.circuit):
+        for i, cdc in enumerate(args.input):
             print_circuit_limits(cdc, args, print_func)
             if num_circuits > 1 and i < num_circuits - 1:
                 print_func("\n")
+
         return
+
     circuit: Circuit
-    for circuit in map(parse_cdc, args.circuit):
+    for circuit in parse_circuits(args):
         data_sets.append(
             simulate_spectrum(
                 circuit,
@@ -452,6 +499,7 @@ def simulate_spectra(args: Namespace, print_func: Callable):
                 label=circuit.to_string(),
             )
         )
+
         if args.mark_frequency:
             marked_data_sets.append(
                 simulate_spectrum(
@@ -460,20 +508,23 @@ def simulate_spectra(args: Namespace, print_func: Callable):
                     label="",
                 )
             )
+
     plot_types: Dict[str, Callable] = {
-        "nyquist": mpl.plot_nyquist,
+        "imaginary": mpl.plot_imaginary,
         "magnitude": mpl.plot_magnitude,
+        "nyquist": mpl.plot_nyquist,
         "phase": mpl.plot_phase,
         "real": mpl.plot_real,
-        "imaginary": mpl.plot_imaginary,
     }
+
     if not args.plot_overlay:
         plot_types.update(
             {
                 "bode": mpl.plot_bode,
-                "complex": mpl.plot_complex,
+                "real-imaginary": mpl.plot_real_imaginary,
             }
         )
+
     plot: Callable = plot_types[args.plot_type]
     if args.plot_overlay:
         overlay_plot(data_sets, marked_data_sets, plot, args)
@@ -483,19 +534,22 @@ def simulate_spectra(args: Namespace, print_func: Callable):
 
 def circuit_diagrams(args: Namespace):
     from schemdraw import Drawing
-    from pyimpspec import (
-        Circuit,
-        parse_cdc,
-    )
+    from pyimpspec import Circuit
 
-    assert not args.output or (
-        len(args.output_name) == len(args.circuit)
-        and not any(map(lambda _: _.strip() == "", args.output_name))
-    ), f"Expected {len(args.circuit)} output name(s)!"
+    if not (
+        not args.output
+        or (
+            len(args.output_name) == len(args.input)
+            and not any(map(lambda _: _.strip() == "", args.output_name))
+        )
+    ):
+        raise ValueError(f"Expected {len(args.input)} output name(s)!")
+
     agg_backend: bool = get_backend().lower() == "agg"
+
     i: int
     circuit: Circuit
-    for i, circuit in enumerate(map(parse_cdc, args.circuit)):
+    for i, circuit in enumerate(parse_circuits(args)):
         drawing: Drawing = circuit.to_drawing(
             node_height=args.node_height,
             left_terminal_label=args.left_terminal_label,
@@ -503,11 +557,13 @@ def circuit_diagrams(args: Namespace):
             hide_labels=args.hide_labels,
             running=args.running_count,
         )
+
         if args.output:
             output_name: str = get_output_name(circuit.to_string(), args.output_name, i)
             extension: str = args.plot_format
             if extension.startswith("."):
                 extension = extension[1:]
+
             output_path: str = abspath(
                 join(
                     args.output_dir,
@@ -515,38 +571,43 @@ def circuit_diagrams(args: Namespace):
                 )
             )
             drawing.save(output_path, dpi=args.plot_dpi)
-        elif agg_backend is False:
+
+        elif not agg_backend:
             drawing.draw()
 
 
 def command(parser: ArgumentParser, args: Namespace, print_func: Callable = print):
     if args.output:
         validate_output_dir(args.output_dir)
-    if not args.circuit:
+
+    if not args.input:
         print_elements(args, print_func)
         return
+
     set_figure_size(args.plot_width, args.plot_height, args.plot_dpi)
+
     if args.output:
-        if args.plot_overlay or len(args.circuit) == 1:
-            assert len(args.output_name) == 1, "Expected an output name!"
-        elif len(args.circuit) > 1:
-            assert len(args.output_name) == len(
-                args.circuit
-            ), f"Expected {len(args.circuit)} output names!"
+        if args.plot_overlay or len(args.input) == 1:
+            if len(args.output_name) != 1:
+                raise ValueError("Expected an output name")
+
+        elif len(args.input) > 1:
+            if len(args.output_name) != len(args.input):
+                raise ValueError(f"Expected {len(args.input)} output names")
+
     if args.simulate:
         simulate_spectra(args, print_func)
+
     elif args.sympy or args.latex:
         from sympy import pprint
-        from pyimpspec import (
-            Circuit,
-            parse_cdc,
-        )
+        from pyimpspec import Circuit
 
         circuit: Circuit
-        for circuit in map(parse_cdc, args.circuit):
+        for circuit in parse_circuits(args):
             if args.sympy:
                 pprint(circuit.to_sympy())
             elif args.latex:
                 print_func(circuit.to_latex())
+
     else:
         circuit_diagrams(args)

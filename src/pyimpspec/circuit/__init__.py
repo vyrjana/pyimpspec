@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -56,9 +56,11 @@ def parse_cdc(cdc: str) -> Circuit:
 
     Returns
     -------
-    Circuit
+    |Circuit|
     """
-    assert isinstance(cdc, str), cdc
+    if not isinstance(cdc, str):
+        raise TypeError(f"Expected a string instead of {cdc=}")
+
     return Parser().process(cdc)
 
 
@@ -72,10 +74,10 @@ def simulate_spectrum(
 
     Parameters
     ----------
-    circuit: Circuit
+    circuit: |Circuit|
         The circuit to use when calculating impedances at various frequencies.
 
-    frequencies: Optional[Frequencies], optional
+    frequencies: Optional[|Frequencies|], optional
         Excitation frequencies in hertz.
         If no frequencies are provided, then a frequency range of 10 mHz to 100 kHz with 10 points per decade will be used.
 
@@ -84,13 +86,19 @@ def simulate_spectrum(
 
     Returns
     -------
-    DataSet
+    |DataSet|
     """
-    assert isinstance(circuit, Circuit), circuit
-    assert isinstance(label, str), label
+    if not isinstance(circuit, Circuit):
+        raise TypeError(f"Expected a Circuit instead of {circuit=}")
+
+    if not isinstance(label, str):
+        raise TypeError(f"Expected a string instead of {label=}")
+
     if frequencies is None or len(frequencies) == 0:
         frequencies = logspace(5, -2, 71)
     elif not isinstance(frequencies, ndarray):
         frequencies = array(frequencies, dtype=Frequency)
+
     Z: ComplexImpedances = circuit.get_impedances(frequencies)
+
     return DataSet(frequencies=frequencies, impedances=Z, label=label)

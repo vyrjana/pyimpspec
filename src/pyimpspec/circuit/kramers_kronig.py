@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,9 +18,11 @@
 # the LICENSES folder.
 
 from numpy import (
+    float64,
     inf,
     pi,
 )
+from numpy.typing import NDArray
 from .base import Element
 from .registry import (
     ElementDefinition,
@@ -43,7 +45,7 @@ register_element(
         Class=KramersKronigRC,
         symbol="K",
         name="'Parallel RC' element",
-        description="Parallel RC element with a fixed time constant that is used in linear Kramers-Kronig tests.",
+        description="Parallel RC element with a fixed time constant that is used in linear Kramers-Kronig tests on impedance data.",
         equation="R/(1+I*2*pi*f*tau)",
         parameters=[
             ParameterDefinition(
@@ -66,4 +68,43 @@ register_element(
             ),
         ],
     ),
+    private=True,
+)
+
+
+class KramersKronigAdmittanceRC(Element):
+    def _impedance(self, f: Frequencies, C: float, tau: float) -> ComplexImpedances:
+        w: NDArray[float64] = 2 * pi * f
+        return 1 / ((C*w)/(w*tau-1j))
+
+
+register_element(
+    ElementDefinition(
+        Class=KramersKronigAdmittanceRC,
+        symbol="Ky",
+        name="'Series RC' element",
+        description="Series RC element with a fixed time constant that is used in linear Kramers-Kronig tests on admittance data.",
+        equation="1/((C*2*pi*f)/(2*pi*f*tau-I))",
+        parameters=[
+            ParameterDefinition(
+                symbol="C",
+                unit="F",
+                description="Capacitance",
+                value=1.0,
+                lower_limit=-inf,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="tau",
+                unit="s",
+                description="Time constant",
+                value=1.0,
+                lower_limit=-inf,
+                upper_limit=inf,
+                fixed=True,
+            ),
+        ],
+    ),
+    private=True,
 )

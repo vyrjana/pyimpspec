@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -28,12 +28,10 @@ from typing import (
 )
 from numpy import (
     angle,
+    complex128,
     float64,
-    integer,
-    issubdtype,
     log as ln,
     log10 as log,
-    ndarray,
     pi,
 )
 from numpy.typing import NDArray
@@ -45,10 +43,16 @@ from pyimpspec.typing import (
     Phases,
     Residuals,
 )
+from pyimpspec.typing.helpers import (
+    _is_boolean,
+    _is_floating,
+    _is_floating_array,
+    _is_integer,
+)
 from pyimpspec.data import DataSet
 from pyimpspec.analysis.utility import (
     _calculate_residuals,
-    _get_default_num_procs,
+    get_default_num_procs,
 )
 from pyimpspec.exceptions import ZHITError
 from pyimpspec.progress import Progress
@@ -178,11 +182,11 @@ class ZHITResult:
 
     def to_statistics_dataframe(self) -> "DataFrame":  # noqa: F821
         """
-        Get the statistics related to the modulus reconstruction as a |DataFrame| object.
+        Get the statistics related to the modulus reconstruction as a `pandas.DataFrame`_ object.
 
         Returns
         -------
-        |DataFrame|
+        `pandas.DataFrame`_
         """
         from pandas import DataFrame
 
@@ -202,8 +206,8 @@ class ZHITResult:
 
 def perform_zhit(
     data: DataSet,
-    smoothing: str = "lowess",
-    interpolation: str = "akima",
+    smoothing: str = "modsinc",
+    interpolation: str = "makima",
     window: str = "auto",
     num_points: int = 3,
     polynomial_order: int = 2,
@@ -211,7 +215,8 @@ def perform_zhit(
     center: float = 1.5,
     width: float = 3.0,
     weights: Optional[NDArray[float64]] = None,
-    num_procs: int = 0,
+    admittance: bool = False,
+    num_procs: int = -1,
 ) -> ZHITResult:
     r"""
     Performs a reconstruction of the modulus data of an impedance spectrum based on the phase data of that impedance spectrum using the Z-HIT algorithm described by Ehm et al. (2000).
@@ -225,16 +230,15 @@ def perform_zhit(
 
     - Ehm, W., Göhr, H., Kaus, R., Röseler, B., and Schiller, C.A., 2000, Acta Chimica Hungarica, 137 (2-3), 145-157.
     - Ehm, W., Kaus, R., Schiller, C.A., and Strunz, W., 2001, in "New Trends in Electrochemical Impedance Spectroscopy and Electrochemical Noise Analysis".
-    - Schiller, C.A., Richter, F., Gülzow, E., and Wagner, N., 2001, 3, 374-378 (https://doi.org/10.1039/B007678N)
+    - `Schiller, C.A., Richter, F., Gülzow, E., and Wagner, N., 2001, 3, 374-378 <https://doi.org/10.1039/B007678N>`_
 
     Parameters
     ----------
-    data: DataSet
+    data: |DataSet|
         The data set for which the modulus of the impedance should be reconstructed.
 
     smoothing: str, optional
-        The type of smoothing to apply: "none", "lowess" (`Locally Weighted Scatterplot Smoothing <https://www.statsmodels.org/dev/generated/statsmodels.nonparametric.smoothers_lowess.lowess.html#statsmodels.nonparametric.smoothers_lowess.lowess>`_), "savgol" (`Savitzky-Golay <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html>`_), or "auto".
-        Savitzky-Golay may produce better results than LOWESS but it expects equally spaced points.
+        The type of smoothing to apply: "none", "lowess" (`Locally Weighted Scatterplot Smoothing <https://www.statsmodels.org/dev/generated/statsmodels.nonparametric.smoothers_lowess.lowess.html#statsmodels.nonparametric.smoothers_lowess.lowess>`_), "modsinc" (`modified sinc kernel <https://pubs.acs.org/doi/full/10.1021/acsmeasuresciau.1c00054>`_), "savgol" (`Savitzky-Golay <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.savgol_filter.html>`_), "whithend" (`Whittaker-Henderson <https://doi.org/10.1021/acsmeasuresciau.1c00054>`_) or "auto".
 
     interpolation: str, optional
         The type of interpolation to apply: "akima" (`Akima spline <https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.Akima1DInterpolator.html#scipy.interpolate.Akima1DInterpolator>`_), "cubic" (`cubic spline <https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.CubicSpline.html#scipy.interpolate.CubicSpline>`_), "pchip" (`Piecewise Cubic Hermite Interpolating Polynomial <https://docs.scipy.org/doc/scipy/reference/generated/scipy.interpolate.PchipInterpolator.html#scipy.interpolate.PchipInterpolator>`_), or "auto".
@@ -246,7 +250,7 @@ def perform_zhit(
         The number of points to take into account while smoothing any given point.
 
     polynomial_order: int, optional
-        The order of the polynomial used when smoothing (Savitzky-Golay only).
+        The order of the polynomial used when smoothing (Savitzky-Golay and Whittaker-Henderson only).
 
     num_iterations: int, optional
         The number of iterations to perform while smoothing (LOWESS only).
@@ -260,6 +264,9 @@ def perform_zhit(
     weights: Optional[NDArray[float64]], optional
         If the desired weights can not be implemented using the ``window``, ``center``, and ``width`` parameters, then this parameter can be used to provide custom weights.
 
+    admittance: bool, optional
+        Use the admittance representation of the data instead of the impedance representation.
+
     num_procs: int, optional
         The maximum number of parallel processes to use when smoothing algorithm, interpolation spline, and/or window function are set to "auto".
         A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
@@ -267,52 +274,82 @@ def perform_zhit(
 
     Returns
     -------
-    ZHITResult
+    |ZHITResult|
     """
-    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
-    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
-    assert isinstance(smoothing, str)
-    assert isinstance(interpolation, str)
-    assert isinstance(num_points, int)
-    assert isinstance(polynomial_order, int)
-    assert isinstance(num_iterations, int)
-    assert isinstance(window, str)
-    assert isinstance(center, float)
-    assert isinstance(width, float)
-    assert weights is None or isinstance(weights, ndarray)
-    assert issubdtype(type(num_procs), integer), (
-        type(num_procs),
-        num_procs,
-    )
+    if not isinstance(smoothing, str):
+        raise TypeError(f"Expected a string instead of {smoothing=}")
+
+    if not isinstance(interpolation, str):
+        raise TypeError(f"Expected a string instead of {interpolation=}")
+
+    if not _is_integer(num_points):
+        raise TypeError(f"Expected an integer instead of {num_points=}")
+    elif num_points < 1:
+        raise ValueError(f"Expected {num_points=} > 0")
+
+    if not _is_integer(polynomial_order):
+        raise TypeError(f"Expected an integer instead of {polynomial_order=}")
+
+    if not _is_integer(num_iterations):
+        raise TypeError(f"Expected an integer instead of {num_iterations=}")
+    elif num_iterations < 1:
+        raise ValueError(f"Expected {num_iterations=} > 0")
+
+    if not isinstance(window, str):
+        raise TypeError(f"Expected a string instead of {window=}")
+
+    if not _is_floating(center):
+        raise TypeError(f"Expected a float instead of {center=}")
+
+    if not _is_floating(width):
+        raise TypeError(f"Expected a float instead of {width=}")
+    elif width <= 0.0:
+        raise ValueError(f"Expected {width=} > 0.0")
+
+    if not (weights is None or _is_floating_array(weights)):
+        raise TypeError(f"Expected an array of floats or None instead of {weights=}")
+
+    if not _is_boolean(admittance):
+        raise TypeError(f"Expected a boolean instead of {admittance=}")
+
+    if not _is_integer(num_procs):
+        raise TypeError(f"Expected an integer instead of {num_procs=}")
+
     if num_procs < 1:
-        num_procs = _get_default_num_procs() - abs(num_procs)
-        if num_procs < 1:
-            num_procs = 1
-    if num_points < 1:
-        raise ZHITError("The number of points must be greater than 0!")
-    if smoothing == "auto" or smoothing == "savgol":
+        num_procs = max((get_default_num_procs() - abs(num_procs), 1))
+
+    if smoothing in ("auto", "savgol", "whithend"):
         if num_points < 2:
-            raise ZHITError("The number of points must be greater than 1!")
+            raise ValueError(f"Expected {num_points=} > 1")
         if not (0 < polynomial_order < num_points):
-            raise ZHITError(
-                "The polynomial order must be a value between 0 and the "
-                f"number of points (i.e., {num_points} in this case)!"
-            )
-    if num_iterations < 1:
-        raise ZHITError("The number of iterations must be greater than 0!")
-    if width <= 0.0:
-        raise ZHITError("The window width must be greater than 0.0!")
+            raise ValueError(f"Expected 0 < {polynomial_order=} < {num_points=}")
+
     if len(_WINDOW_FUNCTIONS) == 0:
         _initialize_window_functions()
+
     f: Frequencies = data.get_frequencies()
+    if not (len(f) > 0):
+        raise ValueError(
+            f"There are no unmasked data points in the '{data.get_label()}' data set parsed from '{data.get_path()}'"
+        )
+
     log_f: NDArray[float64] = log(f)
     ln_omega: NDArray[float64] = ln(2 * pi * f)
-    Z_exp: ComplexImpedances = data.get_impedances()
-    ln_modulus_exp: NDArray[float64] = ln(abs(Z_exp))
-    phase_exp: Phases = angle(Z_exp)
-    num_smoothing: int = 3 if smoothing == "auto" else 1
-    num_interpolation: int = 3 if interpolation == "auto" else 1
+
+    X_exp: NDArray[complex128] = data.get_impedances() ** (-1 if admittance else 1)
+    offset: float = 0.0
+    # TODO: Apply also when admittance==False?
+    if admittance and min(X_exp.real) < 0.0:
+        offset = abs(min(X_exp.real))
+        X_exp += offset
+
+    ln_modulus_exp: NDArray[float64] = ln(abs(X_exp))
+    phase_exp: Phases = angle(X_exp)
+
+    num_smoothing: int = 5 if smoothing == "auto" else 1
+    num_interpolation: int = 4 if interpolation == "auto" else 1
     num_window: int = len(_WINDOW_FUNCTIONS) if window == "auto" else 1
+
     num_steps: int = 0
     # Generate weights
     num_steps += num_window
@@ -324,6 +361,7 @@ def perform_zhit(
     num_steps += num_smoothing * num_interpolation
     # Offset adjustment
     num_steps += num_window * (num_smoothing * num_interpolation)
+
     prog: Progress
     with Progress("Performing Z-HIT", total=num_steps + 1) as prog:
         window_options: Dict[str, NDArray[float64]] = _generate_window_options(
@@ -334,6 +372,7 @@ def perform_zhit(
             width,
             prog,
         )
+
         smoothing_options: Dict[str, Phases] = _generate_smoothing_options(
             smoothing,
             num_points,
@@ -343,6 +382,7 @@ def perform_zhit(
             phase_exp,
             prog,
         )
+
         interpolation_options: Dict[str, Dict[str, Callable]]
         simulated_phase: Dict[str, Dict[str, Phases]]
         interpolation_options, simulated_phase = _generate_interpolation_options(
@@ -351,31 +391,44 @@ def perform_zhit(
             smoothing_options,
             prog,
         )
+
         reconstructions: List[Tuple[NDArray[float64], Phases, str, str]]
         reconstructions = _reconstruct_modulus_data(
             interpolation_options,
             simulated_phase,
             ln_omega,
+            admittance,
             num_procs,
             prog,
         )
-        results: List[Tuple[float, NDArray[float64], str, str, str]]
+
+        results: List[Tuple[float, NDArray[complex128], str, str, str]]
         results = _adjust_modulus_offset(
             reconstructions,
             window_options,
             ln_modulus_exp,
-            Z_exp,
+            X_exp,
+            admittance,
             num_procs,
             prog,
         )
-    Xps: float
-    Z_fit: ComplexImpedances
-    Xps, Z_fit, smoothing, interpolation, window = results[0]
+
+    pseudo_chisqr: float
+    X_fit: NDArray[complex128]
+    pseudo_chisqr, X_fit, smoothing, interpolation, window = results[0]
+    X_fit -= offset
+
+    Z_fit: ComplexImpedances = X_fit ** (-1 if admittance else 1)
+    residuals: ComplexResiduals = _calculate_residuals(
+        Z_exp=data.get_impedances(),
+        Z_fit=Z_fit,
+    )
+
     return ZHITResult(
         frequencies=f,
         impedances=Z_fit,
-        residuals=_calculate_residuals(Z_exp=Z_exp, Z_fit=Z_fit),
-        pseudo_chisqr=Xps,
+        residuals=residuals,
+        pseudo_chisqr=pseudo_chisqr,
         smoothing=smoothing,
         interpolation=interpolation,
         window=window,

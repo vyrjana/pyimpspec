@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,13 +17,6 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (
-    Callable,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-)
 from unittest import TestCase
 from lmfit.minimizer import MinimizerResult
 from numpy import (
@@ -31,7 +24,6 @@ from numpy import (
     angle,
     array,
     float64,
-    isnan,
 )
 from numpy.random import (
     seed,
@@ -42,9 +34,13 @@ from pandas import DataFrame
 from pyimpspec import (
     Circuit,
     DataSet,
+    Element,
+    FitIdentifiers,
     FitResult,
     FittedParameter,
     fit_circuit,
+    generate_mock_data,
+    generate_fit_identifiers,
     parse_cdc,
     parse_data,
 )
@@ -52,11 +48,17 @@ from pyimpspec.analysis.fitting import validate_circuit
 from pyimpspec.typing import (
     ComplexImpedance,
     ComplexImpedances,
-    ComplexResiduals,
     Frequencies,
     Impedances,
     Phases,
     Residuals,
+)
+from pyimpspec.typing.helpers import (
+    Callable,
+    Dict,
+    List,
+    Optional,
+    Tuple,
 )
 from pyimpspec import progress as PROGRESS
 from test_matplotlib import (
@@ -118,7 +120,8 @@ class Fitting(TestCase):
         "ohm",
         "F",
         "ohm",
-        "S*s^(1/2)",
+        "S*s^n",
+        "",
         "F",
     ]
 
@@ -147,6 +150,32 @@ class Fitting(TestCase):
         self.assertNotEqual(result.weight, "")
         self.assertNotEqual(result.method, "auto")
         self.assertNotEqual(result.weight, "auto")
+
+    def test_methods_list(self):
+        methods: List[str] = ["least_squares", "powell"]
+        result: FitResult = fit_circuit(
+            circuit=self.circuit,
+            data=DATA,
+            method=methods,
+            weight="boukamp",
+            max_nfev=self.arg_max_nfev,
+            num_procs=1,
+        )
+        self.assertTrue(result.method in methods)
+        self.assertEqual(result.weight, "boukamp")
+
+    def test_weights_list(self):
+        weights: List[str] = ["unity", "boukamp"]
+        result: FitResult = fit_circuit(
+            circuit=self.circuit,
+            data=DATA,
+            method="leastsq",
+            weight=weights,
+            max_nfev=self.arg_max_nfev,
+            num_procs=1,
+        )
+        self.assertEqual(result.method, "leastsq")
+        self.assertTrue(result.weight in weights)
 
     def test_single_process(self):
         result: FitResult = fit_circuit(
@@ -200,7 +229,7 @@ class Fitting(TestCase):
     def test_cdc(self):
         self.assertEqual(
             self.result.circuit.to_string(0),
-            "[R{R=1E+02/0E+00/inf}(R{R=2E+02/0E+00/inf}C{C=8E-07/1E-24/1E+03})(R{R=5E+02/0E+00/inf}W{Y=4E-04/1E-24/inf})C{C=5E+02F/1E-24/1E+03}]",
+            "[R{R=1E+02/0E+00/inf}(R{R=2E+02/0E+00/inf}C{C=8E-07/1E-24/1E+03})(R{R=5E+02/0E+00/inf}W{Y=4E-04/1E-24/inf,n=5E-01F/0E+00/1E+00})C{C=5E+02F/1E-24/1E+03}]",
         )
 
     def test_get_frequencies(self):
@@ -302,7 +331,7 @@ class Fitting(TestCase):
         df: DataFrame = self.result.to_parameters_dataframe()
         self.assertIsInstance(df, DataFrame)
         lines: List[str] = df.to_markdown().split("\n")
-        self.assertEqual(len(lines), 8)
+        self.assertEqual(len(lines), 9)
         line: str = lines.pop(0)
         self.assertTrue(
             0
@@ -314,13 +343,12 @@ class Fitting(TestCase):
             < line.index("Fixed")
         )
         lines.pop(0)
+
         i: int = 0
         while lines:
             line = lines.pop(0)
-            columns: List[str] = list(
-                filter(lambda _: _ != "", map(str.strip, line.split("|")))
-            )
-            self.assertEqual(len(columns), 7)
+            columns: List[str] = list(map(str.strip, line.split("|")))[1:-1]
+            self.assertEqual(len(columns), 7, msg=f"{line=}")
             self.assertEqual(int(columns[0]), i)
             self.assertTrue(columns[1] in self.result.parameters)
             self.assertAlmostEqual(
@@ -334,9 +362,7 @@ class Fitting(TestCase):
             )
             self.assertEqual(
                 columns[6],
-                "Yes"
-                if self.result.parameters[columns[1]][columns[2]].fixed is True
-                else "No",
+                "Yes" if self.result.parameters[columns[1]][columns[2]].fixed else "No",
             )
             i += 1
         markdown: str = self.result.to_parameters_dataframe(running=True).to_markdown()
@@ -372,15 +398,15 @@ class Fitting(TestCase):
         self.assertEqual(lines.pop(), "")
         self.assertEqual(lines.pop(), r"\end{tabular}")
         self.assertEqual(lines.pop(), r"\bottomrule")
+
         i = 0
         while lines:
             line = lines.pop(0).replace(r"\\", "").strip()
             if line == "":
                 continue
-            columns: List[str] = list(
-                filter(lambda _: _ != "", map(str.strip, line.split("&")))
-            )
-            self.assertEqual(len(columns), 7)
+
+            columns: List[str] = list(map(str.strip, line.split("&")))
+            self.assertEqual(len(columns), 7, msg=f"{line=}")
             self.assertEqual(int(columns[0]), i)
             self.assertTrue(columns[1].replace(r"\_", "_") in self.result.parameters)
             self.assertAlmostEqual(
@@ -403,9 +429,9 @@ class Fitting(TestCase):
                 if self.result.parameters[columns[1].replace(r"\_", "_")][
                     columns[2]
                 ].fixed
-                is True
                 else "No",
             )
+
             i += 1
 
     def test_to_statistics_dataframe(self):
@@ -415,7 +441,7 @@ class Fitting(TestCase):
     def test_circuit_validation(self):
         self.assertEqual(validate_circuit(parse_cdc("RR")), None)
         self.assertEqual(validate_circuit(parse_cdc("R{:a}R{:b}")), None)
-        with self.assertRaises(AssertionError):
+        with self.assertRaises(ValueError):
             validate_circuit(parse_cdc("R{:a}R{:a}"))
 
     def test_labeled_elements(self):
@@ -433,7 +459,113 @@ class Fitting(TestCase):
         plotter: Callable
         for plotter in primitive_mpl_plotters:
             check_mpl_return_values(self, *plotter(data=self.result))
+
         check_mpl_return_values(self, *mpl.plot_residuals(self.result))
         check_mpl_return_values(self, *mpl.plot_fit(self.result, data=DATA))
-        with self.assertRaises(AssertionError):
+        check_mpl_return_values(self, *mpl.plot_fit(self.result, data=DATA))
+        with self.assertRaises(AttributeError):
             mpl.plot_fit(DATA, data=DATA)
+
+    def test_fit_identifiers(self):
+        data: DataSet = generate_mock_data("CIRCUIT_5", noise=5e-2, seed=42)[0]
+
+        circuit: Circuit = parse_cdc("R(RQ)(RQ)(RQ)")
+        elements: List[Element] = circuit.get_elements()
+        R1, R2, Q1, R3, Q2, R4, Q3 = elements
+        identifiers: Dict[Element, FitIdentifiers] = generate_fit_identifiers(circuit)
+
+        # Make sure the types are as expected
+        self.assertIsInstance(identifiers, dict)
+        self.assertTrue(all(map(lambda k: isinstance(k, Element), identifiers.keys())))
+        self.assertTrue(all(map(lambda v: isinstance(v, FitIdentifiers), identifiers.values())))
+        self.assertTrue(all(map(lambda v: all(map(lambda kv: isinstance(kv[0], str) and isinstance(kv[1], str), v.items())), identifiers.values())))
+
+        # Make sure that each element was processed
+        self.assertTrue(all(map(lambda e: e in identifiers, elements)))
+
+        # Make sure that all parameter symbols are valid
+        for element in elements:
+            for symbol in identifiers[element]:
+                element.get_value(symbol)
+
+        # Make sure all identifiers are unique
+        self.assertEqual(len(set([identifiers[R].R for R in (R1, R2, R3, R4)])), 4)
+        self.assertEqual(len(set([identifiers[Q].Y for Q in (Q1, Q2, Q3)])), 3)
+        self.assertEqual(len(set([identifiers[Q].n for Q in (Q1, Q2, Q3)])), 3)
+
+        # Make sure the identifiers have the expected values
+        self.assertEqual(identifiers[R1].R, "R_0")
+
+        self.assertEqual(identifiers[R2].R, "R_1")
+        self.assertEqual(identifiers[Q1].Y, "Y_2")
+        self.assertEqual(identifiers[Q1].n, "n_2")
+
+        self.assertEqual(identifiers[R3].R, "R_3")
+        self.assertEqual(identifiers[Q2].Y, "Y_4")
+        self.assertEqual(identifiers[Q2].n, "n_4")
+
+        self.assertEqual(identifiers[R4].R, "R_5")
+        self.assertEqual(identifiers[Q3].Y, "Y_6")
+        self.assertEqual(identifiers[Q3].n, "n_6")
+
+        # Make sure the identifiers can be accessed
+        self.assertEqual(identifiers[R1].R, identifiers[R1]["R"])
+        self.assertEqual(identifiers[Q1].Y, identifiers[Q1]["Y"])
+        self.assertEqual(identifiers[Q1].n, identifiers[Q1]["n"])
+
+        with self.assertRaises(AttributeError):
+            identifiers[R1].Y
+
+        with self.assertRaises(AttributeError):
+            identifiers[R1]["Y"]
+
+        with self.assertRaises(AttributeError):
+            identifiers[Q1].N
+
+        with self.assertRaises(AttributeError):
+            identifiers[Q1]["N"]
+
+        with self.assertRaises(AttributeError):
+            identifiers[Q1].R
+
+        with self.assertRaises(AttributeError):
+            identifiers[Q1]["R"]
+
+        fit: FitResult = fit_circuit(
+          circuit,
+          data,
+          method="least_squares",
+          weight="boukamp",
+          constraint_expressions={
+            identifiers[R3].R: f"{identifiers[R2].R} + alpha",
+            identifiers[R4].R: f"{identifiers[R3].R} - beta",
+            identifiers[Q2].Y: f"{identifiers[Q1].Y} + gamma",
+            identifiers[Q3].Y: f"{identifiers[Q2].Y} + delta",
+          },
+          constraint_variables=dict(
+            alpha=dict(
+              value=500,
+              min=1,
+            ),
+            beta=dict(
+              value=300,
+              min=1,
+            ),
+            gamma=dict(
+              value=1e-8,
+              min=1e-12,
+            ),
+            delta=dict(
+              value=2e-7,
+              min=1e-12,
+            ),
+          ),
+        )
+
+        R1, R2, Q1, R3, Q2, R4, Q3 = fit.circuit.get_elements()
+
+        # Make sure the values are in the expected order
+        self.assertLess(R2.get_value("R"), R4.get_value("R"))
+        self.assertLess(R4.get_value("R"), R3.get_value("R"))
+        self.assertLess(Q1.get_value("Y"), Q2.get_value("Y"))
+        self.assertLess(Q2.get_value("Y"), Q3.get_value("Y"))

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,20 +18,25 @@
 # the LICENSES folder.
 
 from .fitting import (
+    FitIdentifiers,
+    FitResult,
     FittedParameter,
     FittingError,
-    FitResult,
     fit_circuit,
+    generate_fit_identifiers,
 )
 from .kramers_kronig import (
-    TestResult,
-    perform_exploratory_tests,
-    perform_test,
+    KramersKronigResult,
+    perform_kramers_kronig_test,
+    perform_exploratory_kramers_kronig_tests,
 )
 from .drt import (
     BHTResult,
     DRTError,
+    DRTPeak,
+    DRTPeaks,
     DRTResult,
+    LMResult,
     MRQFitResult,
     TRNNLSResult,
     TRRBFResult,

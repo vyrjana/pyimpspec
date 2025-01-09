@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,16 +20,30 @@
 from .bht_scores import plot_bht_scores
 from .bode import plot_bode
 from .circuit import plot_circuit
-from .complex import plot_complex
+from .real_imaginary import plot_real_imaginary
 from .data import plot_data
 from .drt import plot_drt
 from .fit import plot_fit
 from .gamma import plot_gamma
 from .imaginary import plot_imaginary
-from .kramers_kronig import plot_tests
+from .kramers_kronig import (
+    plot_num_RC_suggestion,
+    plot_num_RC_suggestion_method,
+    plot_kramers_kronig_tests,
+    plot_log_F_ext,
+)
 from .magnitude import plot_magnitude
-from .mu_xps import plot_mu_xps
+from .pseudo_chisqr import plot_pseudo_chisqr
 from .nyquist import plot_nyquist
 from .phase import plot_phase
 from .real import plot_real
 from .residuals import plot_residuals
+
+
+def show(*args, **kwargs):
+    """
+    Wrapper for calling ``matplotlib.pyplot.show()``.
+    """
+    import matplotlib.pyplot as plt
+
+    plt.show(*args, **kwargs)

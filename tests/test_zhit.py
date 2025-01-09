@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,9 +25,12 @@ from pyimpspec import (
     Frequencies,
     ZHITResult,
     perform_zhit,
+    generate_mock_data,
 )
-from pyimpspec.mock_data import DRIFTING_RANDLES as DATA
 from pyimpspec.analysis.utility import _calculate_residuals
+
+
+DATA = generate_mock_data("CIRCUIT_2_INVALID", seed=42, noise=5e-2)[0]
 
 
 class ZHIT(TestCase):
@@ -59,13 +62,13 @@ class ZHIT(TestCase):
         self.assertTrue(allclose(residuals, _calculate_residuals(Z_exp=Z_exp, Z_fit=Z)))
 
     def test_pseudo_chisqr(self):
-        self.assertAlmostEqual(self.result.pseudo_chisqr, 80.5, delta=1.0)
+        self.assertAlmostEqual(self.result.pseudo_chisqr, 0.012, delta=1e-3)
 
     def test_default(self):
         zhit: ZHITResult = perform_zhit(DATA)
         self.assertIsInstance(zhit, ZHITResult)
-        self.assertEqual(zhit.smoothing, "lowess")
-        self.assertEqual(zhit.interpolation, "akima")
+        self.assertEqual(zhit.smoothing, "modsinc")
+        self.assertEqual(zhit.interpolation, "makima")
         self.assertNotEqual(zhit.window, "auto")
 
     def test_no_smoothing(self):

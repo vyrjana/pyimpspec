@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -59,6 +59,51 @@ register_element(
                 symbol="k",
                 unit="s^-1",
                 description="'Rate constant'",
+                value=1.0,
+                lower_limit=1e-24,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="n",
+                unit="",
+                description="",
+                value=0.5,
+                lower_limit=0.0,
+                upper_limit=1.0,
+                fixed=True,
+            ),
+        ],
+    ),
+)
+
+
+class GerischerAlternative(Element):
+    def _impedance(self, f: Frequencies, R: float, tau: float, n: float) -> ComplexImpedances:
+        return R / ((1 + 1j * 2 * pi * f * tau)**n)
+
+
+register_element(
+    ElementDefinition(
+        Class=GerischerAlternative,
+        symbol="Ga",
+        name="Gerischer, alt.",
+        description="The impedance associated with an electroactive species that is created by a reaction in the electrolyte solution (alternative form).",
+        equation="R/((1+I*2*pi*f*tau)^n)",
+        parameters=[
+            ParameterDefinition(
+                symbol="R",
+                unit="ohm",
+                description="Resistance",
+                value=1.0,
+                lower_limit=0.0,
+                upper_limit=inf,
+                fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="tau",
+                unit="s",
+                description="Time constant",
                 value=1.0,
                 lower_limit=1e-24,
                 upper_limit=inf,

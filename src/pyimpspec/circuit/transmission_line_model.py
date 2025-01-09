@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,19 +21,15 @@ from dataclasses import dataclass
 from typing import (
     Dict,
     Optional,
-    Tuple,
     Union,
 )
 from numpy import (
     array,
-    delete,
     full,
-    indices as array_indices,
     inf,
     isinf,
     pi,
     where,
-    zeros,
 )
 from sympy import (
     Expr,
@@ -70,7 +66,6 @@ from pyimpspec.typing import (
     ComplexImpedance,
     ComplexImpedances,
     Frequencies,
-    Indices,
 )
 
 
@@ -93,6 +88,7 @@ class TransmissionLineModelBlockingOpen(Element):
         w: Frequencies = 2 * pi * f
         w_L: float = 1 / ((R_i * Y * L**2) ** (1 / n))  # Eq. 30 [1]
         alpha: ComplexImpedances = (1j * w / w_L) ** (n / 2)
+
         # Eq. 31 [1]
         return R_i / alpha * coth(alpha)
 
@@ -164,6 +160,7 @@ class TransmissionLineModelBlockingCPE(Element):
         alpha: ComplexImpedances = 1j * w / w_L
         beta: ComplexImpedances = alpha ** (n / 2)
         ct_beta: ComplexImpedances = coth(beta)
+
         # Eq. 34 [1] with modification to account for interfacial CPE
         # alpha**n instead of just alpha
         return (
@@ -253,6 +250,7 @@ class TransmissionLineModelBlockingShort(Element):
         w: Frequencies = 2 * pi * f
         w_L: float = 1 / ((R_i * Y * L**2) ** (1 / n))  # Eq. 30 [1]
         alpha: ComplexImpedances = (1j * w / w_L) ** (n / 2)
+
         # Eq. 34 [1] with Z_B == 0
         return R_i / (coth(alpha) * alpha)
 
@@ -321,6 +319,7 @@ class TransmissionLineModelNonblockingOpen(Element):
         w_L: float = 1 / ((R_i * Y * L**2) ** (1 / n))  # Eq. 30 [1]
         w_ct: float = 1 / ((R_ct * Y) ** (1 / n))  # Eq. 42 [1]
         alpha: ComplexImpedances = 1 + (1j * w / w_ct) ** n
+
         # Eq. 42 [2] (corrected form of eq. 40 [1] that has a typo)
         return sqrt((R_i * R_ct) / alpha) * coth((w_ct / w_L) ** (n / 2) * sqrt(alpha))
 
@@ -403,6 +402,7 @@ class TransmissionLineModelNonblockingCPE(Element):
         # Eq. 43 [1] and eq. 39 [1] inserted into eq. 18 [1]
         Zint: ComplexImpedances = sqrt(R_ct / (R_i * (alpha + 1)))
         ct_LZint: ComplexImpedances = coth(L / Zint)
+
         return (
             R_ct
             * (R_B * ct_LZint + R_i * Zint * (beta + 1))
@@ -509,6 +509,7 @@ class TransmissionLineModelNonblockingShort(Element):
         w: Frequencies = 2 * pi * f
         # Eq. 43 [1] and eq. 39 [1] inserted into eq. 18 [1] and Z_B == 0
         Zint: ComplexImpedances = sqrt(R_ct / (R_i * (Y * R_ct * (1j * w) ** n + 1)))
+
         return R_i * Zint * tanh(L / Zint)
 
 
@@ -584,17 +585,31 @@ class Subcircuit:
         identifiers: Dict[Element, int],
     ):
         if self.is_open:
-            assert connection is None
-            self.expr = oo
+            if connection is None:
+                self.expr = oo
+            else:
+                raise TypeError(
+                    f"Expected connection to be None instead of {connection=}"
+                )
+
         elif self.is_short:
-            assert connection is not None
-            self.expr = 0
+            if connection is not None:
+                self.expr = 0
+            else:
+                raise TypeError(
+                    f"Expected connection to not be None instead of {connection=}"
+                )
+
         else:
-            assert connection is not None
-            self.expr = connection.to_sympy(
-                substitute=substitute,
-                identifiers=identifiers,
-            )
+            if connection is not None:
+                self.expr = connection.to_sympy(
+                    substitute=substitute,
+                    identifiers=identifiers,
+                )
+            else:
+                raise TypeError(
+                    f"Expected connection to not be None instead of {connection=}"
+                )
 
 
 def _evaluate_subcircuit(
@@ -603,21 +618,30 @@ def _evaluate_subcircuit(
     open_connection: Optional[ComplexImpedances],
 ) -> Subcircuit:
     if con is None:
-        assert open_connection is not None
-        return Subcircuit(
-            impedances=open_connection,
-            is_open=True,
-            is_short=False,
-        )
+        if open_connection is not None:
+            return Subcircuit(
+                impedances=open_connection,
+                is_open=True,
+                is_short=False,
+            )
+        else:
+            raise TypeError(
+                f"Expected open_connection to not be None instead of {open_connection=}"
+            )
+
     Z: ComplexImpedances = con._impedance(f)
+
     Z_is_inf = isinf(Z)
     if Z_is_inf.any():
-        assert Z_is_inf.all()
-        return Subcircuit(
-            impedances=Z,
-            is_open=True,
-            is_short=False,
-        )
+        if Z_is_inf.all():
+            return Subcircuit(
+                impedances=Z,
+                is_open=True,
+                is_short=False,
+            )
+        else:
+            raise ValueError(f"Expected all impedances to be infinite instead of {Z=}")
+
     return Subcircuit(
         impedances=Z,
         is_open=False,
@@ -643,11 +667,13 @@ class TransmissionLineModel(Container):
                 inf,
                 dtype=ComplexImpedance,
             )
+
         x1: Subcircuit = _evaluate_subcircuit(X_1, f, open_connection)
         x2: Subcircuit = _evaluate_subcircuit(X_2, f, open_connection)
         za: Subcircuit = _evaluate_subcircuit(Z_A, f, open_connection)
         zb: Subcircuit = _evaluate_subcircuit(Z_B, f, open_connection)
         ze: Subcircuit = _evaluate_subcircuit(Zeta, f, open_connection)
+
         if x1.is_open:
             raise NotImplementedError("X_1 cannot be open!")
         elif x2.is_open:
@@ -660,16 +686,20 @@ class TransmissionLineModel(Container):
             raise NotImplementedError("Zeta cannot be open!")
         elif ze.is_short:
             raise NotImplementedError("Zeta cannot be short!")
+
         lm: ComplexImpedances = sqrt(ze.impedances / (x1.impedances + x2.impedances))
         cs: ComplexImpedances = cosh(L / lm)
         ct: ComplexImpedances = coth(L / lm)
         s: ComplexImpedances = sinh(L / lm)
+
         x: Subcircuit
         if za.is_open and zb.is_open:
             # Both boundaries are perfectly reflecting (i.e., open)
             if x1.is_short or x2.is_short:
                 return self._eq20((x2 if x1.is_short else x1).impedances, lm, ct)
+
             return self._eq8(x1.impedances, x2.impedances, L, lm, s, ct)
+
         elif za.is_open or zb.is_open:
             # One of the boundaries is perfectly reflecting (i.e., open)
             z: Subcircuit = zb if za.is_open else za
@@ -680,8 +710,11 @@ class TransmissionLineModel(Container):
                 if zb.is_short if za.is_open else za.is_short:
                     # The other boundary is a short
                     return self._eq18_variant(x.impedances, lm, ct)
+
                 return self._eq18(x.impedances, z.impedances, lm, ct)
+
             return self._eq17(x1.impedances, x2.impedances, z.impedances, L, lm, cs, s)
+
         elif x1.is_short or x2.is_short:
             # One of the phases is a short (or has a much smaller impedance than
             # the other)
@@ -693,6 +726,7 @@ class TransmissionLineModel(Container):
                 lm,
                 ct,
             )
+
         return self._eq16(
             x1.impedances,
             x2.impedances,
@@ -823,6 +857,7 @@ class TransmissionLineModel(Container):
         L = sympify("L")
         if substitute:
             L.subs("L", values["L"])
+
         X_1: Optional[Connection] = subcircuits["X_1"]
         X_2: Optional[Connection] = subcircuits["X_2"]
         Z_A: Optional[Connection] = subcircuits["Z_A"]
@@ -834,11 +869,13 @@ class TransmissionLineModel(Container):
             inf,
             dtype=ComplexImpedance,
         )
+
         x1: Subcircuit = _evaluate_subcircuit(X_1, f, open_connection)
         x2: Subcircuit = _evaluate_subcircuit(X_2, f, open_connection)
         za: Subcircuit = _evaluate_subcircuit(Z_A, f, open_connection)
         zb: Subcircuit = _evaluate_subcircuit(Z_B, f, open_connection)
         ze: Subcircuit = _evaluate_subcircuit(Zeta, f, open_connection)
+
         if x1.is_open:
             raise NotImplementedError("X_1 cannot be open!")
         elif x2.is_open:
@@ -851,6 +888,7 @@ class TransmissionLineModel(Container):
             raise NotImplementedError("Zeta cannot be open!")
         elif ze.is_short:
             raise NotImplementedError("Zeta cannot be short!")
+
         x1.update_expr(
             connection=X_1,
             substitute=substitute,
@@ -876,10 +914,12 @@ class TransmissionLineModel(Container):
             substitute=substitute,
             identifiers=identifiers,
         )
+
         lm = sympy_sqrt(ze.expr / (x1.expr + x2.expr))
         Cs = sympy_cosh(L / lm)
         Ct = sympy_coth(L / lm)
         S = sympy_sinh(L / lm)
+
         x: Subcircuit
         z: Subcircuit
         if za.is_open and zb.is_open:
@@ -893,6 +933,7 @@ class TransmissionLineModel(Container):
                 return (x1.expr * x2.expr) / (x1.expr + x2.expr) * (
                     L + (2 * lm) / S
                 ) + lm * (x1.expr**2 + x2.expr**2) / (x1.expr + x2.expr) * Ct
+
         elif za.is_open or zb.is_open:
             # One of the boundaries is perfectly reflecting (i.e., open)
             z = zb if za.is_open else za
@@ -904,6 +945,7 @@ class TransmissionLineModel(Container):
                     # The other boundary is a short
                     # Based on eq. 18 [1]
                     return x.expr * lm / Ct
+
                 else:
                     # Eq. 18 [1]
                     return (
@@ -911,6 +953,7 @@ class TransmissionLineModel(Container):
                         * (1 + z.expr / (lm * x.expr) * Ct)
                         / (z.expr / (lm**2 * x.expr) + Ct / lm)
                     )
+
             else:
                 # Eq. 17 [1]
                 return (
@@ -927,6 +970,7 @@ class TransmissionLineModel(Container):
                         * z.expr
                     )
                 )
+
         elif x1.is_short or x2.is_short:
             # Eq. 19 [1]
             x = x2 if x1.is_short else x1
@@ -939,6 +983,7 @@ class TransmissionLineModel(Container):
                 )
                 ** -1
             ) ** -1
+
         # Eq. 16 [1]
         return (
             (x1.expr + x2.expr) ** -1

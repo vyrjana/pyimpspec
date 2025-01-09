@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,10 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from typing import (List, Union,)
+from typing import (
+    List,
+    Union,
+)
 from pyimpspec.circuit.base import Element
 from pyimpspec.circuit.circuit import Circuit
 from pyimpspec.circuit.parser import Parser
@@ -42,13 +45,11 @@ class CircuitBuilder:
 
     def __exit__(self, *args, **kwargs):
         if self._is_parallel:
-            assert (
-                len(self._elements) >= 2
-            ), "Parallel connections must contain at least two items (elements and/or other connections)."
+            if len(self._elements) < 2:
+                raise ValueError("Parallel connections must contain at least two items (elements and/or other connections)")
         else:
-            assert (
-                len(self._elements) >= 1
-            ), "Series connections must contain at least one item (an element or another connection)."
+            if not (len(self._elements) >= 1):
+                raise ValueError("Series connections must contain at least one item (an element or another connection)")
 
     def __str__(self) -> str:
         return self.to_string()
@@ -59,10 +60,11 @@ class CircuitBuilder:
 
         Returns
         -------
-        CircuitBuilder
+        |CircuitBuilder|
         """
         series: "CircuitBuilder" = CircuitBuilder(parallel=False)
         self._elements.append(series)
+
         return series
 
     def parallel(self) -> "CircuitBuilder":
@@ -71,14 +73,16 @@ class CircuitBuilder:
 
         Returns
         -------
-        CircuitBuilder
+        |CircuitBuilder|
         """
         parallel: "CircuitBuilder" = CircuitBuilder(parallel=True)
         self._elements.append(parallel)
+
         return parallel
 
     def __iadd__(self, element: Element) -> "CircuitBuilder":
         self.add(element)
+
         return self
 
     def add(self, element: Element):
@@ -87,21 +91,26 @@ class CircuitBuilder:
 
         Parameters
         ----------
-        element: Element
+        element: |Element|
             The element to add to the current series or parallel connection.
         """
-        assert isinstance(element, Element), element
+        if not isinstance(element, Element):
+            raise TypeError(f"Expected an Element instead of {element=}")
+
         self._elements.append(element)
 
     def _to_string(self, decimals: int = 12) -> str:
         cdc: str = "(" if self._is_parallel else "["
         element: Union["CircuitBuilder", Element]
+
         for element in self._elements:
             if isinstance(element, Element):
                 cdc += element.to_string(decimals=decimals)
             else:
                 cdc += element._to_string(decimals=decimals)
+
         cdc += ")" if self._is_parallel else "]"
+
         return cdc
 
     def to_string(self, decimals: int = -1) -> str:
@@ -126,6 +135,6 @@ class CircuitBuilder:
 
         Returns
         -------
-        Circuit
+        |Circuit|
         """
         return Parser().process(self._to_string())

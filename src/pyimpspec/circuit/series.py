@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -39,6 +39,7 @@ from pyimpspec.typing import (
     ComplexImpedances,
     Frequencies,
 )
+from pyimpspec.typing.helpers import _is_boolean
 
 
 class Series(Connection):
@@ -58,6 +59,7 @@ class Series(Connection):
                 self,
             )
         )
+
         for element in self._elements:
             if isinstance(element, Connection):
                 element.to_stack(stack)
@@ -68,6 +70,7 @@ class Series(Connection):
                         element,
                     )
                 )
+
         stack.append(
             (
                 "]",
@@ -91,7 +94,9 @@ class Series(Connection):
     ) -> ComplexImpedances:
         if not self._elements:
             return complex(0, 0) * f
+
         result: ComplexImpedances = zeros(f.shape, dtype=ComplexImpedance)
+
         elem_con: Union[Element, Connection]
         for elem_con in self._elements:
             Z: ComplexImpedances
@@ -109,6 +114,7 @@ class Series(Connection):
             else:
                 Z = elem_con._impedance(f)
             result += Z
+
         return result
 
     def to_sympy(
@@ -117,12 +123,19 @@ class Series(Connection):
         identifiers: Optional[Dict[Element, int]] = None,
     ) -> Expr:
         expr: Expr = sympify("0")
+
         if not self._elements:
             return expr
-        assert isinstance(substitute, bool), substitute
+
+        if not _is_boolean(substitute):
+            raise TypeError(f"Expected a boolean instead of {substitute=}")
+
         if identifiers is None:
             identifiers = self.generate_element_identifiers(running=False)
-        assert isinstance(identifiers, dict), identifiers
+
+        if not isinstance(identifiers, dict):
+            raise TypeError(f"Expected identifiers to be a dictionary instead of {identifiers=}")
+
         for element in self._elements:
             if isinstance(element, Container) or isinstance(element, Connection):
                 expr += element.to_sympy(substitute=substitute, identifiers=identifiers)
@@ -130,4 +143,5 @@ class Series(Connection):
                 expr += element.to_sympy(
                     substitute=substitute, identifier=identifiers[element]
                 )
+
         return expr

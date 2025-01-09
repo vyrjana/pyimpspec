@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -88,16 +88,21 @@ class Parser:
     def __init__(self):
         self._tokens: List[Token] = []
         self._stack: List[Stackable] = []
-        self._valid_elements: Dict[str, Type[Element]] = get_elements()
-        assert isinstance(self._valid_elements, dict), self._valid_elements
-        assert len(self._valid_elements) > 0
+        self._valid_elements: Dict[str, Type[Element]] = get_elements(private=True)
+
+        if not isinstance(self._valid_elements, dict):
+            raise TypeError(f"Expected a dictionary instead of {self._valid_elements=}")
+
+        if len(self._valid_elements) < 1:
+            raise ValueError(f"Expected at least one item in {self._valid_elements=}")
 
     def process(self, string: str, version: int = -1) -> Circuit:
         string = string.strip()
+
         if (
             string == ""
             or string == "[]"
-            or (string.startswith("!") and string[string.find("!", 1) + 1 :] == "[]")
+            or (string.startswith("!") and string[string.find("!", 1) + 1:] == "[]")
         ):
             self.push_stack(Series([]))
         else:
@@ -108,29 +113,42 @@ class Parser:
                 self.migrate(version=version)
                 while self._tokens:
                     self.main_loop()
+
         con: Union[Series, Parallel]
         if self.get_stack_length() > 1:
             elements: List[Union[Element, Connection]] = []
+
             while not self.is_stack_empty():
                 elem: Union[Element, Connection] = self.pop_stack()  # type: ignore
-                assert isinstance(elem, Element) or isinstance(elem, Connection)
+                if not (isinstance(elem, Element) or isinstance(elem, Connection)):
+                    raise TypeError(
+                        f"Expected a Connection or an Element instead of {elem=}"
+                    )
+
                 elements.append(elem)
+
             elements.reverse()
             con = Series(elements)
         else:
             con = self.pop_stack()  # type: ignore
             if type(con) is not Series:
                 con = Series([con])
-        assert self.is_stack_empty() is True, self._stack
+
+        if not self.is_stack_empty():
+            raise ValueError(f"Expected an empty stack instead of {self._stack=}")
+
         return Circuit(con)
 
     def pop_token(self) -> Token:
         if len(self._tokens) == 0:
             raise InsufficientTokens()
+
         return self._tokens.pop(0)
 
     def pop_stack(self) -> Stackable:
-        assert len(self._stack) > 0, "Ran out of items on the stack!"
+        if len(self._stack) < 1:
+            raise ValueError("Ran out of items on the stack!")
+
         return self._stack.pop(0)
 
     def push_stack(self, item: Stackable):
@@ -143,27 +161,35 @@ class Parser:
         return len(self._stack)
 
     def peek(self, n: int = 1) -> Optional[Token]:
-        assert n >= 0, n
+        if not (n >= 0):
+            raise ValueError(f"Expected {n=} >= 0")
+
         if len(self._tokens) < n + 1:
             return None
+
         return self._tokens[n]
 
     def accept(self, Class: Type[Token]) -> bool:
         if not self._tokens:
             return False
+
         return type(self._tokens[0]) is Class
 
     def expect(self, Class: Type[Token]):
         if len(self._tokens) == 0:
             raise InsufficientTokens()
+
         token: Token = self._tokens[0]
+
         if type(token) is not Class:
             raise UnexpectedToken(token, Class)
 
     def expect_number(self):
         if len(self._tokens) == 0:
             raise ExpectedNumericValue(None)
+
         token: Token = self._tokens[0]
+
         if not (type(token) is Number or type(token) is FixedNumber):
             raise ExpectedNumericValue(token)
 
@@ -186,13 +212,17 @@ class Parser:
         Class: Type[Connection],
     ):
         self.push_stack(self.pop_token())
+
         if self.accept(Closing):
             raise ConnectionWithoutElements(Class)
+
         while not self.accept(Closing):
             self.main_loop()
+
         self.expect(Closing)
         self.pop_token()
         items: List[Stackable] = []
+
         while self._stack:
             item: Stackable = self.pop_stack()
             if type(item) is Opening:
@@ -201,13 +231,20 @@ class Parser:
                 items.extend(reversed(item._elements))
             else:
                 items.append(item)
-        assert len(items) > 0
+
+        if len(items) < 1:
+            raise ValueError(f"Expected at least one item in {items=}")
+
         if Class is Parallel and len(items) < 2:
             raise InsufficientElementsInParallelConnection()
-        assert all(
+
+        if not all(
             map(lambda _: isinstance(_, Element) or isinstance(_, Connection), items)
-        )
+        ):
+            raise TypeError(f"Expected only Connections and Elements in {items=}")
+
         items.reverse()
+
         if Class is Series and len(items) == 1:
             self.push_stack(items[0])
         else:
@@ -217,6 +254,7 @@ class Parser:
         identifier: Identifier = self.pop_token()
         if identifier.value not in self._valid_elements:
             raise InvalidElementSymbol(identifier)
+
         Class: Type[Element] = self._valid_elements[identifier.value]
         label: str
         parameters: Dict[str, float]
@@ -232,6 +270,7 @@ class Parser:
             fixed_parameters,
             subcircuits,
         ) = self.parameters(Class)
+
         element = Class(**parameters, **subcircuits)
         element.set_label(label)
         element.set_lower_limits(
@@ -241,6 +280,7 @@ class Parser:
             **{k: v for k, v in upper_limits.items() if not isnan(v)}
         )
         element.set_fixed(**fixed_parameters)
+
         self.push_stack(element)
 
     def parameters(
@@ -260,6 +300,7 @@ class Parser:
         upper_limits: Dict[str, float] = {}
         fixed_parameters: Dict[str, bool] = {}
         subcircuits: Dict[str, Optional[Connection]] = {}
+
         if not self.accept(LCurly):
             return (
                 label,
@@ -269,21 +310,27 @@ class Parser:
                 fixed_parameters,
                 subcircuits,
             )
+
         self.pop_token()
+
         if not self.accept(Colon):
             parameter_keys: List[str] = list(Class.get_default_values().keys())
             subcircuit_keys: List[str] = []
+
             if issubclass(Class, Container):
                 subcircuit_keys.extend(Class.get_default_subcircuits().keys())
+
             key: str
             value: float
             while parameter_keys or subcircuit_keys:
                 if not self.accept(Identifier):
                     raise ExpectedParameterIdentifier(Class)
+
                 token: Token = self.pop_token()  # type: ignore
                 key = token.value
                 self.expect(Equals)
                 self.pop_token()
+
                 if (
                     self.accept(LBracket)
                     or self.accept(LParen)
@@ -293,13 +340,16 @@ class Parser:
                         raise DuplicateParameterDefinition(key, subcircuit_keys, Class)
                     elif key not in subcircuit_keys:
                         raise InvalidParameterDefinition(key, subcircuit_keys, Class)
+
                     subcircuits[key] = self.subcircuit(token)
                     subcircuit_keys.remove(key)
+
                 else:
                     if key in parameters:
                         raise DuplicateParameterDefinition(key, parameter_keys, Class)
                     elif key not in parameter_keys:
                         raise InvalidParameterDefinition(key, parameter_keys, Class)
+
                     lower: float
                     upper: float
                     value, lower, upper, fixed = self.param(Class, token)
@@ -307,23 +357,30 @@ class Parser:
                         raise InvalidParameterLowerLimit(key, value, lower)
                     if not isnan(upper) and upper < value:
                         raise InvalidParameterUpperLimit(key, value, upper)
+
                     parameter_keys.remove(key)
                     parameters[key] = value
                     lower_limits[key] = lower
                     upper_limits[key] = upper
                     fixed_parameters[key] = fixed
+
                 if self.accept(Comma):
                     if len(parameter_keys) == 0 and len(subcircuit_keys) == 0:
                         raise TooManyParameterDefinitions(Class)
+
                     self.pop_token()
                     continue
+
                 break
+
         if self.accept(Colon):
             self.pop_token()
             self.expect(Label)
             label = self.pop_token().value
+
         self.expect(RCurly)
         self.pop_token()
+
         return (
             label,
             parameters,
@@ -337,27 +394,39 @@ class Parser:
         con: Stackable
         if self.accept(Identifier):
             token: Optional[Token] = self.peek(0)
-            assert token is not None
+            if token is None:
+                raise TypeError(f"Expected a Token instead of {token=}")
+
             if token.value == "zero" or token.value == "short":
                 self.pop_token()
                 return Series([])
+
             elif token.value == "inf" or token.value == "open":
                 self.pop_token()
                 return None
+
             while type(self.peek(0)) not in [Comma, Colon, RCurly]:
                 if self.peek(0) is None:
                     raise InsufficientTokens()
                 self.main_loop()
+
             elements: List[Element] = []
+
             while not self.is_stack_empty():
                 con = self.pop_stack()
-                assert isinstance(con, Element)
+                if not isinstance(con, Element):
+                    raise TypeError(f"Expected an Element instead of {con=}")
+
                 elements.insert(0, con)
+
             elements.reverse()
+
             return Series(elements)
+
         opening: Type[Token]
         closing: Type[Token]
         Class: Type[Connection]
+
         if self.accept(LBracket):
             opening = LBracket
             closing = RBracket
@@ -366,12 +435,21 @@ class Parser:
             opening = LParen
             closing = RParen
             Class = Parallel
+
         self.connection(opening, closing, Class)
+
         con = self.pop_stack()
-        assert not isinstance(con, Token), (key, con)
+        if isinstance(con, Token):
+            raise TypeError(
+                f"Expected a Connection instead of a Token ({key=}, {con=})"
+            )
+
         if isinstance(con, Element):
             con = Series([con])
-        assert isinstance(con, Connection), (key, con)
+
+        if not isinstance(con, Connection):
+            raise TypeError(f"Expected a Connection instead of {con=} ({key=})")
+
         return con
 
     def param(
@@ -385,16 +463,20 @@ class Parser:
         fixed: bool = isinstance(value, FixedNumber)
         lower: float = nan
         upper: float = nan
+
         if self.accept(ForwardSlash):
             self.pop_token()
+
             if self.accept(ForwardSlash):
                 self.pop_token()
                 upper = self.param_limit(value.value, upper=True)
+
             else:
                 lower = self.param_limit(value.value, upper=False)
                 if self.accept(ForwardSlash):
                     self.pop_token()
                     upper = self.param_limit(value.value, upper=True)
+
         return (
             value.value,
             lower,
@@ -407,26 +489,36 @@ class Parser:
         if not self.accept(Number):
             self.expect(Identifier)
             limit = self.pop_token()
-            assert limit.value == "inf", "Expected 'inf' or a number!"
-            if upper is True:
+            if limit.value != "inf":
+                raise ValueError(
+                    f"Expected 'inf' or a number instead of {limit.value=}"
+                )
+
+            if upper:
                 return inf
+
             return -inf
+
         limit = self.pop_token()
+
         if self.accept(Percent):
             self.pop_token()
             return value * limit.value / 100
+
         return limit.value
 
     def migrate(self, version: int = -1):
         if version == 0:
             self._v0_migrator()
             version = 1
+
         elif self.accept(Exclamation):
             self.pop_token()
             self.expect(Identifier)
             token: Token = self.pop_token()
             if token.value.upper() != "V":
                 raise UnexpectedIdentifier(token, "V")
+
             self.expect(Equals)
             self.pop_token()
             self.expect_number()
@@ -434,14 +526,19 @@ class Parser:
             version = int(token.value)
             if not (0 < version <= VERSION):
                 raise InvalidNumericValue(token, f"Expected 0 < value <= {VERSION}!")
+
             self.expect(Exclamation)
             self.pop_token()
         else:
             return
-        assert version > 0, version
+
+        if not (version > 0):
+            raise ValueError(f"Expected {version=} > 0")
+
         migrators: Dict[int, Callable] = {
             1: self._v1_migrator,
         }
+
         v: int
         migrator: Callable
         for v, migrator in migrators.items():
@@ -456,8 +553,10 @@ class Parser:
             token: Token = self._tokens[0]
             if not isinstance(token, LCurly):
                 return
+
             nonlocal new_tokens
             token = self._tokens.pop(0)
+
             while not isinstance(token, RCurly):
                 if isinstance(token, Identifier) and token.value in pairs:
                     token = Identifier(
@@ -465,19 +564,24 @@ class Parser:
                         end=token.end,
                         value=pairs[token.value],
                     )
+
                 elif isinstance(token, Colon):
                     while not isinstance(token, RCurly):
                         new_tokens.append(token)
                         token = self._tokens.pop(0)
                     break
+
                 new_tokens.append(token)
                 token = self._tokens.pop(0)
+
             new_tokens.append(token)
-            assert isinstance(new_tokens[-1], RCurly)
+            if not isinstance(new_tokens[-1], RCurly):
+                raise TypeError(f"Expected RCurly instead of {new_tokens[-1]=}")
 
         while self._tokens:
             token: Token = self._tokens.pop(0)
             new_tokens.append(token)
+
             if isinstance(token, Identifier):
                 if token.value == "Ls":
                     replace_element_parameters(
@@ -486,12 +590,14 @@ class Parser:
                             "Rr": "R_r",
                         }
                     )
+
                 elif token.value == "H":
                     replace_element_parameters(
                         {
                             "t": "tau",
                         }
                     )
+
                 elif token.value == "Ha":
                     replace_element_parameters(
                         {
@@ -500,14 +606,19 @@ class Parser:
                             "g": "b",
                         }
                     )
+
                 elif token.value == "K":
                     replace_element_parameters(
                         {
                             "t": "tau",
                         }
                     )
-        assert len(self._tokens) == 0
+
+        if not (len(self._tokens) == 0):
+            raise ValueError(f"Expected {self._tokens=} to be empty")
+
         self._tokens.extend(new_tokens)
 
     def _v1_migrator(self):
-        assert VERSION == 1, "Update implementation since VERSION != 1!"
+        if not (VERSION == 1):
+            raise ValueError("Update the implementation since VERSION != 1")

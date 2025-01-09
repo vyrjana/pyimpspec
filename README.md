@@ -69,7 +69,7 @@ See [CONTRIBUTORS](CONTRIBUTORS) for a list of people who have contributed to th
 
 ## License
 
-Copyright 2023 pyimpspec developers
+Copyright 2024 pyimpspec developers
 
 Pyimpspec is licensed under the [GPLv3 or later](https://www.gnu.org/licenses/gpl-3.0.html).
 

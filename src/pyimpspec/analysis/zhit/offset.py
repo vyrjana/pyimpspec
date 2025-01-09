@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@ from typing import (
     Tuple,
 )
 from numpy import (
+    complex128,
     exp,
     float64,
     vectorize,
@@ -50,6 +51,7 @@ def _offset_residual(
 ) -> NDArray[float64]:
     offset: float = parameters.valuesdict()["offset"]
     errors: NDArray[float64] = ((reconstruction + offset) - ln_modulus) ** 2
+
     return weights * errors
 
 
@@ -75,8 +77,10 @@ def _calculate_modulus_offset(
         )
     if where(weights < 0.0)[0].size > 0:
         raise ZHITError("Weights must be non-negative values!")
+
     parameters: Parameters = Parameters()
     parameters.add("offset", 0.0)
+
     fit: MinimizerResult = minimize(
         _offset_residual,
         parameters,
@@ -86,26 +90,32 @@ def _calculate_modulus_offset(
             weights,
         ),
     )
+
     return fit.params.valuesdict()["offset"]
 
 
-def _adjust_offset(args) -> Tuple[float, ComplexImpedances, str, str, str]:
+def _adjust_offset(args) -> Tuple[float, NDArray[complex128], str, str, str]:
     (
         ln_modulus,
         phase,
         ln_modulus_exp,
         weights,
-        Z_exp,
+        X_exp,
+        admittance,
         smoothing,
         interpolation,
         window,
     ) = args
+
     offset: float = _calculate_modulus_offset(ln_modulus, ln_modulus_exp, weights)
-    Z_fit: ComplexImpedances = rect(exp(ln_modulus + offset), phase)
-    Xps = _calculate_pseudo_chisqr(Z_exp=Z_exp, Z_fit=Z_fit)
+    X_fit: NDArray[complex128] = rect(exp(ln_modulus + offset), phase)
+
     return (
-        Xps,
-        Z_fit,
+        _calculate_pseudo_chisqr(
+            Z_exp=X_exp ** (-1 if admittance else 1),
+            Z_fit=X_fit ** (-1 if admittance else 1),
+        ),
+        X_fit,
         smoothing,
         interpolation,
         window,
@@ -116,12 +126,15 @@ def _adjust_modulus_offset(
     reconstructions: List[Tuple[NDArray[float64], Phases, str, str]],
     window_options: Dict[str, NDArray[float64]],
     ln_modulus_exp: NDArray[float64],
-    Z_exp: ComplexImpedances,
+    X_exp: NDArray[complex128],
+    admittance: bool,
     num_procs: int,
     prog: Progress,
-) -> List[Tuple[float, NDArray[float64], str, str, str]]:
+) -> List[Tuple[float, NDArray[complex128], str, str, str]]:
     prog.set_message("Adjusting modulus offset")
-    results: List[Tuple[float, NDArray[float64], str, str, str]] = []
+
+    results: List[Tuple[float, ComplexImpedances, str, str, str]] = []
+
     args = []
     window: str
     weights: NDArray[float64]
@@ -130,27 +143,30 @@ def _adjust_modulus_offset(
         phase: Phases
         smoothing: str
         interpolation: str
-        for (ln_modulus, phase, smoothing, interpolation) in reconstructions:
+        for ln_modulus, phase, smoothing, interpolation in reconstructions:
             args.append(
                 (
                     ln_modulus,
                     phase,
                     ln_modulus_exp,
                     weights,
-                    Z_exp,
+                    X_exp,
+                    admittance,
                     smoothing,
                     interpolation,
                     window,
                 )
             )
+
     if len(args) > 1 and num_procs > 1:
         with Pool(num_procs) as pool:
             for res in pool.imap_unordered(_adjust_offset, args):
                 results.append(res)
                 prog.increment()
+
     else:
         for res in map(_adjust_offset, args):
             results.append(res)
             prog.increment()
-    results.sort(key=lambda _: _[0])
-    return results
+
+    return sorted(results, key=lambda _: _[0])

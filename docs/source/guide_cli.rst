@@ -36,24 +36,30 @@ These examples have been split across multiple lines here for the sake of format
 
    # Parse some file for impedance spectra and perform Kramers-Kronig tests
    # with a series capacitance and a mu-criterion of 0.7.
-   # The perform_exploratory_tests function is used by default unless the
-   # number of parallel RC elements is specified or the --automatic option
-   # is used.
    pyimpspec test "path to some file" \
-     --add-capacitance \
+     --no-capacitance \
      --mu-criterion 0.7
 
-The path to an input file can be replaced with special placeholder values:
+The path to an input file can be replaced with special placeholder values such as:
 
-- ``"<EXAMPLE>"``: test circuit 1 from `Boukamp (1995)`_
-- ``"<RANDLES>"``: a (simplified) Randles circuit
-- ``"<DRIFTING>"``: a (simplified) Randles circuit with drift
+- ``"<CIRCUIT_1>"``: test circuit 1 from `Boukamp (1995)`_
+- ``"<CIRCUIT_2>"``: a simplified Randles circuit
+- ``"<CIRCUIT_2_INVALID>"``: a simplified Randles circuit with drift
 
 .. _`Boukamp (1995)`: https://doi.org/10.1149/1.2044210
 
+The wildcard ``*`` can also be used to select multiple immittance spectra.
+
 .. code:: bash
 
-   pyimpspec zhit "<DRIFTING>"
+   pyimpspec zhit "<CIRCUIT_*>"
+
+
+Some settings can also be changed.
+
+.. code:: bash
+
+   pyimpspec zhit "<CIRCUIT_*:noise=5e-2,num_per_decade=9,seed=42,drift=1.1,log_min_f=-1.0,log_max_f=4.0>"
 
 
 A config file can be saved and then used to override the defaults arguments so that the arguments don't have to be explicitly specified in the terminal.

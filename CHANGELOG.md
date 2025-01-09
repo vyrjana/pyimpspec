@@ -1,3 +1,231 @@
+# 5.1.1 (2024/11/20)
+
+- Added a docstring to the `Circuit.serialize` method.
+- Fixed a bug that caused an exception to be raised when attempting to pass multiple methods and/or weights to the `fit_circuit` function.
+
+
+# 5.1.0 (2024/11/02)
+
+- Added support for analyzing the peaks in DRT results by fitting skew normal distributions:
+  - Added an `analyze_peaks` method to the `DRTResult` class.
+  - Added a `DRTPeaks` class, which can be used to, e.g., calculate the area of a peak.
+- Added an implementation of the Loewner method for calculating the distribution of relaxation times:
+  - Added a `calculate_drt_lm` function.
+  - Added an `LMResult` class.
+  - Added `--model-order` and `--model-order-method` CLI arguments.
+  - Updated the `plot.mpl.plot_gamma` function to support plotting `LMResult` instances.
+- Added the ability to define constraints when fitting circuits:
+  - Added a `generate_fit_identifiers` function.
+  - Added a `FitIdentifiers` class.
+- Added support for plotting DRT results as gamma vs f.
+  - Added CLI argument for plotting DRT results as gamma vs f.
+- Added an alternative form of the Gerischer element (`GerischerAlternative`) with the parameters `R`, `tau`, and `n`.
+- Added more circuits for generating mock data.
+- Added support for the modified Akima spline (`makima`) to the interpolation phase of Z-HIT and set it as the default.
+- Added support for specifying multiple methods and/or weights to use when calling the `fit_circuit` function.
+- Added a `max_iter` argument to the TR-NNLS method in case the default number of iterations is insufficient.
+- Updated the TR-RBF implementation to be based off of a newer version of pyDRTtools.
+- Updated plotting functions to support drawing smoother lines if the input result has a `circuit` property.
+- Updated an exception message to provide more information if a variable that is being fitted is out of bounds.
+- Updated documentation.
+- Updated the `generate_mock_data` function so that it attempts to cast arguments to the appropriate type if some other types of values (e.g., integers) are provided instead.
+- Updated the `circuit.registry.register_element` function to support a new `private` keyword argument.
+  - Updated the `circuit.registry.get_elements` function to not include by default `Element` classes that were registered with `private=True`.
+  - Updated the `KramersKronigRC` and `KramersKronigAdmittanceRC` classes to be registered with `private=True`.
+- Updated some plotting functions (e.g., primitives such as `mpl.plot_nyquist`, `mpl.plot_gamma`) to support `None` as input so that the functions can be used to set up a blank plot.
+- Updated the `get_default_num_procs` function to also support additional environment variables that may be supported by OpenBLAS (depends upon the settings used when OpenBLAS was compiled).
+- Updated the `fit_circuit` function to ignore `RuntimeWarning`s during fitting.
+- Updated the `Warburg` element class to include an `n` exponent (fixed at 0.5 by default).
+- Updated the `plot_gamma` function to include a horizontal line marking zero on the y-axis.
+- Updated the automatic adjustment of initial values of circuit parameters to be bypassed when a non-default value is detected in a `Circuit` that is provided to the m(RQ)-fit method without a corresponding `FitResult`.
+- Updated the m(RQ)-fit method to support resistive-inductive `(RQ)` elements. The `n` parameter of the `ConstantPhaseElement` instance would then need to be `-1.0 <= n < 0.0`.
+- Updated the parsing of data files to better support cases where a decimal comma is used instead of a decimal point.
+- Fixed a bug that caused methods such as `DRTResult.get_peaks` to miss peaks at the time constant extremes.
+- Fixed a bug that caused an element's parameters in `FitResult.to_parameters_dataframe` to not be in a sorted order.
+- Fixed the previously unimplemented `FitResult.get_parameters` method.
+- Fixed a bug that caused `FitResult.to_parameters_dataframe` to return negative standard errors when the fitted value was negative.
+- Fixed a bug that could cause `FitResult.to_parameters_dataframe` to divide by zero.
+- Fixed a bug that could cause `FittedParameter.get_relative_error` to divide by zero.
+- Fixed a bug where an exception would be raised when whitespace was included between keyword arguments when passing circuit identifiers or CDCs via the CLI (e.g., `<R(RC):noise=5e-2, log_max_f=4>` would previously raise an exception whereas `<R(RC):noise=5e-2,log_max_f=4>` would not).
+- Fixed a bug in the `perform_exploratory_kramers_kronig_tests` function that caused an exception to be raised when `admittance=True` or `admittance=False`.
+- Fixed a bug where passing a list of `KramersKronigResult` objects corresponding to a noise-free `DataSet` to the `suggest_num_RC_limits` function could cause an exception to be raised because the lower limit of the number of RC elements was estimated to be greater than the highest tested number of RC elements.
+- Fixed a bug where `get_default_num_procs` could raise an exception if an environment variable (e.g., `OPENBLAS_NUM_THREADS`) was assigned a non-numerical value.
+- Fixed a bug that caused the range of time constants of the m(RQ)-fit and TR-NNLS results to be incorrect although the peaks were still at the right values.
+- Refactored some of the code.
+
+
+# 5.0.2 (2024/09/10)
+
+- Updated the documentation (e.g., various function and method docstrings have been updated). Notably, the functions related to handling progress updates are now included in the API documentation.
+
+
+# 5.0.1 (2024/09/03)
+
+- Updated the docstring of the `generate_mock_data` function.
+- Updated the documentation to include the functions for generating mock data and circuits.
+- Fixed a bug in a function for interpolating frequencies.
+
+
+# 5.0.0 (2024/08/29)
+
+**THIS UPDATE CONTAINS SEVERAL CHANGES THAT ARE NOT BACKWARDS COMPATIBLE WITH CODE WRITTEN USING VERSION 4.x!**
+**SOME OF THE ARGUMENTS IN THE COMMAND LINE INTERFACE HAVE ALSO CHANGED OR BEEN REMOVED!**
+
+
+### Linear Kramers-Kronig tests
+
+- Renamed the `TestResult` class to `KramersKronigResult`.
+- Renamed the `perform_test` function to `perform_kramers_kronig_test`.
+- Removed the `perform_exploratory_tests` function. The `pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext` function should be used instead.
+- The `complex`, `real`, and `imaginary` tests now use`numpy.linalg.lstsq`. The previous implementations based on matrix inversion are now accessible by appending `-inv` (e.g., `complex-inv`).
+- Updated the `perform_test` and `perform_exploratory_tests` function signatures (e.g., `test='real'`, `add_capacitance=True`, and `add_inductance=True` are now the new defaults).
+- Replaced the `--add-capacitance` and `--add-inductance` CLI arguments with `--no-capacitance` and `--no-inductance`. They new arguments have the same abbreviated forms, which means that `-C` and `-L` now have the opposite effect compared to previously.
+- Added a variant of the mu-criterion algorithm that fits a logistic function to the mu-values (accessible via negative mu-criterion values).
+- Added a `suggest_num_RC` function for suggesting the optimum number of RC elements to use when performing linear Kramers-Kronig tests:
+    - Estimates the lower and upper limits for the range of numbers of RC elements to avoid under- and overfitting.
+    - Uses one or more methods/algorithms for suggesting the optimum number of RC elements:
+      - Method 1 (https://doi.org/10.1016/j.electacta.2014.01.034)
+      - Method 2 (https://doi.org/10.1109/IWIS57888.2022.9975131)
+      - Method 3 (https://doi.org/10.1109/IWIS57888.2022.9975131)
+      - Method 4 (https://doi.org/10.1109/IWIS57888.2022.9975131)
+      - Method 5 (https://doi.org/10.1016/j.electacta.2024.144951)
+      - Method 6 (https://doi.org/10.1016/j.electacta.2024.144951)
+    - Defaults to an approach that uses methods 4, 3, and 5 (in that order) to narrow the list of options.
+    - Multiple methods can be combined in different ways:
+      - mean of the suggested values
+      - sum of scores obtained based on rankings
+      - sum of relative scores
+- Added support for performing linear Kramers-Kronig tests on the admittance representation:
+  - Added `KramersKronigAdmittanceRC` element to represent the series RC element used in the equivalent circuit model.
+  - Added a boolean `admittance` attribute to the `TestResult` class.
+  - Added `get_parallel_resistance`, `get_parallel_capacitance`, and `get_parallel_inductance` methods to the `TestResult` class.
+  - Added a variant of the mu-criterion algorithm that uses capacitance values instead of resistance values when operating on the admittance representation.
+- Added `suggest_representation` function for suggesting either the impedance or admittance representation to use.
+- Added `evaluate_time_constant_extensions` function for optimizing the extension of the range of time constants.
+- Added the following arguments to the CLI:
+  - `--admittance` and `--impedance` to only perform tests on the admittance and impedance representation, respectively.
+  - `--suggestion-methods` to selecting one or more methods for suggesting the optimum number of RC elements.
+  - `--mean`, `--ranking`, and `--sum` to specify how to combine multiple methods for suggesting the optimum number of RC elements.
+  - `--num-F-ext-evaluations` to specify the number of evaluations to perform when optimizing the extension of the range of time constants.
+  - `--min-log-F-ext` and `--max-log-F-ext` to specify the lower and upper limits for the number of decades to extend the range of time constants when `--num-F-ext-evaluations` is set to something else than zero.
+  - `--log-F-ext` to specify the number of decades to extend the range of time constants when `--num-F-ext-evaluations` is set to zero.
+  - `--no-rapid-F-ext-evaluations` to evaluate the full range of the number of time constants at each sampled extension of the range of time constants.
+  - `--lower-limit`/`--upper-limit` to specify the lower/upper limit for the optimum number of RC elements to suggest.
+  - `--limit-delta` as an alternative way of specifying the limits of the range of optimum number of RC elements to suggest.
+  - `--plot-immittance` to automatically plot the corresponding immittance representation that was used when performing the linear Kramers-Kronig test.
+  - `--plot-pseudo-chi-squared` to override the plot when a single suggestion method has been chosen.
+  - `--plot-moving-average-width` to plot the moving averages of the residuals (the number of points must be provided).
+  - `--plot-estimated-noise` to include the estimated standard deviation of the noise.
+  - `--plot-log-F-ext-3d` and `--plot-log-F-ext-2d` to plot the pseudo chi-squared values as a function of the number of time constants and the extension of the range of time constants.
+  - `--plot-auto-limited-residuals` to automatically adjust the limits of the y-axes when plotting the relative residuals.
+- Added utility functions for subdividing frequency ranges and for calculating the curvatures of impedance spectra.
+- Updated the `perform_test` function to make use of the `perform_exploratory_tests`, `suggest_num_RC`, and `suggest_representation` functions.
+- Refactored the `perform_exploratory_tests` function to only perform tests with different numbers of RC elements.
+- Removed the `--automatic` argument from the CLI.
+- Updated the CLI to use similar plots both for exploratory results and when manually selecting a number of RC elements.
+- Removed the `mu` attribute from the `TestResult` class.
+- Fixed a bug in calculation of mu values that caused the series resistance to be included.
+- Some functions are no longer available the top level of the package and must instead be accessed via the `pyimpspec.analysis.kramers_kronig` module.
+
+
+### Z-HIT analysis
+
+- Added support for performing Z-HIT analysis on admittance data.
+- Added a CLI argument for performing analyses on admittance data (`--admittance` or `-A`).
+- Added two smoothing algorithms (https://doi.org/10.1021/acsmeasuresciau.1c00054):
+  - `whithend`: Whittaker-Henderson
+  - `modsinc`: modified sinc kernel with linear extrapolation
+- Updated the default smoothing algorithm to be `modsinc`.
+- Added title to plot by default when performing analyses via the CLI.
+- Changed `statsmodels` from a required dependency to an optional dependency.
+- Added support for showing a plot of the residuals when using the CLI.
+
+
+### Fitting
+
+- Added an optional `timeout` argument to the `fit_circuit` function that can be used to set a time limit. This can be used to force the fitting process to timeout if it is taking a very long time to finish.
+- Added `--timeout` argument to the CLI.
+- Added `--type` argument to the CLI so that fit results can optionally be plotted as, e.g., just a Nyquist plot.
+
+
+### Distribution of relaxation times
+
+- Updated the TR-RBF implementation to be based off of a newer version of pyDRTtools:
+  - `lambda_value` is now automatically determined using a cross-validation method unless the new `cross_validation` argument is an empty string (i.e., `cross_validation=""`).
+  - If one of the cross-validation methods is chosen, then `lambda_value` is used as the initial value.
+  - The currently supported cross-validation (CV) methods are:
+    - `"gcv"` - generalized cross-validation (GCV)
+    - `"mgcv"` - modified GCV
+    - `"rgcv"` - robust GCV
+    - `"re-im"` - real-imaginary CV
+    - `"lc"` - L-curve
+  - See https://doi.org/10.1149/1945-7111/acbca4 for more information about the CV methods.
+- Removed the `maximum_symmetry` argument from the TR-RBF implementation.
+- Changed how timeouts and progress updates are implemented when the TR-RBF method is called with `credible_intervals=True` and `timeout` is greater than zero.
+- Some functions and classes are no longer available the top level of the package and must instead be accessed via the `pyimpspec.analysis.drt` module.
+
+
+### Plotting
+
+- Added support for plotting admittance data:
+  - The affected plotting functions now have an optional, boolean `admittance` keyword argument.
+- Added a CLI argument for plotting admittance data (`--plot-admittance` or `-pY`).
+- Removed the `mpl.plot_mu_xps` function.
+- Added an `mpl.plot_pseudo_chisqr` function for plotting the pseudo chi-squared values of `TestResult` instances.
+- Updated the `mpl.plot_residuals` function to not use markers by default.
+- Fixed a bug that caused `mpl.plot_residuals` to have empty legend labels when no markers were used.
+- Updated how the limits are automatically determined by the `mpl.plot_residuals` function.
+- Updated how the ticks are determined in the y-axes of the `mpl.plot_residuals` function.
+- Added an `mpl.plot_suggestion` function that visualizes the suggested numbers of RC elements to use for linear Kramers-Kronig testing.
+- Added an `mpl.plot_suggestion_method` function that visualizes the data that is used to suggest the number of RC elements to use for linear Kramers-Kronig testing.
+- Removed support for colored axes from the `mpl.plot_nyquist` function.
+- Updated the `mpl.plot_nyquist` function to switch to using a marker when using `line=True` if all points are approximately the same.
+- Updated how the `--plot-type` CLI argument is handled when plotting, e.g., DRT results.
+- Added an `mpl.show` function that acts as a wrapper for `matplotlib.pyplot.show`.
+- Renamed the `plot_tests` function to `plot_kramers_kronig_tests`.
+- Renamed the `plot_complex` function to `plot_real_imaginary`.
+
+
+### Data parsing
+
+- Added support for parsing ZView/ZPlot `.z` files.
+- Added support for parsing PalmSens `.pssession` files.
+- Added support for two more variants of column headers to parsers that attempt to automatically identify columns.
+- Added support for using `pathlib.Path` in addition to `str` when passing paths to, e.g., the `parse_data` function.
+- Added `--output-indices` argument to the CLI to include zero-based indices in text output.
+- Added `--exclude-indices` argument to the CLI so that specific data points (e.g., outliers) can be excluded based on their zero-based indices.
+- Added `--nth-data-set` argument to the CLI so that one or more data sets can be chosen from a file.
+- Updated parsing of `.dta` files to support parsing the drift corrected impedances when it is available. The returned `List[DataSet]` is sorted so that the drift corrected impedance spectra have a lower index in the list than the uncorrected impedance spectra.
+- Fixed a bug that caused an exception to be raised when parsing a spreadsheet that also contained at least one empty sheet.
+- Fixed a bug that caused NumPy arrays in the dictionary returned by `DataSet.to_dict` to not be compatible with `json.dump` and `json.dumps` from the standard library.
+- Fixed a bug where `DataSet.from_dict` was unable to handle mask dictionaries where the keys were strings instead of integers.
+- Fixed a bug where the keyword arguments provided to `parse_data` were not being passed on to the different format parsers in a specific case.
+- Fixed a bug where detecting columns in files would fail if an otherwise valid column name started with whitespace.
+
+
+### Elements
+
+- Added the ZARC element, which is represented by `Zarc` in circuit description codes.
+- Added a `reset_default_parameter_values` function to reset the default parameter values of either all element types or specific element types.
+- Added `remove_elements` and `reset` functions to the `pyimpspec.circuit.registry` module that can be used to remove user-defined elements, or to remove user-defined elements and reset the default parameter values, respectively.
+- Added an optional `default_only` parameter to the `get_elements` function so that the function can return either all elements (including user-defined elements) or just the elements included in pyimpspec by default. The parameter is set to `False` by default, which means that all elements are returned.
+
+
+### Miscellaneous
+
+- Added `get` and `get_total` methods to the `Progress` class for obtaining the current step and the current total.
+- Added `register_default_handler` and `clear_default_handler_output` functions to the `progress` module.
+- Added mock data for circuit with negative differential resistance.
+- Added mock data for Randles circuit with diffusion.
+- Added noisy variants of mock data.
+- Added a `set_default_values` class method to circuit elements.
+- Refactored code.
+- Updated minimum versions of dependencies and removed support for Python 3.9.
+- Removed cvxpy from the list of supported optional dependencies.
+- Added `canvas` argument to `Circuit.to_drawing` method.
+- Changed some CLI argument names to improve consistency.
+
+
 # 4.1.1 (2024/03/14)
 
 - Maintenance release that updates the version requirements for dependencies.

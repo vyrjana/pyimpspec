@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,15 +18,11 @@
 # the LICENSES folder.
 
 from numpy import (
-    complex128,
-    float64,
     inf,
     pi,
 )
-from numpy.typing import NDArray
 from .functions import (
     coth,
-    sqrt,
     tanh,
 )
 from .base import Element
@@ -43,8 +39,8 @@ from pyimpspec.typing import (
 
 
 class Warburg(Element):
-    def _impedance(self, f: Frequencies, Y: float) -> ComplexImpedances:
-        return 1 / (Y * (1j * 2 * pi * f) ** (1 / 2))
+    def _impedance(self, f: Frequencies, Y: float, n: float) -> ComplexImpedances:
+        return 1 / (Y * (1j * 2 * pi * f) ** n)
 
 
 register_element(
@@ -57,18 +53,27 @@ Semi-infinite Warburg diffusion.
 
 |equation|
 
-where :math:`Y = \frac{1}{\sigma\sqrt{2}}` and :math:`\sigma` is the Warburg coefficient in ohm/s^(1/2).
+where :math:`Y = \frac{1}{\sigma\sqrt{2}}` and :math:`\sigma` is the Warburg coefficient in ohm/s^(1/2) when :math:`n=0.5`.
 """,
-        equation="(Y*sqrt(2*pi*f*I))^-1",
+        equation="(Y*(2*pi*f*I)^n)^-1",
         parameters=[
             ParameterDefinition(
                 symbol="Y",
-                unit="S*s^(1/2)",
+                unit="S*s^n",
                 description="'Admittance'",
                 value=1e-3,
                 lower_limit=1e-24,
                 upper_limit=inf,
                 fixed=False,
+            ),
+            ParameterDefinition(
+                symbol="n",
+                unit="",
+                description="Phase angle in -pi/2 radians",
+                value=0.5,
+                lower_limit=0.0,
+                upper_limit=1.0,
+                fixed=True,
             ),
         ],
     ),

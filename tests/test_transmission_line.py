@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -51,6 +51,7 @@ from pyimpspec import (
     TransmissionLineModelNonblockingShort,
     parse_cdc,
 )
+from pyimpspec.exceptions import NotANumberImpedance
 from pyimpspec.typing import (
     ComplexImpedance,
     ComplexImpedances,
@@ -171,6 +172,13 @@ class TestTransmissionLineModel(TestCase):
         with self.assertRaises(NotImplementedError):
             tlm.get_impedances(self.f)
         with self.assertRaises(NotImplementedError):
+            tlm.to_sympy(substitute=True)
+
+    def test_shorted_Z_A_Z_B_default_rest_impedance(self):
+        tlm = self.parse(self.symbol + "{Z_A=short, Z_B=short}")
+        with self.assertRaises(NotANumberImpedance):
+            tlm.get_impedances(self.f)
+        with self.assertRaises(ZeroDivisionError):
             tlm.to_sympy(substitute=True)
 
     def test_shorted_X1_X2_Zeta_finite_rest_impedance(self):

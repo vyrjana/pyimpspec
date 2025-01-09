@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,9 +23,11 @@ from argparse import (
 )
 from pyimpspec.analysis.drt import _METHODS as DRT_METHODS
 from pyimpspec.analysis.drt.tr_rbf import (
-    _RBF_TYPES as RBF_TYPES,
-    _RBF_SHAPES as RBF_SHAPES,
+    _RBF_TYPES,
+    _RBF_SHAPES,
+    _CROSS_VALIDATION_METHODS,
 )
+from pyimpspec.analysis.drt.lm import _MODEL_ORDER_METHODS
 from pyimpspec.analysis.fitting import (
     _METHODS as FIT_METHODS,
     _WEIGHT_FUNCTIONS as FIT_WEIGHTS,
@@ -57,6 +59,25 @@ def add_input_args(parser: ArgumentParser):
         dest="high_pass_cutoff",
         default=-1.0,
         help="The cutoff frequency for the high-pass filter.",
+    )
+    parser.add_argument(
+        "--exclude-indices",
+        "-ei",
+        metavar="INTEGER",
+        nargs="+",
+        type=int,
+        dest="exclude_indices",
+        default=[],
+        help="The zero-based indices of data points to exclude. These indices correspond to the indices listed prior to any masking (i.e., when low- or high-pass filters have not yet been applied).",
+    )
+    parser.add_argument(
+        "--nth-data-set",
+        "-nds",
+        nargs="+",
+        type=int,
+        dest="nth_data_set",
+        default=[],
+        help="The zero-based indices of the data sets in a file to include while ignoring any others.",
     )
 
 
@@ -109,6 +130,13 @@ def add_output_args(
         help="The path to the output directory. Defaults to the current working directory.",
     )
     parser.add_argument(
+        "--output-indices",
+        "-oi",
+        action="store_true",
+        dest="output_indices",
+        help="Include zero-based indices in the text output.",
+    )
+    parser.add_argument(
         "--suppress-progress",
         dest="suppress_progress",
         action="store_true",
@@ -130,7 +158,7 @@ def add_plot_args(
         dest="plot_width",
         type=str,
         default="12.8in",
-        help="The width of the figures. The following units can be specified ('in' for inches, 'cm' for centimeters, and 'px' for pixels. Defaults to '12.8in'.",
+        help="The width of the figures. The following units can be specified: 'in' for inches, 'cm' for centimeters, and 'px' for pixels. Defaults to '12.8in'.",
     )
     parser.add_argument(
         "--plot-height",
@@ -186,7 +214,7 @@ def add_plot_args(
     )
     parser.add_argument(
         "--plot-title",
-        "-pt",
+        "-pT",
         dest="plot_title",
         action="store_true",
         help=("Add title to plot." if title else SUPPRESS),
@@ -219,11 +247,18 @@ def add_plot_args(
             else SUPPRESS
         ),
     )
+    parser.add_argument(
+        "--plot-admittance",
+        "-pY",
+        dest="plot_admittance",
+        action="store_true",
+        help="Plot the admittance representation of the immittance spectrum.",
+    )
 
 
 def circuit_args(parser: ArgumentParser):
     parser.add_argument(
-        "circuit",
+        "input",
         metavar="CDC",
         nargs="*",
         type=str,
@@ -316,12 +351,13 @@ def circuit_args(parser: ArgumentParser):
         help="Hide all terminal and element labels.",
     )
     parser.add_argument(
-        "--type",
-        "-t",
+        "--plot-type",
+        "-pt",
+        metavar="STRING",
         dest="plot_type",
         type=str,
         default="nyquist",
-        help="The type of plot to show when simulating impedance responses. Defaults to 'nyquist'.",
+        help="The type of plot to generate: 'bode', 'imaginary', 'magnitude', 'nyquist', 'phase', 'real', or 'real-imaginary'. Defaults to 'nyquist'.",
     )
     parser.add_argument(
         "--sympy",
@@ -380,6 +416,17 @@ def drt_args(parser: ArgumentParser):
         help="The regularization parameter, lambda, used by the methods that employ Tikhonov regularization. If the value is 0.0 or less, then an attempt will be made to automatically find a suitable value. Defaults to -1.0.",
     )
     parser.add_argument(
+        "--cross-validation",
+        "-cv",
+        dest="cross_validation",
+        metavar="STRING",
+        type=str,
+        default="mgcv",
+        help="The cross-validation method to use when picking a suitable lambda value (TR-RBF method only). Valid values include: "
+        + ", ".join(sorted(map(lambda _: f"'{_}'", _CROSS_VALIDATION_METHODS.keys())))
+        + ". An empty string (i.e., '') causes --lambda-value to be used directly. Defaults to 'mgcv'.",
+    )
+    parser.add_argument(
         "--rbf-type",
         "-rt",
         dest="rbf_type",
@@ -387,7 +434,7 @@ def drt_args(parser: ArgumentParser):
         type=str,
         default="gaussian",
         help="The radial basis function type to use (TR-RBF and BHT methods only). Valid values: "
-        + ", ".join(sorted(map(lambda _: f"'{_}'", RBF_TYPES)))
+        + ", ".join(sorted(map(lambda _: f"'{_}'", _RBF_TYPES)))
         + ". Defaults to 'gaussian'.",
     )
     parser.add_argument(
@@ -406,7 +453,9 @@ def drt_args(parser: ArgumentParser):
         metavar="STRING",
         type=str,
         default="fwhm",
-        help="The shape control of the radial basis functions. Valid values: " + ", ".join(sorted(map(lambda _: f"'{_}'", RBF_SHAPES))) + ". Defaults to 'fwhm'.",
+        help="The shape control of the radial basis functions. Valid values: "
+        + ", ".join(sorted(map(lambda _: f"'{_}'", _RBF_SHAPES)))
+        + ". Defaults to 'fwhm'.",
     )
     parser.add_argument(
         "--shape-coeff",
@@ -465,7 +514,7 @@ def drt_args(parser: ArgumentParser):
         metavar="FLOAT",
         type=float,
         default=0.5,
-        help="A maximum limit (between 0.0 and 1.0) for the relative vertical symmetry of the DRT. A high degree of symmetry is common for results where the gamma value oscillates wildly (e.g., due to a small regularization parameter). A low value for the limit should improve the results but may cause the BHT method to take longer to finish. The TR-RBF method only uses this limit when the regularization parameter (lambda) is not provided.",
+        help="A maximum limit (between 0.0 and 1.0) for the relative vertical symmetry of the DRT. A high degree of symmetry is common for results where the gamma value oscillates wildly (e.g., due to a small regularization parameter). A low value for the limit should improve the results but may cause the BHT method to take longer to finish.",
     )
     parser.add_argument(
         "--circuit",
@@ -511,18 +560,95 @@ def drt_args(parser: ArgumentParser):
         help="The maximum number of function evaluations to use when fitting a circuit (m(RQ)fit method only). A value below 1 means no limit. Defaults to -1.",
     )
     parser.add_argument(
+        "--max-iter",
+        dest="max_iter",
+        default=-1,
+        type=int,
+        help="The maximum number of iterations (TR-NNLS method only). A value below 1 means no limit. Defaults to -1.",
+    )
+    parser.add_argument(
+        "--model-order",
+        "-k",
+        dest="model_order",
+        metavar="INTEGER",
+        type=int,
+        default=0,
+        help="The model order (k) to use (Loewner method only). Defaults to 0.",
+    )
+    parser.add_argument(
+        "--model-order-method",
+        "-km",
+        dest="model_order_method",
+        metavar="STRING",
+        type=str,
+        default="matrix_rank",
+        help="The approach to use to automatically pick the model order (k) if a model order is not specified (Loewner method only). " 
+        + ", ".join(sorted(map(lambda _: f"'{_}'", _MODEL_ORDER_METHODS))) 
+        + ". Defaults to 'matrix_rank'.",
+    )
+    parser.add_argument(
         "--num-procs",
         dest="num_procs",
         metavar="INTEGER",
-        default=0,
+        default=-1,
         type=int,
         help="""
 The maximum number of parallel processes to use.
 A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
+Negative values can be used to select, e.g., one less than the maximum.
+Defaults to -1.
 """.strip(),
+    )
+    parser.add_argument(
+        "--analyze-peaks",
+        "-ap",
+        dest="analyze_peaks",
+        action="store_true",
+        help="Perform peak analyses by fitting skew normal distributions.",
+    )
+    parser.add_argument(
+        "--num-peaks",
+        "-np",
+        dest="num_peaks",
+        type=int,
+        default=0,
+        help="The number of peaks to include in the peak analysis. The tallest peaks are prioritized. Only applicable when peak positions are not provided manually.",
+    )
+    parser.add_argument(
+        "--peak-positions",
+        "-pp",
+        dest="peak_positions",
+        metavar="FLOAT",
+        type=float,
+        nargs="*",
+        default=[],
+        help="The positions of the peaks to analyze. If not provided, then peaks and their positions are detected automatically.",
+    )
+    parser.add_argument(
+        "--disallow-skew",
+        "-ds",
+        dest="disallow_skew",
+        action="store_true",
+        help="If true, then normal distributions are used instead of skew normal distributions when analyzing peaks.",
     )
     add_output_args(parser)
     add_plot_args(parser)
+    parser.add_argument(
+        "--plot-type",
+        "-pt",
+        metavar="STRING",
+        dest="plot_type",
+        type=str,
+        default="drt",
+        help="The type of plot to generate: 'bode', 'drt', 'imaginary', 'magnitude', 'nyquist', 'phase', 'real', or 'real-imaginary'. Defaults to 'drt'.",
+    )
+    parser.add_argument(
+        "--plot-frequency",
+        "-pF",
+        dest="plot_frequency",
+        action="store_true",
+        help="Plot gamma vs frequency instead of time constant.",
+    )
 
 
 def fit_args(parser: ArgumentParser):
@@ -575,11 +701,46 @@ A value less than 1 results in an attempt to figure out a suitable value based o
 """.strip(),
     )
     parser.add_argument(
+        "--timeout",
+        "-T",
+        metavar="INTEGER",
+        dest="timeout",
+        default=0,
+        type=int,
+        help="""
+The amount of time in seconds that a single fit is allowed to take before being timed out.
+If this values is less than one, then no time limit is imposed.
+Defaults to 0.
+""".strip(),
+    )
+    parser.add_argument(
+        "--num-refinements",
+        "-nr",
+        metavar="INTEGER",
+        dest="num_refinements",
+        default=0,
+        type=int,
+        help="""
+The number of times to re-use the fitted values as the initial values in another attempt to fit the circuit.
+It might not be possible to estimate the uncertainties of the fitted parameters if the fit is refined.
+Defaults to 0.
+""".strip(),
+    )
+    parser.add_argument(
         "--running-count",
         "-rc",
         dest="running_count",
         action="store_true",
         help="Use a running count (0..N) for circuit elements.",
+    )
+    parser.add_argument(
+        "--plot-type",
+        "-pt",
+        metavar="STRING",
+        dest="plot_type",
+        type=str,
+        default="fit",
+        help="The type of plot to generate: 'bode', 'fit', 'imaginary', 'magnitude', 'nyquist', 'phase', 'real', or 'real-imaginary'. Defaults to 'fit'.",
     )
     add_output_args(parser)
     add_plot_args(parser, overlay=False)
@@ -595,18 +756,26 @@ def license_args(parser: ArgumentParser):
 
 def parse_args(parser: ArgumentParser):
     add_input_args(parser)
+    parser.add_argument(
+        "--average",
+        "-a",
+        action="store_true",
+        dest="average_data_sets",
+        help="Parse the input files and output the average impedance spectrum.",
+    )
     add_output_args(parser)
 
 
 def plot_args(parser: ArgumentParser):
     add_input_args(parser)
     parser.add_argument(
-        "--type",
-        "-t",
+        "--plot-type",
+        "-pt",
         metavar="STRING",
+        dest="plot_type",
         type=str,
         default="nyquist",
-        help="The type of plot to generate: 'bode', 'nyquist', 'data', 'magnitude', 'phase', 'complex', 'real', 'imaginary'. Defaults to 'nyquist'.",
+        help="The type of plot to generate: 'bode', 'data', 'imaginary', 'magnitude', 'nyquist', 'phase', 'real', or 'real-imaginary'. Defaults to 'nyquist'.",
     )
     add_output_args(parser)
     add_plot_args(parser)
@@ -619,47 +788,97 @@ def test_args(parser: ArgumentParser):
         "-n",
         dest="num_RC",
         metavar="INTEGER",
-        default=-1,
+        default=0,
         type=int,
-        help="The number of RC elements use. A value greater than or equal to 1 uses the specific number. A value less than 1 results in using a modified implementation of the the algorithm described by Schönleber et al. (DOI: 10.1016/j.electacta.2014.01.034). Defaults to -1.",
-    )
-    parser.add_argument(
-        "--automatic",
-        "-a",
-        dest="automatic",
-        action="store_true",
-        help="Use the algorithm described by Schönleber et al. (DOI: 10.1016/j.electacta.2014.01.034) without modifications.",
+        help="The number of RC elements use. A value greater than or equal to 1 uses the specific number. Otherwise, the number of RC elements to use is determined automatically. Defaults to 0.",
     )
     parser.add_argument(
         "--max-num-RC",
         "-N",
         dest="max_num_RC",
         metavar="INTEGER",
-        default=-1,
+        default=0,
         type=int,
-        help="The maximum number of RC elements to use when --num-RC is less than 1. A value less than 1 imposes no limit. Defaults to -1.",
+        help="The maximum number of RC elements to test when --num-RC is less than 1. A value less than 1 imposes no limit. Defaults to 0.",
     )
     parser.add_argument(
-        "--mu-criterion",
-        "-u",
-        metavar="FLOAT",
-        default=0.85,
-        type=float,
-        help="The mu-criterion that is used when determining which number of RC elements to choose when applying the algorithm described by Schönleber et al. (DOI: 10.1016/j.electacta.2014.01.034). The value can range from 0.0 (underfitting) to 1.0 (overfitting). Defaults to 0.85.",
-    )
-    parser.add_argument(
-        "--add-capacitance",
+        "--no-capacitance",
         "-C",
-        dest="add_capacitance",
+        dest="no_capacitance",
         action="store_true",
-        help="Add a capacitance to the circuit that is fitted as part of the Kramers-Kronig test.",
+        help="Do not add a capacitance to the circuit that is fitted as part of the Kramers-Kronig test.",
     )
     parser.add_argument(
-        "--add-inductance",
+        "--no-inductance",
         "-L",
-        dest="add_inductance",
+        dest="no_inductance",
         action="store_true",
-        help="Add an inductance to the circuit that is fitted as part of the Kramers-Kronig test. Included by default in some of the test variants.",
+        help="Do not add an inductance to the circuit that is fitted as part of the Kramers-Kronig test.",
+    )
+    parser.add_argument(
+        "--admittance",
+        "-Y",
+        dest="admittance",
+        action="store_true",
+        help="Perfom Kramers-Kronig tests on the admittance representation of the immittance spectrum.",
+    )
+    parser.add_argument(
+        "--impedance",
+        "-Z",
+        dest="impedance",
+        action="store_true",
+        help="Perfom Kramers-Kronig tests on the impedance representation of the immittance spectrum.",
+    )
+    parser.add_argument(
+        "--min-log-F-ext",
+        "-mlFe",
+        dest="min_log_F_ext",
+        type=float,
+        default=-1.0,
+        metavar="FLOAT",
+        help="The lower limit of log Fext, which affects the lower and upper limits of the range of time constants. If the the number of extension evaluations is zero, then this argument is used directly as log Fext. Defaults to -1.0.",
+    )
+    parser.add_argument(
+        "--max-log-F-ext",
+        "-MlFe",
+        dest="max_log_F_ext",
+        type=float,
+        default=1.0,
+        metavar="FLOAT",
+        help="The upper limit of log Fext, which affects the lower and upper limits of the range of time constants. Defaults to 1.0.",
+    )
+    parser.add_argument(
+        "--log-F-ext",
+        "-lFe",
+        dest="log_F_ext",
+        type=float,
+        default=0.0,
+        metavar="FLOAT",
+        help="The log Fext value to use if the number of extension evaluations is set to zero. Defaults to 0.0.",
+    )
+    parser.add_argument(
+        "--num-F-ext-evaluations",
+        "-nFee",
+        dest="num_F_ext_evaluations",
+        type=int,
+        default=20,
+        metavar="INTEGER",
+        help="The number of evaluations to perform when automatically estimating the optimal log Fext. Values greater than zero mean that an approach based on least squares fitting is used and values less than zero mean that an approach based on splines is used. Defaults to 20.",
+    )
+    parser.add_argument(
+        "--no-rapid-F-ext-evaluations",
+        "-nrFe",
+        dest="no_rapid_F_ext_evaluations",
+        action="store_true",
+        help="Evaluate the full range of num_RC values for each log Fext instead of just the bare minimum.",
+    )
+    parser.add_argument(
+        "--extended-statistics",
+        "-es",
+        dest="extended_statistics",
+        type=int,
+        default=3,
+        help="Report the standard deviations of residuals, p-values for tests of the null hypothesis that the real or the imaginary parts of the residuals are normally distributed and, where applicable, have a mean of zero and a standard deviation equal to the estimated standard deviation. Higher values include more statistics, but they may take increasingly more time to calculate. Defaults to 3.",
     )
     parser.add_argument(
         "--test",
@@ -667,68 +886,194 @@ def test_args(parser: ArgumentParser):
         dest="test",
         metavar="STRING",
         type=str,
-        default="complex",
-        help="The type of test to perform. Three linear Kramers-Kronig tests (DOI: 10.1149/1.2044210) are supported: 'complex', 'real', and 'imaginary'. A complex non-linear least squares (CNLS) implementation is also supported ('cnls'). Defaults to 'complex'.",
+        default="real",
+        help="The type of test to perform. Three linear Kramers-Kronig tests are supported: 'complex', 'imaginary', 'real'. Alternative implementations of the tests using matrix inversion are also available via, e.g., 'complex-inv'. An implementation of the complex test using complex non-linear least squares fitting is available via 'cnls'. Defaults to 'real'.",
     )
     parser.add_argument(
-        "--method",
-        "-me",
-        dest="method",
+        "--mu-criterion",
+        dest="mu_criterion",
+        metavar="FLOAT",
+        default=0.85,
+        type=float,
+        help="The mu-criterion that is used when determining which number of RC elements to choose when applying the method (method 1) described by Schönleber et al. (DOI: 10.1016/j.electacta.2014.01.034). The value can range from 0.0 (underfitting) to 1.0 (overfitting). Defaults to 0.85.",
+    )
+    parser.add_argument(
+        "--beta",
+        dest="beta",
+        metavar="FLOAT",
+        default=0.75,
+        type=float,
+        help="The exponent beta that is used to adjust the penalty due to the difference between the mu-criterion and mu. Only relevant when using method 1, which is implemented in a modified form in pyimpspec. Defaults to 0.75.",
+    )
+    parser.add_argument(
+        "--lower-limit",
+        "-ll",
+        dest="lower_limit",
+        metavar="INTEGER",
+        type=int,
+        default=0,
+        help="The lower limit for the number of RC elements to use when suggesting the optimal number of RC elements. A value less than 1 results in an attempt to determine the lower limit automatically. Defaults to 0.",
+    )
+    parser.add_argument(
+        "--upper-limit",
+        "-ul",
+        dest="upper_limit",
+        metavar="INTEGER",
+        type=int,
+        default=0,
+        help="The upper limit for the number of RC elements to use when suggesting the optimal number of RC elements. A value less than 1 results in an attempt to determine the upper limit automatically. Defaults to 0.",
+    )
+    parser.add_argument(
+        "--limit-delta",
+        "-ld",
+        dest="limit_delta",
+        metavar="INTEGER",
+        type=int,
+        default=0,
+        help="An alternative way of defining the upper limit as lower limit + delta. Only used if the value is greater than zero. Defaults to 0.",
+    )
+    parser.add_argument(
+        "--suggestion-methods",
+        "-sm",
+        dest="suggestion_methods",
+        metavar="INTEGER",
+        type=int,
+        nargs="*",
+        default=[],
+        help="Choose to specific methods to use when suggesting the number of RC circuits to use. See the API documentation for 'suggest_num_RC' for details.",
+    )
+    parser.add_argument(
+        "--mean",
+        dest="use_mean",
+        action="store_true",
+        help="Choose the optimal number of RC elements based on the mean of the top suggestion provided by each method.",
+    )
+    parser.add_argument(
+        "--ranking",
+        dest="use_ranking",
+        action="store_true",
+        help="Choose the optimal number of RC elements based on assigning scores after each method has ranked the different options.",
+    )
+    parser.add_argument(
+        "--sum",
+        dest="use_sum",
+        action="store_true",
+        help="Choose the optimal number of RC elements based on the sum of the scores provided by each suggestion method.",
+    )
+    parser.add_argument(
+        "--cnls-method",
         metavar="STRING",
+        dest="cnls_method",
         type=str,
         default="leastsq",
-        help="The iterative method that is used with the CNLS test. Valid values: " + ", ".join(sorted(map(lambda _: f"'{_}'", FIT_METHODS))) + ". Defaults to 'leastsq'.",
+        help="The iterative method to use when performing CNLS tests. Valid values: "
+        + ", ".join(sorted(map(lambda _: f"'{_}'", FIT_METHODS)))
+        + ". Defaults to 'leastsq'.",
     )
     parser.add_argument(
         "--max-nfev",
-        dest="max_nfev",
         metavar="INTEGER",
-        default=-1,
+        dest="max_nfev",
+        default=0,
         type=int,
-        help="The maximum number of function evaluations to use with the CNLS test. A value below 1 imposes no limit. Defaults to -1.",
+        help="The maximum number of function evaluations to use. A value below 1 imposes no limit. Defaults to 0.",
+    )
+    parser.add_argument(
+        "--timeout",
+        "-T",
+        dest="timeout",
+        metavar="INTEGER",
+        type=int,
+        default=60,
+        help="The number of seconds to wait for a CNLS test to finish. Defaults to 60.",
     )
     parser.add_argument(
         "--num-procs",
         dest="num_procs",
         metavar="INTEGER",
-        default=0,
+        default=-1,
         type=int,
         help="""
-The maximum number of parallel processes to use when performing a test.
+The maximum number of parallel processes to use.
 A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
+Negative values can be used to select, e.g., one less than the maximum.
+Defaults to -1.
 """.strip(),
     )
     add_output_args(parser)
     add_plot_args(parser, overlay=False, colors=False, markers=False)
+    parser.add_argument(
+        "--plot-immittance",
+        "-pX",
+        dest="plot_immittance",
+        action="store_true",
+        help="Plot the same data representation that was used to validate the immittance spectrum.",
+    )
+    parser.add_argument(
+        "--plot-pseudo-chi-squared",
+        "-ppcs",
+        dest="plot_pseudo_chi_squared",
+        action="store_true",
+        help="Plot the pseudo chi-squared plot regardless of which suggestion method has been chosen.",
+    )
+    parser.add_argument(
+        "--plot-estimated-noise",
+        "-pen",
+        dest="plot_estimated_noise",
+        action="store_true",
+        help="Include the estimated standard deviation for the noise in the plots. The noise is estimated based on the pseudo chi-squared value and the number of excitation frequencies. The noise is assumed to be normally distributed and affect the real and imaginary part equally.",
+    )
+    parser.add_argument(
+        "--plot-moving-average-width",
+        "-pmaw",
+        dest="moving_average_width",
+        metavar="INTEGER",
+        default=0,
+        type=int,
+        help="The width of the moving average. The value must be an odd integer number greater than or equal to 3. Otherwise, the moving averages are not plotted. Defaults to 0.",
+    )
+    parser.add_argument(
+        "--plot-log-F-ext-3d",
+        "-plFe3d",
+        dest="plot_log_F_ext_3d",
+        action="store_true",
+        help="Plot pseudo chi-squared versus the number of RC elements and the number of decades for the evaluated time constant extensions. Requires that multiple extensions were evaluated.",
+    )
+    parser.add_argument(
+        "--plot-log-F-ext-2d",
+        "-plFe2d",
+        dest="plot_log_F_ext_2d",
+        action="store_true",
+        help="Similar to '--plot-log-F-ext-3d' but as a 2D plot of pseudo chi-squared versus the number of RC elements.",
+    )
+    parser.add_argument(
+        "--plot-auto-limited-residuals",
+        "-palr",
+        dest="plot_auto_limited_residuals",
+        action="store_true",
+        help="Automatically adjust the limits of the plot of the relative residuals.",
+    )
 
 
 def zhit_args(parser: ArgumentParser):
     add_input_args(parser)
     parser.add_argument(
-        "--type",
-        "-t",
-        metavar="STRING",
-        type=str,
-        default="fit",
-        help="The type of plot to generate: 'bode', 'fit', 'nyquist', 'magnitude', 'phase', 'complex', 'real', 'imaginary'. Defaults to 'fit'.",
-    )
-    parser.add_argument(
         "--smoothing",
         "-s",
         metavar="STRING",
         type=str,
-        default="lowess",
+        default="modsinc",
         dest="smoothing",
-        help="The type of smoothing to apply: 'none', 'lowess' (locally weighted scatterplot smoothing) 'savgol' (Savitzky-Golay), or 'auto'. Defaults to 'lowess'.",
+        help="The type of smoothing to apply: 'none', 'lowess' (locally weighted scatterplot smoothing), 'modsinc' (modified sinc kernel), 'savgol' (Savitzky-Golay), 'whithend' (Whittaker-Henderson) or 'auto'. Defaults to 'modsinc'.",
     )
     parser.add_argument(
         "--interpolation",
         "-i",
         metavar="STRING",
         type=str,
-        default="akima",
+        default="makima",
         dest="interpolation",
-        help="The type of interpolation to apply: 'akima' (Akima spline), 'cubic' (cubic spline), 'pchip' (Piecewise Cubic Hermite Interpolating Polynomial), or 'auto'. Defaults to 'akima'.",
+        help="The type of interpolation to apply: 'akima' (Akima spline), 'makima' (modified Akima spline), 'cubic' (cubic spline), 'pchip' (Piecewise Cubic Hermite Interpolating Polynomial), or 'auto'. Defaults to 'makima'.",
     )
     parser.add_argument(
         "--window",
@@ -773,7 +1118,7 @@ def zhit_args(parser: ArgumentParser):
         dest="polynomial_order",
         default=2,
         type=int,
-        help="The order of the polynomial used when smoothing (Savitzky-Golay only)",
+        help="The order of the polynomial used when smoothing (modified sinc kernel, Savitzky-Golay, and Whittaker-Henderson only). Must be an even number when using the modified sinc kernel.",
     )
     parser.add_argument(
         "--num-iterations",
@@ -783,6 +1128,22 @@ def zhit_args(parser: ArgumentParser):
         default=3,
         type=int,
         help="The number of iterations to perform while smoothing (LOWESS only)",
+    )
+    parser.add_argument(
+        "--admittance",
+        "-Y",
+        dest="admittance",
+        action="store_true",
+        help="Perfom ZHIT analyses on the admittance representation of the immittance spectrum.",
+    )
+    parser.add_argument(
+        "--plot-type",
+        "-pt",
+        metavar="STRING",
+        dest="plot_type",
+        type=str,
+        default="fit",
+        help="The type of plot to generate: 'bode', 'fit', 'imaginary', 'magnitude', 'nyquist', 'phase', 'real', or 'real-imaginary'. Defaults to 'fit'.",
     )
     parser.add_argument(
         "--num-procs",

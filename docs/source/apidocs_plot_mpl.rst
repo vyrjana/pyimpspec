@@ -12,7 +12,7 @@ Wrappers
 These functions provide a high-level API for visualizing various objects/results (e.g., :class:`~pyimpspec.data.DataSet`).
 
 .. automodule:: pyimpspec.mpl
-   :members: plot_circuit, plot_data, plot_drt, plot_fit, plot_tests
+   :members: plot_circuit, plot_data, plot_drt, plot_fit, plot_kramers_kronig_tests, plot_log_F_ext
 
 
 
@@ -22,7 +22,7 @@ Primitives
 These functions are used by the wrapper functions to make a more complex figure with multiple subplots.
 
 .. automodule:: pyimpspec.mpl
-   :members: plot_bht_scores, plot_bode, plot_complex, plot_gamma, plot_imaginary, plot_magnitude, plot_mu_xps, plot_nyquist, plot_phase, plot_real, plot_residuals
+   :members: plot_bht_scores, plot_bode, plot_real_imaginary, plot_gamma, plot_imaginary, plot_magnitude, plot_pseudo_chisqr, plot_num_RC_suggestion, plot_num_RC_suggestion_method, plot_nyquist, plot_phase, plot_real, plot_residuals
 
 
 Examples
@@ -52,31 +52,22 @@ plot_circuit
 
   import pyimpspec
   from pyimpspec import mpl
-  from pyimpspec.mock_data import EXAMPLE, TC1
-  import matplotlib.pyplot as plt
   from numpy import logspace, log10 as log
 
-  f = EXAMPLE.get_frequencies()
-  figure, axes = mpl.plot_circuit(TC1, frequencies=f, label="TC-1", title="", legend=False, colored_axes=True)
+  circuit = pyimpspec.generate_mock_circuits("CIRCUIT_1")[0]
+  data = pyimpspec.generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+  f = data.get_frequencies()
+  figure, axes = mpl.plot_circuit(circuit, frequencies=f, label="TC-1", title="", legend=False, colored_axes=True)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
-  data = pyimpspec.simulate_spectrum(
-    TC1,
-    logspace(
-      log(max(f)),
-      log(min(f)),
-      num=int(log(max(f)) - log(min(f))) * 100 + 1,
-    ),
-    label="TC-1",
-  )
   figure, axes = mpl.plot_nyquist(data, line=True)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
   figure, axes = mpl.plot_bode(data, line=True)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
 .. raw:: latex
 
@@ -94,21 +85,20 @@ plot_data
 
   import pyimpspec
   from pyimpspec import mpl
-  from pyimpspec.mock_data import EXAMPLE
   import pyimpspec.plot.colors as colors
-  import matplotlib.pyplot as plt
 
-  figure, axes = mpl.plot_data(EXAMPLE, legend=False, colored_axes=True)
+  data = pyimpspec.generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+  figure, axes = mpl.plot_data(data, legend=False, colored_axes=True)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
-  figure, axes = mpl.plot_nyquist(EXAMPLE)
+  figure, axes = mpl.plot_nyquist(data)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
-  figure, axes = mpl.plot_bode(EXAMPLE)
+  figure, axes = mpl.plot_bode(data)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
 .. raw:: latex
 
@@ -119,7 +109,7 @@ plot_drt
 ~~~~~~~~
 :func:`~pyimpspec.mpl.plot_drt`
 
-* :func:`~pyimpspec.mpl.plot_complex`
+* :func:`~pyimpspec.mpl.plot_real_imaginary`
 * :func:`~pyimpspec.mpl.plot_gamma`
 * :func:`~pyimpspec.mpl.plot_residuals`
 
@@ -127,45 +117,44 @@ plot_drt
 
   import pyimpspec
   from pyimpspec import mpl
-  from pyimpspec.mock_data import EXAMPLE
   import pyimpspec.plot.colors as colors
-  import matplotlib.pyplot as plt
 
-  drt = pyimpspec.calculate_drt_tr_nnls(EXAMPLE)
+  data = pyimpspec.generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+  drt = pyimpspec.analysis.drt.calculate_drt_tr_nnls(data)
   figure, axes = mpl.plot_drt(
     drt,
-    EXAMPLE,
+    data,
     legend=False,
     colored_axes=True,
   )
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
-  figure, axes = mpl.plot_complex(
-    EXAMPLE,
+  figure, axes = mpl.plot_real_imaginary(
+    data,
     colors={
       "real": colors.COLOR_BLACK,
       "imaginary": colors.COLOR_BLACK,
     },
     legend=False,
   )
-  _ = mpl.plot_complex(
+  _ = mpl.plot_real_imaginary(
     drt,
     line=True,
     figure=figure,
     axes=axes,
   )
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
   figure, axes = mpl.plot_gamma(drt)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
 
   figure, axes = mpl.plot_residuals(drt)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
 .. raw:: latex
 
@@ -184,24 +173,23 @@ plot_fit
 
   import pyimpspec
   from pyimpspec import mpl
-  from pyimpspec.mock_data import EXAMPLE
   import pyimpspec.plot.colors as colors
-  import matplotlib.pyplot as plt
 
+  data = pyimpspec.generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
   circuit = pyimpspec.parse_cdc("R(RC)(RW)")
-  fit = pyimpspec.fit_circuit(circuit, data=EXAMPLE)
+  fit = pyimpspec.fit_circuit(circuit, data=data)
 
   figure, axes = mpl.plot_fit(
     fit,
-    EXAMPLE,
+    data,
     legend=False,
     colored_axes=True,
   )
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
   figure, axes = mpl.plot_nyquist(
-    EXAMPLE,
+    data,
     colors={"impedance": colors.COLOR_BLACK},
     legend=False,
   )
@@ -212,10 +200,10 @@ plot_fit
     axes=axes,
   )
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
   figure, axes = mpl.plot_bode(
-    EXAMPLE,
+    data,
     colors={
       "magnitude": colors.COLOR_BLACK,
       "phase": colors.COLOR_BLACK,
@@ -229,22 +217,23 @@ plot_fit
     axes=axes,
   )
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
   figure, axes = mpl.plot_residuals(fit)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
 .. raw:: latex
 
     \clearpage
 
 
-plot_tests
-~~~~~~~~~~
-:func:`~pyimpspec.mpl.plot_tests`
+plot_kramers_kronig_tests
+~~~~~~~~~~~~~~~~~~~~~~~~~
+:func:`~pyimpspec.mpl.plot_kramers_kronig_tests`
 
-* :func:`~pyimpspec.mpl.plot_mu_xps`
+* :func:`~pyimpspec.mpl.plot_pseudo_chisqr`
+* :func:`~pyimpspec.mpl.plot_num_RC_suggestion`
 * :func:`~pyimpspec.mpl.plot_residuals`
 * :func:`~pyimpspec.mpl.plot_nyquist`
 * :func:`~pyimpspec.mpl.plot_bode`
@@ -253,54 +242,51 @@ plot_tests
 
   import pyimpspec
   from pyimpspec import mpl
-  from pyimpspec.mock_data import EXAMPLE
   import pyimpspec.plot.colors as colors
-  import matplotlib.pyplot as plt
 
-  mu_criterion = 0.85
-  tests = pyimpspec.perform_exploratory_tests(
-    EXAMPLE,
-    mu_criterion=mu_criterion,
-    add_capacitance=True,
-  )
+  data = pyimpspec.generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+  tests = pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext(data)[0][1]
 
-  figure, axes = mpl.plot_tests(
+  suggestion = pyimpspec.analysis.kramers_kronig.suggest_num_RC(tests)
+  test, scores, lower_limit, upper_limit = suggestion
+  figure, axes = mpl.plot_kramers_kronig_tests(
     tests,
-    mu_criterion,
-    EXAMPLE,
+    suggestion,
+    data,
     legend=False,
     colored_axes=True,
   )
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
-  figure, axes = mpl.plot_mu_xps(
-    tests,
-    mu_criterion,
-  )
+  figure, axes = mpl.plot_pseudo_chisqr(tests, lower_limit=lower_limit, upper_limit=upper_limit)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
-  figure, axes = mpl.plot_residuals(tests[0])
+  figure, axes = mpl.plot_num_RC_suggestion(suggestion)
   figure.tight_layout()
-  plt.show()
+  mpl.show()
+
+  figure, axes = mpl.plot_residuals(test)
+  figure.tight_layout()
+  mpl.show()
 
   figure, axes = mpl.plot_nyquist(
-    EXAMPLE,
+    data,
     colors={"impedance": colors.COLOR_BLACK},
     legend=False,
   )
   _ = mpl.plot_nyquist(
-    tests[0],
+    test,
     line=True,
     figure=figure,
     axes=axes,
   )
   figure.tight_layout()
-  plt.show()
+  mpl.show()
 
   figure, axes = mpl.plot_bode(
-    EXAMPLE,
+    data,
     colors={
       "magnitude": colors.COLOR_BLACK,
       "phase": colors.COLOR_BLACK,
@@ -308,13 +294,45 @@ plot_tests
     legend=False,
   )
   _ = mpl.plot_bode(
-    tests[0],
+    test,
     line=True,
     figure=figure,
     axes=axes,
   )
   figure.tight_layout()
-  plt.show()
+  mpl.show()
+
+.. raw:: latex
+
+    \clearpage
+
+
+plot_log_F_ext
+~~~~~~~~~~~~~~
+:func:`~pyimpspec.mpl.plot_log_F_ext`
+
+.. plot::
+
+  import pyimpspec
+  from pyimpspec import mpl
+  import pyimpspec.plot.colors as colors
+
+  data = pyimpspec.generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+  evaluations = pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext(data)
+
+  figure, axes = mpl.plot_log_F_ext(
+    evaluations,
+    projection="3d",
+  )
+  figure.tight_layout()
+  mpl.show()
+
+  figure, axes = mpl.plot_log_F_ext(
+    evaluations,
+    projection="2d",
+  )
+  figure.tight_layout()
+  mpl.show()
 
 .. raw:: latex
 

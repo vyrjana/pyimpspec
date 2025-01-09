@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,3 +19,11 @@
 
 MARKER_CIRCLE: str = "o"
 MARKER_SQUARE: str = "s"
+MARKER_PLUS: str = "+"
+MARKER_X: str = "x"
+MARKER_DOT: str = "."
+MARKER_DIAMOND: str = "D"
+MARKER_TRIANGLE_UP: str = "^"
+MARKER_TRIANGLE_DOWN: str = "v"
+MARKER_TRIANGLE_LEFT: str = "<"
+MARKER_TRIANGLE_RIGHT: str = ">"

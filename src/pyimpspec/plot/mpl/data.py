@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,21 +18,22 @@
 # the LICENSES folder.
 
 from pyimpspec.data import DataSet
-from typing import (
+from pyimpspec.typing.helpers import (
     Dict,
     List,
     Optional,
     Tuple,
 )
 from pyimpspec.plot.colors import (
+    COLOR_BLACK,
     COLOR_BLUE,
     COLOR_ORANGE,
-    COLOR_RED,
 )
-from pyimpspec.plot.mpl.markers import (
+from .markers import (
     MARKER_CIRCLE,
     MARKER_SQUARE,
 )
+from .helpers import _validate_figure
 from .bode import plot_bode
 from .nyquist import plot_nyquist
 
@@ -40,6 +41,7 @@ from .nyquist import plot_nyquist
 def plot_data(
     data: DataSet,
     label: Optional[str] = None,
+    admittance: bool = False,
     colors: Optional[Dict[str, str]] = None,
     markers: Optional[Dict[str, str]] = None,
     figure: Optional["Figure"] = None,  # noqa: F821
@@ -60,6 +62,9 @@ def plot_data(
 
     label: Optional[str], optional
         The optional label to use in the legend.
+
+    admittance: bool, optional
+        Plot the admittance representation of the immittance data.
 
     colors: Optional[Dict[str, str]], optional
         The colors of the markers or lines. Valid keys: 'impedance', 'magnitude', 'phase'.
@@ -93,44 +98,42 @@ def plot_data(
     Tuple[|Figure|, List[|Axes|]]
     """
     import matplotlib.pyplot as plt
-    from matplotlib.axes import Axes
-    from matplotlib.figure import Figure
 
-    assert hasattr(data, "get_frequencies") and callable(data.get_frequencies)
-    assert hasattr(data, "get_impedances") and callable(data.get_impedances)
     if colors is None:
         colors = {}
-    if markers is None:
-        markers = {}
-    assert isinstance(colors, dict), colors
-    assert isinstance(markers, dict), markers
-    assert isinstance(title, str) or title is None, title
-    assert isinstance(label, str) or label is None, label
-    assert isinstance(legend, bool), legend
-    assert isinstance(colored_axes, bool), colored_axes
-    assert isinstance(figure, Figure) or figure is None, figure
-    assert isinstance(adjust_axes, bool), adjust_axes
-    if figure is None:
-        assert axes is None
-        figure, tmp = plt.subplots(1, 2)
-        axes = [
-            tmp[0],
-            tmp[1],
-            tmp[1].twinx(),
-        ]
-        if title is None:
-            title = data.get_label()
-        if title != "":
-            figure.suptitle(title)
-    assert isinstance(axes, list)
-    assert len(axes) == 3, axes
-    assert all(map(lambda _: isinstance(_, Axes), axes))
-    color_impedance: str = colors.get("impedance", COLOR_RED)
+    elif not isinstance(colors, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {colors=}")
+    color_impedance: str = colors.get("impedance", COLOR_BLACK)
     color_magnitude: str = colors.get("magnitude", COLOR_BLUE)
     color_phase: str = colors.get("phase", COLOR_ORANGE)
+
+    if markers is None:
+        markers = {}
+    elif not isinstance(markers, dict):
+        raise TypeError(f"Expected a dictionary or None instead of {markers=}")
     marker_impedance: str = markers.get("impedance", MARKER_CIRCLE)
     marker_magnitude: str = markers.get("magnitude", MARKER_CIRCLE)
     marker_phase: str = markers.get("phase", MARKER_SQUARE)
+
+    if figure is None:
+        figure, axes = plt.subplots(1, 2)
+        axes = [
+            axes[0],
+            axes[1],
+            axes[1].twinx(),
+        ]
+    assert axes is not None
+
+    _validate_figure(figure, axes, num_axes=3)
+
+    if title is None:
+        title = data.get_label()
+    elif not isinstance(title, str):
+        raise TypeError(f"Expected a string or None instead of {title=}")
+
+    if title != "":
+        figure.suptitle(title)
+
     plot_nyquist(
         data,
         colors={
@@ -145,7 +148,9 @@ def plot_data(
         figure=figure,
         axes=[axes[0]],
         adjust_axes=adjust_axes,
+        admittance=admittance,
     )
+
     plot_bode(
         data,
         colors={
@@ -162,7 +167,9 @@ def plot_data(
         figure=figure,
         axes=[axes[1], axes[2]],
         adjust_axes=adjust_axes,
+        admittance=admittance,
     )
+
     return (
         figure,
         axes,

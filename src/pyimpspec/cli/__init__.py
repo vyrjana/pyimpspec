@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -22,7 +22,6 @@ from argparse import (
     Namespace,
 )
 import sys
-from traceback import format_exc
 from typing import (
     Callable,
     Dict,
@@ -50,6 +49,7 @@ def main():
     from .plot import command as plot_command
     from .test import command as test_command
     from .zhit import command as zhit_command
+
     commands: Dict[str, Callable] = {
         "parse": parse_command,
         "plot": plot_command,
@@ -62,14 +62,13 @@ def main():
         "show": license_command,
     }
     if args.command in commands:
-        if hasattr(args, "suppress_progress") and args.suppress_progress is False:
-            from .utility import register_progress
-            register_progress()
+        if hasattr(args, "suppress_progress") and not args.suppress_progress:
+            from pyimpspec.progress import register_default_handler
+
+            register_default_handler()
         try:
             commands[args.command](parser, args)
         except KeyboardInterrupt:
             return
-        except Exception:
-            print(format_exc())
     else:
         parser.print_help()

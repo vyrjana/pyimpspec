@@ -37,6 +37,7 @@ The following two lines should provide access to most of what you are likely to 
    :caption: Contents:
 
    apidocs_data
+   apidocs_mock_data
    apidocs_kramers_kronig
    apidocs_zhit
    apidocs_drt
@@ -45,3 +46,4 @@ The following two lines should provide access to most of what you are likely to 
    apidocs_plot_mpl
    apidocs_typing
    apidocs_exceptions
+   apidocs_progress

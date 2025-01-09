@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,44 +19,62 @@
 
 from os.path import (
     basename,
-    exists,
     splitext,
 )
-from typing import (
+from string import printable
+from pyimpspec.data.data_set import (
+    DataSet,
+    dataframe_to_data_sets,
+)
+from pyimpspec.exceptions import UnsupportedFileFormat
+from pyimpspec.typing.helpers import (
     Dict,
     IO,
     List,
+    Path,
     Tuple,
+    Union,
+    _is_integer,
 )
-from numpy import (
-    integer,
-    issubdtype,
+from .helpers import (
+    _parse_string_as_float,
+    _validate_path,
 )
-from pyimpspec.data.data_set import (
-    DataSet,
-    _dataframe_to_data_set,
-)
-from string import printable
 
 
 def _extract_primary_data(
-    num_freq: int, lines: List[str]
+    num_freq: int,
+    lines: List[str],
 ) -> Tuple[List[float], List[float], List[float]]:
-    assert issubdtype(type(num_freq), integer), num_freq
-    assert isinstance(lines, list) and all(map(lambda _: type(_) is str, lines)), lines
-    assert len(lines) > num_freq, (len(lines), num_freq)
+    if not _is_integer(num_freq):
+        raise TypeError(f"Expected an integer instead of {num_freq=}")
+
+    if not (isinstance(lines, list) and all(map(lambda _: type(_) is str, lines))):
+        raise TypeError(f"Expected a list of strings instead of {lines=}")
+
+    if not (len(lines) > num_freq):
+        raise ValueError(f"Expected {len(lines)=} > {num_freq=}")
+
     re: List[float] = []
     im: List[float] = []
     f: List[float] = []
+
     while lines:
         line: str = lines.pop(0)
-        values: List[str] = line.replace(",", ".").split()
-        assert len(values) == 3, values
-        re.append(float(values.pop(0)))
-        im.append(float(values.pop(0)))
-        f.append(float(values.pop(0)))
+        values: List[str] = line.split()
+
+        if len(values) != 3:
+            raise UnsupportedFileFormat(
+                f"Expected to parse three values instead of {values=}"
+            )
+
+        re.append(_parse_string_as_float(values.pop(0)))
+        im.append(_parse_string_as_float(values.pop(0)))
+        f.append(_parse_string_as_float(values.pop(0)))
+
         if len(re) == num_freq:
             break
+
     return (
         re,
         im,
@@ -64,13 +82,13 @@ def _extract_primary_data(
     )
 
 
-def parse_ids(path: str) -> List[DataSet]:
+def parse_ids(path: Union[str, Path]) -> List[DataSet]:
     """
     Parse an Ivium .ids or .idf file containing one or more impedance spectra.
 
     Parameters
     ----------
-    path: str
+    path: Union[str, pathlib.Path]
         The path to the file to process.
 
     Returns
@@ -78,60 +96,94 @@ def parse_ids(path: str) -> List[DataSet]:
     List[DataSet]
     """
     from pandas import DataFrame
-    assert isinstance(path, str) and exists(path), path
+
+    _validate_path(path)
+
     default_label: str = splitext(basename(path))[0]
+
     fp: IO
     with open(path, "r", encoding="latin1") as fp:
         content: str = "".join(map(lambda _: _ if _ in printable else "", fp.read()))
         lines: List[str] = list(
             filter(lambda _: _ != "", map(str.strip, content.split("\n")))
         )
+
     raw_data_sets: Dict[str, dict] = {}
+
     while lines:
         while lines:
             line: str = lines.pop(0)
             if line.startswith("Title="):
                 break
+
         if len(lines) == 0:
             break
+
         label: str = line[6:].strip()
+
         while lines:
             line = lines.pop(0)
             if "primary_data" in line:
                 break
-        assert len(lines) > 0, f"Failed to find the primary data in '{path}'"
-        assert int(lines.pop(0)) == 3  # Number of columns
+
+        if len(lines) == 0:
+            raise UnsupportedFileFormat(f"Failed to find the primary data in '{path}'")
+
+        num_columns: int = int(lines.pop(0))
+        if num_columns != 3:
+            raise UnsupportedFileFormat("Expected to find three columns")
+
         num_freq: int = int(lines.pop(0))
+
         re: List[float]
         im: List[float]
         f: List[float]
         re, im, f = _extract_primary_data(num_freq, lines)
-        assert len(re) == len(im) == len(f) == num_freq
+
+        if not (len(re) == len(im) == len(f) == num_freq):
+            raise UnsupportedFileFormat(
+                f"Expected to parse {num_freq=} points instead of {len(re)}"
+            )
+
         if label == "":
             label = default_label
+
         if label in raw_data_sets:
             i: int = 2
             while f"{label} ({i})" in raw_data_sets:
                 i += 1
+
             label = f"{label} ({i})"
+
         raw_data_sets[label] = {
             "freq": f,
             "real": re,
             "imag": im,
         }
-    assert len(raw_data_sets) > 0, raw_data_sets
-    assert len(lines) == 0, lines
+
+    if len(raw_data_sets) < 1:
+        raise UnsupportedFileFormat(
+            f"Expected at least one data set instead of {len(raw_data_sets)}"
+        )
+    elif len(lines) > 0:
+        raise UnsupportedFileFormat(
+            f"Expected to consume all lines but there are {len(lines)} lines remaining"
+        )
+
     data_sets: List[DataSet] = []
+
     for label, values in raw_data_sets.items():
-        data_sets.append(
-            _dataframe_to_data_set(
+        data_sets.extend(
+            dataframe_to_data_sets(
                 DataFrame.from_dict(values),
                 path=path,
                 label=label,
             )
         )
-    assert len(data_sets) == len(raw_data_sets), (
-        len(data_sets),
-        len(raw_data_sets),
-    )
+
+    if len(data_sets) != len(raw_data_sets):
+        raise UnsupportedFileFormat(
+            f"Expected to generate {len(raw_data_sets)} DataSet instances instead of {len(data_sets)}"
+        )
+
     return data_sets

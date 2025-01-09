@@ -8,10 +8,10 @@
 - License: GPLv3 or later
 - Dependency.
 
-# cvxpy
-- https://github.com/cvxpy/cvxpy
-- License: Apache License version 2.0
-- Optional dependency.
+# DRT-from-Loewner-framework
+- https://github.com/projectsEECandDRI/DRT-from-Loewner-framework
+- License: MIT
+- Ported to Python and modified.
 
 # DRT-python-code
 - https://github.com/akulikovsky/DRT-python-code
@@ -26,7 +26,12 @@
 # impedance.py
 - https://github.com/ECSHackWeek/impedance.py
 - License: MIT
-- Copied code to implement linear Kramers-Kronig tests using matrix solvers.
+- Copied code to implement linear Kramers-Kronig tests for impedance representations of immittance data using matrix inversion.
+
+# Jinja
+- https://github.com/pallets/jinja/
+- License: BSD 3-clause
+- Optional dependency of _pandas_ for generating formatted strings (e.g., LaTeX).
 
 # Jinja
 - https://github.com/pallets/jinja/
@@ -47,6 +52,11 @@
 - https://github.com/matplotlib/matplotlib
 - License: custom license
 - Dependency.
+
+# nearestSPD
+- https://www.mathworks.com/matlabcentral/fileexchange/42885-nearestspd
+- License: BSD 2-clause
+- Ported to Python by the developers of pyDRTtools for use in the TR-RBF DRT method.
 
 # numdifftools
 - https://github.com/pbrod/numdifftools 
@@ -112,3 +122,8 @@
 - https://github.com/srstevenson/xdg
 - License: ISC
 - Dependency.
+
+# Smoothing algorithms: Whittaker-Henderson and modified sinc kernel
+- https://doi.org/10.1021/acsmeasuresciau.3c00017
+- License: GPLv3
+- Ported from Java to Python.

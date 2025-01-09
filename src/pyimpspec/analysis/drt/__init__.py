@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2023 pyimpspec developers
+# Copyright 2024 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -21,7 +21,9 @@ from typing import List
 from pyimpspec.data import DataSet
 from pyimpspec.exceptions import DRTError
 from .result import (
-    DRTResult
+    DRTPeaks,
+    DRTPeak,
+    DRTResult,
 )
 from .tr_nnls import (
     TRNNLSResult,
@@ -39,10 +41,15 @@ from .mrq_fit import (
     MRQFitResult,
     calculate_drt_mrq_fit,
 )
+from .lm import (
+    LMResult,
+    calculate_drt_lm,
+)
 
 
 _METHODS: List[str] = [
     "bht",
+    "lm",
     "mrq-fit",
     "tr-nnls",
     "tr-rbf",
@@ -63,7 +70,13 @@ def calculate_drt(
         The data set to use in the calculations.
 
     method: str, optional
-        Valid values include: "bht", "mrq-fit", "tr-nnls", "tr-rbf".
+        Valid values include:
+
+        - "bht"
+        - "lm"
+        - "mrq-fit"
+        - "tr-nnls"
+        - "tr-rbf"
 
     **kwargs
         Additional keyword arguments are passed to the chosen method's function.
@@ -73,23 +86,25 @@ def calculate_drt(
     -------
     DRTResult
     """
-    assert (
-        hasattr(data, "get_frequencies")
-        and callable(data.get_frequencies)
-        and hasattr(data, "get_impedances")
-        and callable(data.get_impedances)
-    ), "Invalid data object!"
-    assert isinstance(method, str), method
-    if method not in _METHODS:
-        raise NotImplementedError(
+    if not isinstance(method, str):
+        raise TypeError(f"Expected a string instead of {method=}")
+    elif method not in _METHODS:
+        raise ValueError(
             f"Unsupported method: '{method}'! Valid value include: '"
             + "', '".join(_METHODS)
             + "'."
         )
-    if method == "tr-nnls" and kwargs.get("mode") is not None and kwargs["mode"] == "complex":
+
+    if (
+        method == "tr-nnls"
+        and kwargs.get("mode") is not None
+        and kwargs["mode"] == "complex"
+    ):
         kwargs["mode"] = "real"
+
     return {
         "bht": calculate_drt_bht,
+        "lm": calculate_drt_lm,
         "mrq-fit": calculate_drt_mrq_fit,
         "tr-nnls": calculate_drt_tr_nnls,
         "tr-rbf": calculate_drt_tr_rbf,
