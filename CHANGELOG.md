@@ -2,6 +2,7 @@
 
 - Updated the m(RQ)-fit implementation to raise exceptions in cases that would result in, e.g., negative time constants or undefined values in the DRT.
 - Updated instances of `multiprocessing.Pool` to use the `"spawn"` method on all platforms to avoid the intermittent hangs that can occur when using the `"fork"` method (default on Linux).
+- Updated the Z-HIT algorithm to use the interpolator's `integrate` method instead of `scipy.integrate.quad` (PR #13).
 - Fixed a bug that raised a `ValueError` when plotting the peak analysis results for a `BHTResult` instance.
 
 
