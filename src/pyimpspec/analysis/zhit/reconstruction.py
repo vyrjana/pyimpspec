@@ -25,10 +25,6 @@ from typing import (
     List,
     Tuple,
 )
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-)
 from numpy import (
     array,
     float64,
@@ -56,13 +52,12 @@ def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
         admittance,
     ) = args
 
-    ln_modulus = []
+    ln_modulus: List[float] = []
     ln_w_s: float = ln_omega[0]
-    gamma = -pi / 6
+    gamma: float = -pi / 6
 
-    i: int
     ln_w_0: float
-    for i, ln_w_0 in enumerate(ln_omega):
+    for ln_w_0 in ln_omega:
         integral = interpolator.integrate(ln_w_s, ln_w_0)
         derivative = derivator(ln_w_0)
         if isnan(derivative):
@@ -74,7 +69,7 @@ def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
             ln_modulus.append(2 / pi * integral + gamma * derivative)
 
     return (array(ln_modulus), smoothing, interpolation)
-    
+
 
 def _reconstruct_modulus_data(
     interpolation_options: Dict[str, Dict[str, Any]],
