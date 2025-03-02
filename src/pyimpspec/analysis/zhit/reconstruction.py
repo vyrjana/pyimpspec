@@ -25,10 +25,6 @@ from typing import (
     List,
     Tuple,
 )
-from warnings import (
-    catch_warnings,
-    filterwarnings,
-)
 from numpy import (
     array,
     float64,
@@ -41,11 +37,6 @@ from pyimpspec.progress import Progress
 
 
 def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
-    from scipy.integrate import (
-        IntegrationWarning,
-        quad,
-    )
-
     ln_omega: NDArray[float64]
     interpolator: Any
     derivator: Any
@@ -61,44 +52,13 @@ def _reconstruct(args) -> Tuple[NDArray[float64], str, str]:
         admittance,
     ) = args
 
-    ln_modulus = []
+    ln_modulus: List[float] = []
     ln_w_s: float = ln_omega[0]
-    gamma = -pi / 6
+    gamma: float = -pi / 6
 
-    i: int
     ln_w_0: float
-    for i, ln_w_0 in enumerate(ln_omega):
-        attempts: int = 10
-        epsabs: float = 1e-9
-        limit: int = 100
-
-        with catch_warnings():
-            filterwarnings("error", category=IntegrationWarning)
-
-            while True:
-                try:
-                    integral = quad(
-                        interpolator,
-                        a=ln_w_s,
-                        b=ln_w_0,
-                        epsabs=epsabs,
-                        limit=limit,
-                    )[0]
-                    break
-
-                except IntegrationWarning as e:
-                    attempts -= 1
-                    if attempts <= 0:
-                        break
-                    msg: str = str(e)
-                    if msg.startswith("The maximum number of subdivisions"):
-                        limit += 100
-                    elif msg.startswith("The occurrence of roundoff error"):
-                        epsabs *= 10
-                    else:
-                        print(e)
-                        break
-
+    for ln_w_0 in ln_omega:
+        integral = interpolator.integrate(ln_w_s, ln_w_0)
         derivative = derivator(ln_w_0)
         if isnan(derivative):
             derivative = 0
