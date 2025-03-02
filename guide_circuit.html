@@ -1,0 +1,413 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Equivalent circuits &mdash; pyimpspec 5.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2c218288"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Circuit fitting" href="guide_fitting.html" />
+    <link rel="prev" title="Distribution of relaxation times" href="guide_drt.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyimpspec
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="guide.html">Getting started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="guide_installing.html">Installing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_data.html">Data parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_kramers_kronig.html">Kramers-Kronig testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_zhit.html">Z-HIT analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_drt.html">Distribution of relaxation times</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Equivalent circuits</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#circuit-description-code-cdc">Circuit description code (CDC)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#creating-circuits">Creating circuits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#extended-cdc-syntax">Extended CDC syntax</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#other-ways-of-creating-circuits">Other ways of creating circuits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#user-defined-elements">User-defined elements</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#simulating-spectra">Simulating spectra</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide_fitting.html">Circuit fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_cli.html">Command-line interface (CLI)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyimpspec</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guide.html">Getting started</a></li>
+      <li class="breadcrumb-item active">Equivalent circuits</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/guide_circuit.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="equivalent-circuits">
+<h1>Equivalent circuits<a class="headerlink" href="#equivalent-circuits" title="Link to this heading"></a></h1>
+<p>Equivalent circuits are one way of analyzing impedance spectra and they are used to extract quantitative information by fitting the circuit (i.e., the model) to the experimental data.</p>
+<section id="circuit-description-code-cdc">
+<h2>Circuit description code (CDC)<a class="headerlink" href="#circuit-description-code-cdc" title="Link to this heading"></a></h2>
+<p>CDCs are a convenient way of representing a circuit in terms of its components and connections.
+There are a few different syntaxes that various software have implemented.
+The syntax that is used by pyimpspec is based on the one described in <em>“The circuit description code explained”</em> by Bernard Boukamp (<a class="reference external" href="https://www.utwente.nl/en/tnw/ims/publications/downloads/">PDF available here</a>).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>CDCs cannot be used to describe all types of circuits (see the PDF that was mentioned earlier for more information).
+However, user-defined elements can be used to implement circuits that can not be defined using a CDC and the various elements included with pyimpspec.
+See <a class="reference internal" href="#user-defined-elements">User-defined elements</a> for more information.</p>
+</div>
+<p>The basic elements of the syntax are:</p>
+<ul class="simple">
+<li><p>Square brackets, <strong>[ ]</strong>, represent series connections of elements/connections, <span class="math notranslate nohighlight">\(Z_i\)</span>, that have a total impedance of</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[Z_{total} = Z_1 + Z_2 + \ldots + Z_n\]</div>
+<ul class="simple">
+<li><p>Parentheses, <strong>( )</strong>, represent parallel connections of elements/connections, <span class="math notranslate nohighlight">\(Z_i\)</span>, that have a total impedance of</p></li>
+</ul>
+<div class="math notranslate nohighlight">
+\[Z_{total} = (Z_1^{-1} + Z_2^{-1} + \ldots + Z_n^{-1})^{-1}\]</div>
+<ul class="simple">
+<li><p>Elements such as resistors and capacitors are represented by some character (or group of characters) like <strong>R</strong> and <strong>C</strong>, respectively.</p></li>
+</ul>
+<p>For example, the <a class="reference external" href="https://en.wikipedia.org/wiki/Randles_circuit">Randles</a> circuit can be defined with the following CDC: <strong>R(C[RW])</strong>.</p>
+</section>
+<section id="creating-circuits">
+<h2>Creating circuits<a class="headerlink" href="#creating-circuits" title="Link to this heading"></a></h2>
+<p>Using CDCs and the <a class="reference internal" href="apidocs_circuit.html#pyimpspec.parse_cdc" title="pyimpspec.parse_cdc"><code class="xref py py-func docutils literal notranslate"><span class="pre">parse_cdc()</span></code></a> function is a straightforward way of (re)creating circuits.
+Below is an example of some code that creates a <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a> object based on the CDC that corresponds to the Randles circuit.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">parse_cdc</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">&quot;R(C[RW])&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="o">.</span><span class="n">to_string</span><span class="p">()</span>  <span class="c1"># Generate the CDC based on the Circuit object.</span>
+<span class="go">&#39;[R(C[RW])]&#39;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">str</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>  <span class="c1"># Equivalent to the line above.</span>
+<span class="go">&#39;[R(C[RW])]&#39;</span>
+</pre></div>
+</div>
+<p>As can be seen from the example above, a <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a> object can be used to generate a CDC that corresponds to the circuit.
+The <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a> class also has methods for generating circuit diagrams using either <a class="reference external" href="https://schemdraw.readthedocs.io/en/latest/">SchemDraw</a> (<a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit.to_drawing" title="pyimpspec.Circuit.to_drawing"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_drawing()</span></code></a>) or <a class="reference external" href="https://github.com/circuitikz/circuitikz">CircuiTikZ</a> (<a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit.to_circuitikz" title="pyimpspec.Circuit.to_circuitikz"><code class="xref py py-func docutils literal notranslate"><span class="pre">to_circuitikz()</span></code></a>).
+Below is an example of the output generated by using SchemDraw:</p>
+<p>(<a class="reference download internal" download="" href="_downloads/25ebf99ba01d3a40fdecad3ab1b2e8d2/guide_circuit-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_circuit-1.svg" class="plot-directive" src="_images/guide_circuit-1.svg" />
+</figure>
+<p>It is also possible to obtain a <a class="reference external" href="https://www.sympy.org/en/index.html">SymPy</a> expression for the impedance of a circuit:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">parse_cdc</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">&quot;R(C[RW])&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="o">.</span><span class="n">to_sympy</span><span class="p">()</span>
+<span class="go">R_0 + 1/(2*I*pi*C_1*f + 1/(R_2 + 1/(Y_3*(2*I*pi*f)**n_3)))</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The lower indices of the various parameters in SymPy expressions are by default based on a running count starting from 0.
+This is to avoid conflicting/overlapping variable names for parameters from two or more different circuit elements with, e.g., parameters called <code class="docutils literal notranslate"><span class="pre">Y</span></code>.
+In most other contexts (e.g., circuit diagrams and tables of fitted circuit parameters) the circuit elements have lower indices that reflect that the element is the nth instance of that type of element in that circuit starting from 1 (see the previous circuit diagram for an example).
+It is possible to, e.g., draw circuit diagrams using the same running count by calling the relevant function with <code class="docutils literal notranslate"><span class="pre">running=True</span></code> as an argument (see the example below).</p>
+</div>
+<p>(<a class="reference download internal" download="" href="_downloads/520a147c129d142abda7400aa372cdf0/guide_circuit-2.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_circuit-2.svg" class="plot-directive" src="_images/guide_circuit-2.svg" />
+</figure>
+</section>
+<section id="extended-cdc-syntax">
+<h2>Extended CDC syntax<a class="headerlink" href="#extended-cdc-syntax" title="Link to this heading"></a></h2>
+<p>Pyimpspec also supports an extended CDC syntax that allows for defining element parameters (i.e., their initial values and limits) and for assigning labels to elements.
+Curly braces, <strong>{ }</strong>, enclose parameter and/or label definitions.
+For example, let’s redefine the Randles circuit using the extended syntax to set the initial values (and some limits) of the parameters, and also assign labels to the elements:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">&quot;R{R=20f:sol}(C{C=25e-6//1e-3:dl}[R{R=100/50/200:ct}W{Y=2.357e-3/inf/150%:diff}])&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The new circuit now has:</p>
+<ul class="simple">
+<li><p>A 20 <span class="math notranslate nohighlight">\(\Omega\)</span> resistor with a fixed value and the label “sol” (solution resistance).</p></li>
+<li><p>A 25 microfarad capacitor with no lower limit and a 1 millifarad upper limit, and the label “dl” (double-layer capacitance).</p></li>
+<li><p>A 100 <span class="math notranslate nohighlight">\(\Omega\)</span> resistor with a 50 <span class="math notranslate nohighlight">\(\Omega\)</span> lower limit and 200 <span class="math notranslate nohighlight">\(\Omega\)</span> upper limit, and the label “ct” (charge-transfer resistance).</p></li>
+<li><p>A Warburg impedance with an “admittance” of 2.357 millisiemens*seconds^(1/2), no lower limit, and an upper limit of 1.5 times the initial value, and the label “diff” (diffusion).</p></li>
+</ul>
+<p>Below are the updated SymPy expression and circuit diagram:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">parse_cdc</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">&quot;R{R=20f:sol}(C{C=25e-6//1e-3:dl}[R{R=100/50/100:ct}W{Y=2.357e-3/inf/150%:diff}])&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="o">.</span><span class="n">to_sympy</span><span class="p">()</span>
+<span class="go">R_sol + 1/(2*I*pi*C_dl*f + 1/(R_ct + 1/(Y_diff*(2*I*pi*f)**n_diff)))</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="_downloads/36f077bdb2318521f1569f18470315fd/guide_circuit-3.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_circuit-3.svg" class="plot-directive" src="_images/guide_circuit-3.svg" />
+</figure>
+<p>The extended CDC syntax is also useful for sharing/storing circuits in text form since one can use it to define how precise the representation of parameter values should be:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">parse_cdc</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">&quot;R{R=20f:sol}(C{C=25e-6//1e-3:dl}[R{R=100/50/200:ct}W{Y=2.357e-3/inf/150%:diff}])&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="n">decimals</span><span class="o">=</span><span class="mi">3</span><span class="p">)</span>  <span class="c1"># Use scientific notation and three decimal places for values.</span>
+<span class="go">&#39;[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/1.000E-24/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03,n=5.000E-01F/0.000E+00/1.000E+00:diff}])]&#39;</span>
+</pre></div>
+</div>
+<p>There is also a dedicated method for generating a CDC with some metadata that should help ensure compatibility when parsing a CDC generated before some breaking changes were made in a newer version of the API:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">parse_cdc</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">&quot;R{R=20f:sol}(C{C=25e-6//1e-3:dl}[R{R=100/50/100:ct}W{Y=2.357e-3/inf/150%:diff}])&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="o">.</span><span class="n">serialize</span><span class="p">()</span>  <span class="c1"># Includes metadata (e.g., version number) and uses 12 decimal places by default.</span>
+<span class="go">&#39;!V=1![R{R=2.000000000000E+01F/0.000000000000E+00/inf:sol}(C{C=2.500000000000E-05/1.000000000000E-24/1.000000000000E-03:dl}[R{R=1.000000000000E+02/5.000000000000E+01/1.000000000000E+02:ct}W{Y=2.357000000000E-03/inf/3.535500000000E-03,n=5.000000000000E-01F/0.000000000000E+00/1.000000000000E+00:diff}])]&#39;</span>
+</pre></div>
+</div>
+</section>
+<section id="other-ways-of-creating-circuits">
+<h2>Other ways of creating circuits<a class="headerlink" href="#other-ways-of-creating-circuits" title="Link to this heading"></a></h2>
+<p>It is also possible to create circuits by creating <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Element" title="pyimpspec.Element"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></a> objects (e.g., <a class="reference internal" href="apidocs_circuit.html#pyimpspec.circuit.elements.Resistor" title="pyimpspec.circuit.elements.Resistor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Resistor</span></code></a>) that are placed inside <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Connection" title="pyimpspec.Connection"><code class="xref py py-class docutils literal notranslate"><span class="pre">Connection</span></code></a> objects (e.g., <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Series" title="pyimpspec.Series"><code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></a>).
+Ultimately the outermost <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Connection" title="pyimpspec.Connection"><code class="xref py py-class docutils literal notranslate"><span class="pre">Connection</span></code></a> object is placed within a <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a> object.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">Series</span><span class="p">,</span> <span class="n">Parallel</span><span class="p">,</span> <span class="n">Resistor</span><span class="p">,</span> <span class="n">Capacitor</span><span class="p">,</span> <span class="n">Warburg</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">inf</span><span class="p">,</span> <span class="n">sqrt</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">R_sol</span><span class="p">:</span> <span class="n">Resistor</span> <span class="o">=</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">Resistor</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_fixed</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;sol&quot;</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">C_dl</span><span class="p">:</span> <span class="n">Capacitor</span> <span class="o">=</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">Capacitor</span><span class="p">()</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;dl&quot;</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_values</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="mf">25e-6</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_lower_limits</span><span class="p">(</span><span class="n">C</span><span class="o">=-</span><span class="n">inf</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_upper_limits</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">R_ct</span><span class="p">:</span> <span class="n">Resistor</span> <span class="o">=</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">Resistor</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;ct&quot;</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_lower_limits</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_upper_limits</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">W_diff</span><span class="p">:</span> <span class="n">Warburg</span> <span class="o">=</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">Warburg</span><span class="p">(</span><span class="n">Y</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="mi">300</span><span class="p">))</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;diff&quot;</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_lower_limits</span><span class="p">(</span><span class="n">Y</span><span class="o">=-</span><span class="n">inf</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="o">.</span><span class="n">set_upper_limits</span><span class="p">(</span><span class="n">Y</span><span class="o">=</span><span class="mf">1.5</span><span class="o">*</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="mi">300</span><span class="p">))</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">inner_series</span><span class="p">:</span> <span class="n">Series</span> <span class="o">=</span> <span class="n">Series</span><span class="p">([</span><span class="n">R_ct</span><span class="p">,</span> <span class="n">W_diff</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parallel</span><span class="p">:</span> <span class="n">Parallel</span> <span class="o">=</span> <span class="n">Parallel</span><span class="p">([</span><span class="n">C_dl</span><span class="p">,</span> <span class="n">inner_series</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">outer_series</span><span class="p">:</span> <span class="n">Series</span> <span class="o">=</span> <span class="n">Series</span><span class="p">([</span><span class="n">R_sol</span><span class="p">,</span> <span class="n">parallel</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">Circuit</span><span class="p">(</span><span class="n">outer_series</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">&#39;[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/inf/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03,n=5.000E-01F/0.000E+00/1.000E+00:diff}])]&#39;</span>
+</pre></div>
+</div>
+<p>However, using the <a class="reference internal" href="apidocs_circuit.html#pyimpspec.CircuitBuilder" title="pyimpspec.CircuitBuilder"><code class="xref py py-class docutils literal notranslate"><span class="pre">CircuitBuilder</span></code></a> context manager class may be more convenient:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">CircuitBuilder</span><span class="p">,</span> <span class="n">Resistor</span><span class="p">,</span> <span class="n">Capacitor</span><span class="p">,</span> <span class="n">Warburg</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">inf</span><span class="p">,</span> <span class="n">sqrt</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="n">CircuitBuilder</span><span class="p">()</span> <span class="k">as</span> <span class="n">outer_series</span><span class="p">:</span>
+<span class="gp">... </span>  <span class="n">outer_series</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">Resistor</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;sol&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="o">.</span><span class="n">set_fixed</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">... </span>  <span class="p">)</span>
+<span class="gp">... </span>  <span class="k">with</span> <span class="n">outer_series</span><span class="o">.</span><span class="n">parallel</span><span class="p">()</span> <span class="k">as</span> <span class="n">parallel</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">parallel</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+<span class="gp">... </span>      <span class="n">Capacitor</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="mf">25e-6</span><span class="p">)</span>
+<span class="gp">... </span>      <span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;dl&quot;</span><span class="p">)</span>
+<span class="gp">... </span>      <span class="o">.</span><span class="n">set_lower_limits</span><span class="p">(</span><span class="n">C</span><span class="o">=-</span><span class="n">inf</span><span class="p">)</span>
+<span class="gp">... </span>      <span class="o">.</span><span class="n">set_upper_limits</span><span class="p">(</span><span class="n">C</span><span class="o">=</span><span class="mf">1e-3</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="p">)</span>
+<span class="gp">... </span>    <span class="k">with</span> <span class="n">parallel</span><span class="o">.</span><span class="n">series</span><span class="p">()</span> <span class="k">as</span> <span class="n">inner_series</span><span class="p">:</span>
+<span class="gp">... </span>      <span class="n">inner_series</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">Resistor</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;ct&quot;</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">set_lower_limits</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">50</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">set_upper_limits</span><span class="p">(</span><span class="n">R</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<span class="gp">... </span>      <span class="p">)</span>
+<span class="gp">... </span>      <span class="n">inner_series</span><span class="o">.</span><span class="n">add</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">Warburg</span><span class="p">(</span><span class="n">Y</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="mi">300</span><span class="p">))</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">set_label</span><span class="p">(</span><span class="s2">&quot;diff&quot;</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">set_lower_limits</span><span class="p">(</span><span class="n">Y</span><span class="o">=-</span><span class="n">inf</span><span class="p">)</span>
+<span class="gp">... </span>        <span class="o">.</span><span class="n">set_upper_limits</span><span class="p">(</span><span class="n">Y</span><span class="o">=</span><span class="mf">1.5</span><span class="o">*</span><span class="mi">1</span><span class="o">/</span><span class="p">(</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="mi">300</span><span class="p">))</span>
+<span class="gp">... </span>      <span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">outer_series</span><span class="o">.</span><span class="n">to_circuit</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="o">.</span><span class="n">to_string</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="go">&#39;[R{R=2.000E+01F/0.000E+00/inf:sol}(C{C=2.500E-05/inf/1.000E-03:dl}[R{R=1.000E+02/5.000E+01/2.000E+02:ct}W{Y=2.357E-03/inf/3.536E-03,n=5.000E-01F/0.000E+00/1.000E+00:diff}])]&#39;</span>
+</pre></div>
+</div>
+</section>
+<section id="user-defined-elements">
+<span id="id1"></span><h2>User-defined elements<a class="headerlink" href="#user-defined-elements" title="Link to this heading"></a></h2>
+<p>If pyimpspec lacks support for a specific element, then one can be added at runtime using the same system that is used to implement the elements included in pyimpspec.
+The <a class="reference internal" href="apidocs_circuit.html#pyimpspec.register_element" title="pyimpspec.register_element"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_element()</span></code></a> function accepts either an <a class="reference internal" href="apidocs_circuit.html#pyimpspec.ElementDefinition" title="pyimpspec.ElementDefinition"><code class="xref py py-class docutils literal notranslate"><span class="pre">ElementDefinition</span></code></a> or a <a class="reference internal" href="apidocs_circuit.html#pyimpspec.ContainerDefinition" title="pyimpspec.ContainerDefinition"><code class="xref py py-class docutils literal notranslate"><span class="pre">ContainerDefinition</span></code></a> object, which in turn contains a reference to the new <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Element" title="pyimpspec.Element"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></a> or <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Container" title="pyimpspec.Container"><code class="xref py py-class docutils literal notranslate"><span class="pre">Container</span></code></a> subclass and some metadata (e.g., <a class="reference internal" href="apidocs_circuit.html#pyimpspec.ParameterDefinition" title="pyimpspec.ParameterDefinition"><code class="xref py py-class docutils literal notranslate"><span class="pre">ParameterDefinition</span></code></a> and/or <a class="reference internal" href="apidocs_circuit.html#pyimpspec.SubcircuitDefinition" title="pyimpspec.SubcircuitDefinition"><code class="xref py py-class docutils literal notranslate"><span class="pre">SubcircuitDefinition</span></code></a> objects).
+For example, a new element could be implemented as follows:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>    <span class="n">ComplexImpedances</span><span class="p">,</span>    <span class="c1"># Alias for a NumPy array of complex128 values</span>
+<span class="gp">... </span>    <span class="n">Frequencies</span><span class="p">,</span>          <span class="c1"># Alias for a NumPy array of float64 values</span>
+<span class="gp">... </span>    <span class="n">Circuit</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">Element</span><span class="p">,</span>              <span class="c1"># The base class for all circuit elements</span>
+<span class="gp">... </span>    <span class="n">ElementDefinition</span><span class="p">,</span>    <span class="c1"># A class that contains information regarding a new circuit element</span>
+<span class="gp">... </span>    <span class="n">ParameterDefinition</span><span class="p">,</span>  <span class="c1"># A class that contains information regarding a circuit element&#39;s parameter</span>
+<span class="gp">... </span>    <span class="n">register_element</span><span class="p">,</span>     <span class="c1"># A function that processes the new element class</span>
+<span class="gp">... </span>    <span class="n">parse_cdc</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">pi</span><span class="p">,</span> <span class="n">inf</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">class</span><span class="w"> </span><span class="nc">SomeNewElement</span><span class="p">(</span><span class="n">Element</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span><span class="w"> </span><span class="nf">_impedance</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">:</span> <span class="n">Frequencies</span><span class="p">,</span> <span class="n">X</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">a</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ComplexImpedances</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">X</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="n">j</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">*</span> <span class="n">pi</span> <span class="o">*</span> <span class="n">f</span><span class="p">)</span><span class="o">**</span><span class="n">a</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">register_element</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">ElementDefinition</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">Class</span><span class="o">=</span><span class="n">SomeNewElement</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">symbol</span><span class="o">=</span><span class="s2">&quot;Ude&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">name</span><span class="o">=</span><span class="s2">&quot;Some new element&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;User-defined element of some type.&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">equation</span><span class="o">=</span><span class="s2">&quot;1/(X*(2*pi*f*I)^a)&quot;</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="n">parameters</span><span class="o">=</span><span class="p">[</span>
+<span class="gp">... </span>            <span class="n">ParameterDefinition</span><span class="p">(</span>
+<span class="gp">... </span>                <span class="n">symbol</span><span class="o">=</span><span class="s2">&quot;X&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;Some unit&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Description of this parameter&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">value</span><span class="o">=</span><span class="mf">1e-6</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">lower_limit</span><span class="o">=</span><span class="mf">1e-24</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">upper_limit</span><span class="o">=</span><span class="n">inf</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">fixed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="p">),</span>
+<span class="gp">... </span>            <span class="n">ParameterDefinition</span><span class="p">(</span>
+<span class="gp">... </span>                <span class="n">symbol</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">unit</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Some exponent&quot;</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">value</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">lower_limit</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">upper_limit</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>
+<span class="gp">... </span>                <span class="n">fixed</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="gp">... </span>            <span class="p">),</span>
+<span class="gp">... </span>        <span class="p">],</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The new element should now be available for use like any of the</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># elements that are bundled with pyimpspec.</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">&quot;Ude&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The various metadata included in the <a class="reference internal" href="apidocs_circuit.html#pyimpspec.register_element" title="pyimpspec.register_element"><code class="xref py py-func docutils literal notranslate"><span class="pre">register_element()</span></code></a> call are used to automatically generate a docstring for the user-defined element (hence the lack of an explicit docstring in the class in the example above).
+The <code class="docutils literal notranslate"><span class="pre">_impedance</span></code> method is used internally by pyimpspec and, e.g., the <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Element" title="pyimpspec.Element"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></a> class’ <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Element.get_impedances" title="pyimpspec.Element.get_impedances"><code class="xref py py-func docutils literal notranslate"><span class="pre">get_impedances()</span></code></a> method acts as a wrapper that handles validation of the frequencies given as input before passing them along to the <code class="docutils literal notranslate"><span class="pre">_impedance</span></code> method together with the element’s parameters.</p>
+<p>Note that the equation/expression for the impedance of the element (assume “Z = “ on the left-hand side) is also provided as a string when the element registered.
+This string <strong>must</strong> be compatible with <a class="reference external" href="https://docs.sympy.org/latest/modules/core.html#sympy.core.sympify.sympify">SymPy’s sympify function</a>.
+This string is used primarily to validate the output of the element’s <code class="docutils literal notranslate"><span class="pre">_impedance</span></code> method when the element is registered.
+However, the string is also used for calculating the element’s impedance when the excitation frequency is zero or infinity by making use of <a class="reference external" href="https://docs.sympy.org/latest/modules/core.html?highlight=limit#sympy.core.expr.Expr.limit">SymPy’s limit function</a>.
+The <code class="docutils literal notranslate"><span class="pre">_impedance</span></code> method is used for most calculations due to the greater performance that it offers compared to using SymPy.</p>
+<p>Elements that are subclasses of <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Container" title="pyimpspec.Container"><code class="xref py py-class docutils literal notranslate"><span class="pre">Container</span></code></a> can, in addition to numeric parameters, contain subcircuits in the form of <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Connection" title="pyimpspec.Connection"><code class="xref py py-class docutils literal notranslate"><span class="pre">Connection</span></code></a> instances such as a <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Series" title="pyimpspec.Series"><code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></a> instance containing various <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Element" title="pyimpspec.Element"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></a> (or <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Container" title="pyimpspec.Container"><code class="xref py py-class docutils literal notranslate"><span class="pre">Container</span></code></a>) instances.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The default implementations of the <code class="docutils literal notranslate"><span class="pre">Element._sympy</span></code> and <code class="docutils literal notranslate"><span class="pre">Container._sympy</span></code> methods simply call <a class="reference external" href="https://docs.sympy.org/latest/modules/core.html#sympy.core.sympify.sympify">sympify</a> on the element’s equation string.
+It may be necessary in some cases for elements to also override the <code class="docutils literal notranslate"><span class="pre">_sympy</span></code> method if there are special cases that need to be handled (e.g., in the case where an element based on <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Container" title="pyimpspec.Container"><code class="xref py py-class docutils literal notranslate"><span class="pre">Container</span></code></a> has a subcircuit that can be a short circuit or an open circuit).
+See the source code (e.g., on GitHub) for pyimpspec’s implementation of the <a class="reference internal" href="apidocs_circuit.html#pyimpspec.circuit.elements.TransmissionLineModel" title="pyimpspec.circuit.elements.TransmissionLineModel"><code class="xref py py-class docutils literal notranslate"><span class="pre">TransmissionLineModel</span></code></a> element for an example of this.</p>
+</div>
+</section>
+<section id="simulating-spectra">
+<h2>Simulating spectra<a class="headerlink" href="#simulating-spectra" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a> objects can be used to simulate impedance spectra and there is a convenient <a class="reference internal" href="apidocs_circuit.html#pyimpspec.simulate_spectrum" title="pyimpspec.simulate_spectrum"><code class="xref py py-func docutils literal notranslate"><span class="pre">simulate_spectrum()</span></code></a> function that returns a <a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a> object.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">Circuit</span><span class="p">,</span> <span class="n">DataSet</span><span class="p">,</span> <span class="n">parse_cdc</span><span class="p">,</span> <span class="n">simulate_spectrum</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="kn">import</span> <span class="n">logspace</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cdc</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;R{R=20f:sol}(C{C=25e-6//1e-3:dl}[R{R=100/50/100:ct}W{Y=2.357e-3/inf/150%:diff}])&quot;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="n">cdc</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">simulate_spectrum</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="n">frequencies</span><span class="o">=</span><span class="n">logspace</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="n">num</span><span class="o">=</span><span class="mi">16</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Randles&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="n">data</span><span class="o">.</span><span class="n">get_label</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;Randles&quot;</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="_downloads/63e5035575090c7f6815c326c72a4d44/guide_circuit-4.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_circuit-4.svg" class="plot-directive" src="_images/guide_circuit-4.svg" />
+</figure>
+<p>Alternatively, there is a <code class="xref py py-func docutils literal notranslate"><span class="pre">plot_circuit()</span></code> function that can be used without generating the intermediate <a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a> object.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/bcb6fc151b5b922b1a1ea4f3a908b116/guide_circuit-5.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_circuit-5.svg" class="plot-directive" src="_images/guide_circuit-5.svg" />
+</figure>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="guide_drt.html" class="btn btn-neutral float-left" title="Distribution of relaxation times" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="guide_fitting.html" class="btn btn-neutral float-right" title="Circuit fitting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, pyimpspec developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

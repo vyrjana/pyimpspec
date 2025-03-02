@@ -1,0 +1,356 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Distribution of relaxation times &mdash; pyimpspec 5.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2c218288"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Equivalent circuits" href="guide_circuit.html" />
+    <link rel="prev" title="Z-HIT analysis" href="guide_zhit.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyimpspec
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="guide.html">Getting started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="guide_installing.html">Installing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_data.html">Data parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_kramers_kronig.html">Kramers-Kronig testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_zhit.html">Z-HIT analysis</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Distribution of relaxation times</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-supported-methods">The supported methods</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-use">How to use</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#peak-analysis">Peak analysis</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide_circuit.html">Equivalent circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_fitting.html">Circuit fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_cli.html">Command-line interface (CLI)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyimpspec</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guide.html">Getting started</a></li>
+      <li class="breadcrumb-item active">Distribution of relaxation times</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/guide_drt.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="distribution-of-relaxation-times">
+<h1>Distribution of relaxation times<a class="headerlink" href="#distribution-of-relaxation-times" title="Link to this heading"></a></h1>
+<p>Calculating the distribution of relaxation times (DRT) is one way of analyzing impedance spectra.
+Several different approaches have been described (see <a class="reference external" href="https://doi.org/10.1088/2515-7655/aba9e0">Boukamp (2020)</a> for a review).
+The DRT results can be used to, e.g., develop a suitable equivalent circuit.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Validation of impedance spectra using, e.g., Kramers-Kronig tests prior to proceeding with DRT analyses is highly recommended.
+The instrument control software for your potentiostat/galvanostat may include tools for analyzing the excitation and response signals for indications of non-linear behavior.</p>
+</div>
+<section id="the-supported-methods">
+<h2>The supported methods<a class="headerlink" href="#the-supported-methods" title="Link to this heading"></a></h2>
+<p>Implementations based on the following approaches are included in pyimpspec:</p>
+<ul class="simple">
+<li><p><strong>BHT</strong>: The Bayesian Hilbert transform method (see <a class="reference external" href="https://doi.org/10.1016/j.electacta.2020.136864">Liu et al. (2020)</a>) that was originally implemented in <a class="reference external" href="https://github.com/ciuccislab/DRTtools">DRTtools</a> and <a class="reference external" href="https://github.com/ciuccislab/pyDRTtools">pyDRTtools</a>.</p></li>
+<li><p><strong>LM</strong>: The Loewner method (see <a class="reference external" href="https://doi.org/10.1016/j.laa.2007.03.008">Mayo and Antoulas (2007)</a>, <a class="reference external" href="http://doi.org/10.2139/ssrn.4217752">Sorrentino et al. (2022)</a>, <a class="reference external" href="https://doi.org/10.3390/batteries9020132">Rüther et al. (2023)</a>, and <a class="reference external" href="https://doi.org/10.1016/j.jpowsour.2023.233575">Sorrentino et al. (2023)</a>) that was implemented in <a class="reference external" href="https://github.com/projectsEECandDRI/DRT-from-Loewner-framework">DRT-from-Loewner-framework</a>.</p></li>
+<li><p><strong>m(RQ)fit</strong>: The multi-(RQ)-fit method (see <a class="reference external" href="https://doi.org/10.1016/j.electacta.2014.12.059">Boukamp (2015)</a> and <a class="reference external" href="https://doi.org/10.1016/j.ssi.2016.10.009">Boukamp and Rolle (2017)</a>).</p></li>
+<li><p><strong>TR-NNLS</strong>: Tikhonov regularization and non-negative least squares (see <a class="reference external" href="https://doi.org/10.1149/1945-7111/abf508">Kulikovsky (2021)</a>) that was originally implemented in <a class="reference external" href="https://github.com/akulikovsky/DRT-python-code">DRT-python-code</a>.</p></li>
+<li><p><strong>TR-RBF</strong>: Tikhonov regularization and radial basis function (or piecewise linear) discretization (see <a class="reference external" href="https://doi.org/10.1016/j.electacta.2015.09.097">Wan et al. (2015)</a>, <a class="reference external" href="https://doi.org/10.1016/j.electacta.2015.03.123">Ciucci and Chen (2015)</a>, <a class="reference external" href="https://doi.org/10.1016/j.electacta.2017.07.050">Effat and Ciucci (2017)</a>, and <a class="reference external" href="https://doi.org/10.1149/1945-7111/acbca4">Maradesa et al. (2023)</a>) that was originally implemented in <a class="reference external" href="https://github.com/ciuccislab/DRTtools">DRTtools</a> and <a class="reference external" href="https://github.com/ciuccislab/pyDRTtools">pyDRTtools</a>.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The methods using Tikhonov regularization require selection of a suitable regularization parameter, <span class="math notranslate nohighlight">\(\lambda\)</span>.
+The implementations of the TR-NNLS and TR-RBF methods in pyimpspec include approaches to automatically selecting this parameter.
+However, this is not guaranteed to work in all cases.
+An unsuitable regularization parameter can lead to, e.g., sharp peaks that should not be there or broad peaks that should be two or more separate sharper peaks.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The BHT method makes use of random initial values for some of its calculations, which can produce different results when repeated with the same impedance spectrum.</p>
+</div>
+</section>
+<section id="how-to-use">
+<h2>How to use<a class="headerlink" href="#how-to-use" title="Link to this heading"></a></h2>
+<p>Each method has its own function that can be used but there is also a wrapper function (<a class="reference internal" href="apidocs_drt.html#pyimpspec.calculate_drt" title="pyimpspec.calculate_drt"><code class="xref py py-func docutils literal notranslate"><span class="pre">calculate_drt()</span></code></a>) that takes a <code class="docutils literal notranslate"><span class="pre">method</span></code> argument.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">DataSet</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">DRTResult</span><span class="p">,</span>              <span class="c1"># An abstract class for DRT results</span>
+<span class="gp">... </span>  <span class="n">calculate_drt</span><span class="p">,</span>          <span class="c1"># Wrapper function for all methods</span>
+<span class="gp">... </span>  <span class="n">generate_mock_data</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec.analysis.drt</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">BHTResult</span><span class="p">,</span>              <span class="c1"># Result of the BHT method</span>
+<span class="gp">... </span>  <span class="n">LMResult</span><span class="p">,</span>               <span class="c1"># Result of the Loewner method</span>
+<span class="gp">... </span>  <span class="n">MRQFitResult</span><span class="p">,</span>           <span class="c1"># Result of the m(RQ)fit method</span>
+<span class="gp">... </span>  <span class="n">TRNNLSResult</span><span class="p">,</span>           <span class="c1"># Result of the TR-NNLS method</span>
+<span class="gp">... </span>  <span class="n">TRRBFResult</span><span class="p">,</span>            <span class="c1"># Result of the TR-RBF method</span>
+<span class="gp">... </span>  <span class="n">calculate_drt_bht</span><span class="p">,</span>      <span class="c1"># BHT method</span>
+<span class="gp">... </span>  <span class="n">calculate_drt_lm</span><span class="p">,</span>       <span class="c1"># Loewner method</span>
+<span class="gp">... </span>  <span class="n">calculate_drt_mrq_fit</span><span class="p">,</span>  <span class="c1"># m(RQ)fit method</span>
+<span class="gp">... </span>  <span class="n">calculate_drt_tr_nnls</span><span class="p">,</span>  <span class="c1"># TR-NNLS method</span>
+<span class="gp">... </span>  <span class="n">calculate_drt_tr_rbf</span><span class="p">,</span>   <span class="c1"># TR-RBF method</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span><span class="s2">&quot;CIRCUIT_1&quot;</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">5e-2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">drt</span><span class="p">:</span> <span class="n">TRNNLSResult</span> <span class="o">=</span> <span class="n">calculate_drt_tr_nnls</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">lambda_value</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">drt</span><span class="p">:</span> <span class="n">DRTResult</span> <span class="o">=</span> <span class="n">calculate_drt</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;tr-nnls&quot;</span><span class="p">,</span> <span class="n">lambda_value</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">assert</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">drt</span><span class="p">,</span> <span class="n">TRNNLSResult</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Below are some figures demonstrating the results of the methods listed above when applied to the example data.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/80c7bcd5c0496fa990f11aa87e8ea844/guide_drt-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_drt-1_00.svg" class="plot-directive" src="_images/guide_drt-1_00.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-1_01.svg" class="plot-directive" src="_images/guide_drt-1_01.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-1_02.svg" class="plot-directive" src="_images/guide_drt-1_02.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-1_03.svg" class="plot-directive" src="_images/guide_drt-1_03.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-1_04.svg" class="plot-directive" src="_images/guide_drt-1_04.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-1_05.svg" class="plot-directive" src="_images/guide_drt-1_05.svg" />
+</figure>
+<p>(<a class="reference download internal" download="" href="_downloads/3db88ae1f953b41b7b062dd93d0a5777/guide_drt-2.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_drt-2_00.svg" class="plot-directive" src="_images/guide_drt-2_00.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-2_01.svg" class="plot-directive" src="_images/guide_drt-2_01.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-2_02.svg" class="plot-directive" src="_images/guide_drt-2_02.svg" />
+</figure>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>   <span class="n">tau</span><span class="p">,</span> <span class="n">RC</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">|</span>   <span class="n">gamma</span><span class="p">,</span> <span class="n">RC</span> <span class="p">(</span><span class="n">ohm</span><span class="p">)</span> <span class="o">|</span>   <span class="n">tau</span><span class="p">,</span> <span class="n">RL</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">|</span>   <span class="n">gamma</span><span class="p">,</span> <span class="n">RL</span> <span class="p">(</span><span class="n">ohm</span><span class="p">)</span> <span class="o">|</span>
+<span class="o">|--------------</span><span class="p">:</span><span class="o">|------------------</span><span class="p">:</span><span class="o">|--------------</span><span class="p">:</span><span class="o">|------------------</span><span class="p">:</span><span class="o">|</span>
+<span class="o">|</span>   <span class="mf">8.00717e-12</span> <span class="o">|</span>           <span class="mf">289.999</span> <span class="o">|</span>      <span class="mf">0.266667</span> <span class="o">|</span>           <span class="mf">150.012</span> <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00023</span>     <span class="o">|</span>           <span class="mi">230</span>     <span class="o">|</span>    <span class="n">nan</span>        <span class="o">|</span>           <span class="n">nan</span>     <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0576</span>      <span class="o">|</span>           <span class="mf">576.007</span> <span class="o">|</span>    <span class="n">nan</span>        <span class="o">|</span>           <span class="n">nan</span>     <span class="o">|</span>
+</pre></div>
+</div>
+<p>This example shows that some additional processing of the obtained values may be necessary.
+In this case, the high-frequency resistive-capacitive peak does not directly tell us the value of <span class="math notranslate nohighlight">\(R_1\)</span> and instead it is <span class="math notranslate nohighlight">\(R_1 + R_4\)</span>.
+However, we can still obtain an estimated value: <span class="math notranslate nohighlight">\(R_1 \approx 289.999\ \Omega - 150.012\ \Omega \approx 140\ \Omega\)</span>.
+Other estimated values such as capacitances and inductances can also be obtained:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(R_2 \approx 230\ \Omega\)</span> and <span class="math notranslate nohighlight">\(C_1 \approx 0.0023\ {\rm s} / 230\ \Omega \approx 10^{-6}\ {\rm F}\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(R_3 \approx 576\ \Omega\)</span> and <span class="math notranslate nohighlight">\(C_2 \approx 0.0576\ {\rm s} / 576.007\ \Omega \approx 10^{-4}\ {\rm F}\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(R_4 \approx 150\ \Omega\)</span> and <span class="math notranslate nohighlight">\(L_2 \approx 0.266667\ {\rm s} \times 150.012\ \Omega \approx 40\ {\rm H}\)</span></p></li>
+</ul>
+<p>The above is a best-case scenario, but even with a bit of added noise (<span class="math notranslate nohighlight">\(\sigma = 0.05\ \% \times |Z|\)</span>) one can still obtain decent estimates despite the additional peaks:</p>
+<ul class="simple">
+<li><p><span class="math notranslate nohighlight">\(R1 \approx 289.925\ \Omega - 149.085\ \Omega \approx 141\ \Omega\)</span>.</p></li>
+<li><p><span class="math notranslate nohighlight">\(R_2 \approx 230\ \Omega\)</span> and <span class="math notranslate nohighlight">\(C_1 \approx 0.00230559\ {\rm s} / 230.233\ \Omega \approx 10^{-6}\ {\rm F}\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(R_3 \approx 574\ \Omega\)</span> and <span class="math notranslate nohighlight">\(C_2 \approx 0.0574022\ {\rm s} / 574.438\ \Omega \approx 10^{-4}\ {\rm F}\)</span></p></li>
+<li><p><span class="math notranslate nohighlight">\(R_4 \approx 149\ \Omega\)</span> and <span class="math notranslate nohighlight">\(L_2 \approx 0.271608\ {\rm s} \times 149.085\ \Omega \approx 40\ {\rm H}\)</span></p></li>
+</ul>
+<p>(<a class="reference download internal" download="" href="_downloads/12bb91f0a74cebb79df6a8e03764781f/guide_drt-3.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_drt-3.svg" class="plot-directive" src="_images/guide_drt-3.svg" />
+</figure>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>   <span class="n">tau</span><span class="p">,</span> <span class="n">RC</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">|</span>   <span class="n">gamma</span><span class="p">,</span> <span class="n">RC</span> <span class="p">(</span><span class="n">ohm</span><span class="p">)</span> <span class="o">|</span>   <span class="n">tau</span><span class="p">,</span> <span class="n">RL</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">|</span>   <span class="n">gamma</span><span class="p">,</span> <span class="n">RL</span> <span class="p">(</span><span class="n">ohm</span><span class="p">)</span> <span class="o">|</span>
+<span class="o">|--------------</span><span class="p">:</span><span class="o">|------------------</span><span class="p">:</span><span class="o">|--------------</span><span class="p">:</span><span class="o">|------------------</span><span class="p">:</span><span class="o">|</span>
+<span class="o">|</span>   <span class="mf">4.60645e-10</span> <span class="o">|</span>      <span class="mf">289.925</span>      <span class="o">|</span>   <span class="mf">3.05543e-06</span> <span class="o">|</span>        <span class="mf">0.00891355</span> <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">5.28003e-06</span> <span class="o">|</span>        <span class="mf">0.0198689</span>  <span class="o">|</span>   <span class="mf">3.05543e-06</span> <span class="o">|</span>        <span class="mf">0.00891355</span> <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">5.28003e-06</span> <span class="o">|</span>        <span class="mf">0.0198689</span>  <span class="o">|</span>   <span class="mf">1.63833e-05</span> <span class="o">|</span>        <span class="mf">0.0126733</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">5.92308e-06</span> <span class="o">|</span>        <span class="mf">0.0270496</span>  <span class="o">|</span>   <span class="mf">1.63833e-05</span> <span class="o">|</span>        <span class="mf">0.0126733</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">5.92308e-06</span> <span class="o">|</span>        <span class="mf">0.0270496</span>  <span class="o">|</span>   <span class="mf">2.75326e-05</span> <span class="o">|</span>        <span class="mf">0.0099311</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">1.01729e-05</span> <span class="o">|</span>        <span class="mf">0.00475814</span> <span class="o">|</span>   <span class="mf">2.75326e-05</span> <span class="o">|</span>        <span class="mf">0.0099311</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">1.01729e-05</span> <span class="o">|</span>        <span class="mf">0.00475814</span> <span class="o">|</span>   <span class="mf">0.000109749</span> <span class="o">|</span>        <span class="mf">0.0314605</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">3.70669e-05</span> <span class="o">|</span>        <span class="mf">0.0147584</span>  <span class="o">|</span>   <span class="mf">0.000109749</span> <span class="o">|</span>        <span class="mf">0.0314605</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">3.70669e-05</span> <span class="o">|</span>        <span class="mf">0.0147584</span>  <span class="o">|</span>   <span class="mf">0.000166522</span> <span class="o">|</span>        <span class="mf">0.0195471</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">7.28352e-05</span> <span class="o">|</span>        <span class="mf">0.0196474</span>  <span class="o">|</span>   <span class="mf">0.000166522</span> <span class="o">|</span>        <span class="mf">0.0195471</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">7.28352e-05</span> <span class="o">|</span>        <span class="mf">0.0196474</span>  <span class="o">|</span>   <span class="mf">0.000272624</span> <span class="o">|</span>        <span class="mf">0.0393392</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.000230559</span> <span class="o">|</span>      <span class="mf">230.233</span>      <span class="o">|</span>   <span class="mf">0.000272624</span> <span class="o">|</span>        <span class="mf">0.0393392</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.000771132</span> <span class="o">|</span>        <span class="mf">0.00893735</span> <span class="o">|</span>   <span class="mf">0.000512795</span> <span class="o">|</span>        <span class="mf">0.0399306</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.000771132</span> <span class="o">|</span>        <span class="mf">0.00893735</span> <span class="o">|</span>   <span class="mf">0.000512795</span> <span class="o">|</span>        <span class="mf">0.0399306</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00105728</span>  <span class="o">|</span>        <span class="mf">0.00459818</span> <span class="o">|</span>   <span class="mf">0.00789638</span>  <span class="o">|</span>        <span class="mf">0.0116901</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00105728</span>  <span class="o">|</span>        <span class="mf">0.00459818</span> <span class="o">|</span>   <span class="mf">0.00789638</span>  <span class="o">|</span>        <span class="mf">0.0116901</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00185517</span>  <span class="o">|</span>        <span class="mf">0.0331227</span>  <span class="o">|</span>   <span class="mf">0.00956206</span>  <span class="o">|</span>        <span class="mf">1.02824</span>    <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00185517</span>  <span class="o">|</span>        <span class="mf">0.0331227</span>  <span class="o">|</span>   <span class="mf">0.271608</span>    <span class="o">|</span>      <span class="mf">149.085</span>      <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00370024</span>  <span class="o">|</span>        <span class="mf">0.0500698</span>  <span class="o">|</span>   <span class="mf">0.658958</span>    <span class="o">|</span>        <span class="mf">0.0536769</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00370024</span>  <span class="o">|</span>        <span class="mf">0.0500698</span>  <span class="o">|</span>   <span class="mf">0.658958</span>    <span class="o">|</span>        <span class="mf">0.0536769</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00546967</span>  <span class="o">|</span>        <span class="mf">0.044606</span>   <span class="o">|</span>   <span class="mf">1.45096</span>     <span class="o">|</span>        <span class="mf">0.0433677</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.00546967</span>  <span class="o">|</span>        <span class="mf">0.044606</span>   <span class="o">|</span>   <span class="mf">1.45096</span>     <span class="o">|</span>        <span class="mf">0.0433677</span>  <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0126403</span>   <span class="o">|</span>        <span class="mf">0.150534</span>   <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0126403</span>   <span class="o">|</span>        <span class="mf">0.150534</span>   <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0285097</span>   <span class="o">|</span>        <span class="mf">0.00708604</span> <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0285097</span>   <span class="o">|</span>        <span class="mf">0.00708604</span> <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0455447</span>   <span class="o">|</span>        <span class="mf">0.116258</span>   <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0455447</span>   <span class="o">|</span>        <span class="mf">0.116258</span>   <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0574022</span>   <span class="o">|</span>      <span class="mf">574.438</span>      <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0675327</span>   <span class="o">|</span>        <span class="mf">0.0681987</span>  <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.0675327</span>   <span class="o">|</span>        <span class="mf">0.0681987</span>  <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.131324</span>    <span class="o">|</span>        <span class="mf">0.0287684</span>  <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.131324</span>    <span class="o">|</span>        <span class="mf">0.0287684</span>  <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.228107</span>    <span class="o">|</span>        <span class="mf">0.0382958</span>  <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.228107</span>    <span class="o">|</span>        <span class="mf">0.0382958</span>  <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.276414</span>    <span class="o">|</span>        <span class="mf">0.0018757</span>  <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">0.276414</span>    <span class="o">|</span>        <span class="mf">0.0018757</span>  <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+<span class="o">|</span>   <span class="mf">1.00071</span>     <span class="o">|</span>        <span class="mf">1.19876</span>    <span class="o">|</span> <span class="n">nan</span>           <span class="o">|</span>      <span class="n">nan</span>          <span class="o">|</span>
+</pre></div>
+</div>
+</section>
+<section id="peak-analysis">
+<h2>Peak analysis<a class="headerlink" href="#peak-analysis" title="Link to this heading"></a></h2>
+<p>DRT results (aside from those obtained using the Loewner method) can be analyzed using skew normal distributions (see <a class="reference external" href="https://doi.org/10.3390/batteries5030053">Danzer (2019)</a> and <a class="reference external" href="https://doi.org/10.1016/j.jpowsour.2023.233845">Plank et al. (2024)</a>).
+This facilitates the estimation of the polarization contribution of each peak based on the area of that peak.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/0b9055a575b6964d79db27a3e80585cd/guide_drt-4.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_drt-4_00.svg" class="plot-directive" src="_images/guide_drt-4_00.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-4_01.svg" class="plot-directive" src="_images/guide_drt-4_01.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-4_02.svg" class="plot-directive" src="_images/guide_drt-4_02.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_drt-4_03.svg" class="plot-directive" src="_images/guide_drt-4_03.svg" />
+</figure>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span>     <span class="n">tau</span> <span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="o">|</span>   <span class="n">gamma</span> <span class="p">(</span><span class="n">ohm</span><span class="p">)</span> <span class="o">|</span>   <span class="n">R_peak</span> <span class="p">(</span><span class="n">ohm</span><span class="p">)</span> <span class="o">|</span>
+<span class="o">|------------</span><span class="p">:</span><span class="o">|--------------</span><span class="p">:</span><span class="o">|---------------</span><span class="p">:</span><span class="o">|</span>
+<span class="o">|</span> <span class="mf">1.24844e-05</span> <span class="o">|</span>   <span class="mf">2.68972e-08</span> <span class="o">|</span>    <span class="mf">4.33529e-07</span> <span class="o">|</span>
+<span class="o">|</span> <span class="mf">0.00155063</span>  <span class="o">|</span> <span class="mf">520.733</span>       <span class="o">|</span>  <span class="mf">280.396</span>       <span class="o">|</span>
+<span class="o">|</span> <span class="mf">0.00419888</span>  <span class="o">|</span> <span class="mf">831.637</span>       <span class="o">|</span>  <span class="mf">470.508</span>       <span class="o">|</span>
+<span class="o">|</span> <span class="mf">9.76195</span>     <span class="o">|</span>   <span class="mf">0.364749</span>    <span class="o">|</span>    <span class="mf">0.552689</span>    <span class="o">|</span>
+</pre></div>
+</div>
+<table class="docutils align-default" id="id1">
+<caption><span class="caption-number">Table 2 </span><span class="caption-text">True and estimated values of parallel RC elements.</span><a class="headerlink" href="#id1" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>True value</p></th>
+<th class="head"><p>Estimated value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R_2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(300\ \Omega\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(280\ \Omega\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(C_1\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(5.0 \times 10^{-6}\ {\rm F}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(5.5 \times 10^{-6}\ {\rm F}\)</span></p></td>
+</tr>
+<tr class="row-even"><td><p><span class="math notranslate nohighlight">\(R_3\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(450\ \Omega\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(471\ \Omega\)</span></p></td>
+</tr>
+<tr class="row-odd"><td><p><span class="math notranslate nohighlight">\(C_2\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(1.0 \times 10^{-5}\ {\rm F}\)</span></p></td>
+<td><p><span class="math notranslate nohighlight">\(8.9 \times 10^{-6}\ {\rm F}\)</span></p></td>
+</tr>
+</tbody>
+</table>
+<p>References:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.ssi.2016.10.009">Boukamp, B.A. and Rolle, A, 2017, Solid State Ionics, 302, 12-18</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2014.12.059">Boukamp, B.A., 2015, Electrochim. Acta, 154, 35-46</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2015.03.123">Ciucci, F. and Chen, C., 2015, Electrochim. Acta, 167, 439-454</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.3390/batteries5030053">Danzer, M.A., 2019, Batteries, 5, 53</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2017.07.050">Effat, M. B. and Ciucci, F., 2017, Electrochim. Acta, 247, 1117-1129</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1149/1945-7111/abf508">Kulikovsky, A., 2021, J. Electrochem. Soc., 168, 044512</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2020.136864">Liu, J., Wan, T. H., and Ciucci, F., 2020, Electrochim. Acta, 357, 136864</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1149/1945-7111/acbca4">Maradesa, A., Py, B., Wan, T.H., Effat, M.B., and Ciucci F., 2023, J. Electrochem. Soc, 170, 030502</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.laa.2007.03.008">Mayo, A.J. and Antoulas, A.C., 2007, Linear Algebra Its Appl. 425, 634–662</a>,</p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.jpowsour.2023.233845">Plank, C., Rüther, T., Jahn, L., Schamel, M., Schmidt, J.P., Ciucci, F., and Danzer, M.A., 2024, Journal of Power Sources, 594, 233845</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.3390/batteries9020132">Rüther, T., Gosea, I.V., Jahn, L., Antoulas, A.C., and Danzer, M.A., 2023, Batteries, 9, 132</a></p></li>
+<li><p><a class="reference external" href="http://doi.org/10.2139/ssrn.4217752">Sorrentino, A., Patel, B., Gosea, I.V., Antoulas, A.C., and Vidaković-Koch, T., 2022, SSRN</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.jpowsour.2023.233575">Sorrentino, A., Patel, B., Gosea, I.V., Antoulas, A.C., and Vidaković-Koch, T., 2023, J. Power Sources, 585, 223575</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2015.09.097">Wan, T. H., Saccoccio, M., Chen, C., and Ciucci, F., 2015, Electrochim. Acta, 184, 483-499</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="guide_zhit.html" class="btn btn-neutral float-left" title="Z-HIT analysis" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="guide_circuit.html" class="btn btn-neutral float-right" title="Equivalent circuits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, pyimpspec developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

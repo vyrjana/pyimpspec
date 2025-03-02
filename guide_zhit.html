@@ -1,0 +1,168 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Z-HIT analysis &mdash; pyimpspec 5.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2c218288"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Distribution of relaxation times" href="guide_drt.html" />
+    <link rel="prev" title="Kramers-Kronig testing" href="guide_kramers_kronig.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyimpspec
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="guide.html">Getting started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="guide_installing.html">Installing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_data.html">Data parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_kramers_kronig.html">Kramers-Kronig testing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Z-HIT analysis</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-use">How to use</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide_drt.html">Distribution of relaxation times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_circuit.html">Equivalent circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_fitting.html">Circuit fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_cli.html">Command-line interface (CLI)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyimpspec</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guide.html">Getting started</a></li>
+      <li class="breadcrumb-item active">Z-HIT analysis</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/guide_zhit.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="z-hit-analysis">
+<h1>Z-HIT analysis<a class="headerlink" href="#z-hit-analysis" title="Link to this heading"></a></h1>
+<p>The <a class="reference external" href="https://en.wikipedia.org/wiki/Z-HIT">Z-HIT algorithm</a> (Ehm et al., 2000) reconstructs the modulus data of an immittance spectrum based on the phase data of that immittance spectrum.
+This algorithm can be used to help validate immittance spectra.
+Drifting at low frequencies and mutual induction at high frequencies may be detectable based on the results of the algorithm.</p>
+<p>The algorithm is based on the following steps:</p>
+<ul>
+<li><p>Smoothing and interpolation of the phase data using, e.g., a <a class="reference external" href="https://en.wikipedia.org/wiki/Savitzky%E2%80%93Golay_filter">Savitzky-Golay filter</a> and an <a class="reference external" href="https://en.wikipedia.org/wiki/Akima_spline">Akima spline</a>, respectively.</p></li>
+<li><p>Approximation of the modulus data according to</p>
+<p><span class="math notranslate nohighlight">\(\ln{|Z(\omega_O)|} \approx \frac{2}{\pi} \int_{\omega_S}^{\omega_O} \varphi(\omega) \,{\rm d}\ln{\omega} + \gamma \frac{{\rm d}\varphi(\omega_O)}{{\rm d}\ln{\omega}} + C\)</span></p>
+<p>where <span class="math notranslate nohighlight">\(\omega_S\)</span> is the starting frequency, <span class="math notranslate nohighlight">\(\omega_O\)</span> is the frequency of interest, <span class="math notranslate nohighlight">\(\varphi\)</span> is the interpolated phase data, <span class="math notranslate nohighlight">\(\gamma = \frac{\pi}{6}\)</span>, and <span class="math notranslate nohighlight">\(C\)</span> is a constant.</p>
+</li>
+<li><p>The constant <span class="math notranslate nohighlight">\(C\)</span> is determined by fitting the approximated modulus data to a portion of the experimental modulus data.
+The frequency range from 1 Hz to 1000 Hz is a good starting point since it is typically less affected by drift and/or mutual induction.</p></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The reconstruction of the modulus data is not likely to be perfect and there can be deviations even when analyzing ideal data.</p>
+</div>
+<section id="how-to-use">
+<h2>How to use<a class="headerlink" href="#how-to-use" title="Link to this heading"></a></h2>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataSet</span><span class="p">,</span> <span class="n">ZHITResult</span><span class="p">,</span> <span class="n">generate_mock_data</span><span class="p">,</span> <span class="n">perform_zhit</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span><span class="s2">&quot;CIRCUIT_2_INVALID&quot;</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">5e-2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">zhit</span><span class="p">:</span> <span class="n">ZHITResult</span> <span class="o">=</span> <span class="n">perform_zhit</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Below is an example where simplified Randles circuits with or without drifting have been plotted as “Drifting” and “Valid”, respectively.
+The impedance spectrum (“Z-HIT”) reconstructed from the phase data of the drifting spectrum has also been plotted and it is a close match to the impedance spectrum without drift.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/31eaff2ee0bcc9054d48e4a4554ffb26/guide_zhit-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_zhit-1.svg" class="plot-directive" src="_images/guide_zhit-1.svg" />
+</figure>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Pyimpspec’s implementation of the algorithm also supports operating on the admittance representation of the immittance data, which can be done by setting <code class="docutils literal notranslate"><span class="pre">admittance=True</span></code> when calling <a class="reference internal" href="apidocs_zhit.html#pyimpspec.perform_zhit" title="pyimpspec.perform_zhit"><code class="xref py py-func docutils literal notranslate"><span class="pre">perform_zhit()</span></code></a>.</p>
+</div>
+<p>References:</p>
+<ul class="simple">
+<li><p>Ehm, W., Göhr, H., Kaus, R., Röseler, B., and Schiller, C.A., 2000, Acta Chimica Hungarica, 137 (2-3), 145-157.</p></li>
+<li><p>Ehm, W., Kaus, R., Schiller, C.A., and Strunz, W., 2001, in “New Trends in Electrochemical Impedance Spectroscopy and Electrochemical Noise Analysis”.</p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1039/B007678N">Schiller, C.A., Richter, F., Gülzow, E., and Wagner, N., 2001, 3, 374-378</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="guide_kramers_kronig.html" class="btn btn-neutral float-left" title="Kramers-Kronig testing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="guide_drt.html" class="btn btn-neutral float-right" title="Distribution of relaxation times" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, pyimpspec developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

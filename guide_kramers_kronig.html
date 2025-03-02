@@ -1,0 +1,425 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kramers-Kronig testing &mdash; pyimpspec 5.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2c218288"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Z-HIT analysis" href="guide_zhit.html" />
+    <link rel="prev" title="Data parsing" href="guide_data.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyimpspec
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="guide.html">Getting started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="guide_installing.html">Installing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_data.html">Data parsing</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Kramers-Kronig testing</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#how-to-use">How to use</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide_zhit.html">Z-HIT analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_drt.html">Distribution of relaxation times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_circuit.html">Equivalent circuits</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_fitting.html">Circuit fitting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_cli.html">Command-line interface (CLI)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyimpspec</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guide.html">Getting started</a></li>
+      <li class="breadcrumb-item active">Kramers-Kronig testing</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/guide_kramers_kronig.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="kramers-kronig-testing">
+<h1>Kramers-Kronig testing<a class="headerlink" href="#kramers-kronig-testing" title="Link to this heading"></a></h1>
+<p>One method for validating immittance spectra involves the use of <a class="reference external" href="https://en.wikipedia.org/wiki/Kramers%E2%80%93Kronig_relations">Kramers-Kronig</a> (KK) transforms.
+Implementations of the three variants of the linear KK tests (complex, real, and imaginary) described by <a class="reference external" href="https://doi.org/10.1149/1.2044210">Boukamp (1995)</a> are included in pyimpspec.
+These three types of tests have been implemented using least squares fitting.
+Alternative implementations, which were the default implementation before version 5.0.0, based on matrix inversion are also included.
+An implementation that uses complex non-linear least squares fitting is also included, but this tends to be significantly slower than any of the other implementations.
+These tests attempt to fit generally applicable equivalent circuit models (ECM, see the two circuit diagrams below).
+These ECMs are KK transformable, which means that if they can be fitted to the data with small, random residuals, then the data should also be KK transformable.</p>
+<p>The ECM that is used for the impedance representation of the immittance data is shown below and it can contain many parallel RC elements connected in series.
+The capacitor and inductor connected in series may be necessary for impedance spectra where the imaginary parts do not approach zero at the low- and high-frequency limits, respectively.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/d325b7a9f4e2c2b99c89b1baececdc97/guide_kramers_kronig-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="The type of circuit that is used to check impedance data for Kramers-Kronig compliance: a resistance, capacitance, and inductor connected in series to an arbitrary number of parallel RC elements that are connected in series." class="plot-directive" src="_images/guide_kramers_kronig-1.svg" />
+</figure>
+<p>For the admittance representation of the immittance data, the following equivalent circuit is used instead.
+Here, many series RC elements are connected in parallel.
+Similarly to the circuit shown above, a parallel capacitor and/or a parallel inductor may be needed for some admittance spectra.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/19eb5f124a8ab964ecf6d2dca415367b/guide_kramers_kronig-2.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="The type of circuit that is used to check admittance data for Kramers-Kronig compliance: a resistance, capacitance, and inductor connected in parallel to an arbitrary number of series RC elements that are connected in parallel." class="plot-directive" src="_images/guide_kramers_kronig-2.svg" />
+</figure>
+<p>A few things to keep in mind about this approach to KK testing:</p>
+<ul class="simple">
+<li><p>The fitted circuits have no physical significance and some of the fitted parameters may end up with negative values.</p></li>
+<li><p>Each parallel/series RC element is replaced with an element where the time constant, <span class="math notranslate nohighlight">\(\tau=RC\)</span>, is fixed but either the resistance, <span class="math notranslate nohighlight">\(R\)</span>, or the capacitance, <span class="math notranslate nohighlight">\(C\)</span>, is still variable for the impedance and admittance representations, respectively.</p>
+<ul>
+<li><p><span class="math notranslate nohighlight">\(Z(\omega)=\frac{R}{1+j \omega R C}\)</span> becomes <span class="math notranslate nohighlight">\(Z(\omega)=\frac{R}{1+j \omega \tau}\)</span> when operating on the impedance representation.</p></li>
+<li><p><span class="math notranslate nohighlight">\(Y(\omega)=\frac{C \omega}{\omega R C - j}\)</span> becomes <span class="math notranslate nohighlight">\(Y(\omega)=\frac{C \omega}{\omega \tau - j}\)</span> when operating on the admittance representation.</p></li>
+</ul>
+</li>
+</ul>
+<p>Either the complex or the real test should be used.
+Obtaining good fits with the imaginary test can be challenging even when the immittance spectrum is known to be valid.
+The error is spread out across the real and imaginary parts when using the complex test, which can make it more difficult to spot issues compared to the real test where the error is concentrated on the imaginary part.
+However, the real test can be overly sensitive by comparison and one should keep in mind that, e.g., slight increases in the magnitudes of the residuals at the frequency extremes might be resolved by choosing a more appropriate data representation or optimizing the range of time constants.</p>
+<p>Many immittance spectra can be validated using the range of time constants within the bounds defined by the inverse of the maximum and the minimum excitation frequencies.
+However, in some cases it is necessary to extend the range of time constants by some factor <span class="math notranslate nohighlight">\(F_{\rm ext} &gt; 1\)</span> so that <span class="math notranslate nohighlight">\(\tau \in [\frac{1}{F_{\rm ext} \omega_{\rm max}}, \frac{F_{\rm ext}}{\omega_{\rm min}}]\)</span> where <span class="math notranslate nohighlight">\(\omega_{\rm max}\)</span> and <span class="math notranslate nohighlight">\(\omega_{\rm min}\)</span> are the maximum and minimum, respectively, of the measured angular frequencies.
+The range may also need to be contracted (i.e., <span class="math notranslate nohighlight">\(F_{\rm ext} &lt; 1\)</span>).
+Pyimpspec includes an implementation for automatically optimizing <span class="math notranslate nohighlight">\(F_{\rm ext}\)</span> and whether or not the suggested <span class="math notranslate nohighlight">\(F_{\rm ext}\)</span> is appropriate can be assessed with the help of a 3D plot of <span class="math notranslate nohighlight">\(\log{\chi^2_{\rm ps}}\)</span> as a function of <span class="math notranslate nohighlight">\(N_\tau\)</span> and <span class="math notranslate nohighlight">\(\log{F_{\rm ext}}\)</span>.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/c5714ef0e321985ad15b951ea9226560/guide_kramers_kronig-3.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-3_00.svg" class="plot-directive" src="_images/guide_kramers_kronig-3_00.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-3_01.svg" class="plot-directive" src="_images/guide_kramers_kronig-3_01.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-3_02.svg" class="plot-directive" src="_images/guide_kramers_kronig-3_02.svg" />
+</figure>
+<p>In the eaxmple above, the default range of time constants (<span class="math notranslate nohighlight">\(\log{F_{\rm ext}} = 0\)</span>) exhibits a wide range of <span class="math notranslate nohighlight">\(N_\tau\)</span> (<span class="math notranslate nohighlight">\(8 &lt; N_\tau &lt; 45\)</span>) with a gradual decrease of <span class="math notranslate nohighlight">\(\chi^2_{\rm ps}\)</span>.
+An extended range of time constants (<span class="math notranslate nohighlight">\(\log{F_{\rm ext}} = 0.394\)</span>, purple markers) is found to be optimal since it achieves a similarly low <span class="math notranslate nohighlight">\(\chi^2_{\rm ps}\)</span> with a lower <span class="math notranslate nohighlight">\(N_\tau\)</span>.</p>
+<p>An optimum number of parallel/series RC elements (i.e., the number of time constants or <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span>) should be chosen to avoid over- and underfitting (i.e., fitting to the noise or not fitting to the data, respectively).
+Pyimpspec implements multiple methods for suggesting <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span>:</p>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-number">Table 1 </span><span class="caption-text">Methods for suggesting the optimum number of time constants (i.e., the number of parallel/series RC elements).</span><a class="headerlink" href="#id4" title="Link to this table"></a></caption>
+<thead>
+<tr class="row-odd"><th class="head"><p>Method</p></th>
+<th class="head"><p>Reference</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>1: <span class="math notranslate nohighlight">\(\mu\)</span>-criterion</p></td>
+<td><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2014.01.034">Schönleber et al. (2014)</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>2: norm of fitted variables</p></td>
+<td><p><a class="reference external" href="https://doi.org/10.1109/IWIS57888.2022.9975131">Plank et al. (2022)</a></p></td>
+</tr>
+<tr class="row-even"><td><p>3: norm of curvatures</p></td>
+<td><p><a class="reference external" href="https://doi.org/10.1109/IWIS57888.2022.9975131">Plank et al. (2022)</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>4: number of sign changes among curvatures</p></td>
+<td><p><a class="reference external" href="https://doi.org/10.1109/IWIS57888.2022.9975131">Plank et al. (2022)</a></p></td>
+</tr>
+<tr class="row-even"><td><p>5: mean distance between sign changes among curvatures</p></td>
+<td><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2024.144951">Yrjänä and Bobacka (2024)</a></p></td>
+</tr>
+<tr class="row-odd"><td><p>6: apex of <span class="math notranslate nohighlight">\(\log{\Sigma_{k=1}^{N_\tau} |\tau_k / R_k|}\)</span> (or <span class="math notranslate nohighlight">\(\log{\Sigma_{k=1}^{N_\tau} |\tau_k / C_k|}\)</span>) <em>versus</em> <span class="math notranslate nohighlight">\(N_\tau\)</span></p></td>
+<td><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2024.144951">Yrjänä and Bobacka (2024)</a></p></td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The implementations of methods 1, 3, and 4 include some <a class="reference external" href="https://doi.org/10.1016/j.electacta.2024.144951">modifications</a> to make them more robust, but these modifications can be disabled.</p>
+</div>
+<p>The default approach combines the three methods that are based on the curvatures of the immittance spectrum of the fitted ECM in order to:</p>
+<ul class="simple">
+<li><p>minimize the number of sign changes of the curvatures (method 4)</p></li>
+<li><p>minimize the norm of the curvatures (method 3)</p></li>
+<li><p>maximize the mean distance between sign changes of the curvatures (method 5)</p></li>
+</ul>
+<p>Each method represents a stage that is used to narrow down suitable <span class="math notranslate nohighlight">\(N_\tau\)</span> until one remains.
+It is also possible to either choose which method(s) to use or to pick a specific number of time constants manually.</p>
+<p>Pyimpspec also includes automatic estimation of the lower and upper limits for <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span> in order to reduce the probability of suggesting an <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span> that is either too small or too large.
+The lower limit is estimated using a plot of <span class="math notranslate nohighlight">\(\log{\chi^2_{\rm ps}}\)</span> as a function of <span class="math notranslate nohighlight">\(N_\tau\)</span> while the upper limit is estimated with the help of method 5 (i.e., the mean distances between sign changes of the curvature of the impedance spectra of the fitted ECMs).
+Either limit, both limits, and/or the difference between the limits can also be specified manually.</p>
+<section id="how-to-use">
+<h2>How to use<a class="headerlink" href="#how-to-use" title="Link to this heading"></a></h2>
+<p>A KK test can be performed by calling the <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.perform_kramers_kronig_test" title="pyimpspec.perform_kramers_kronig_test"><code class="xref py py-func docutils literal notranslate"><span class="pre">perform_kramers_kronig_test()</span></code></a> function, which returns a <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.KramersKronigResult" title="pyimpspec.KramersKronigResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">KramersKronigResult</span></code></a> object. This function acts as a wrapper for several other functions that can also be called individually: <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext" title="pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext"><code class="xref py py-func docutils literal notranslate"><span class="pre">evaluate_log_F_ext()</span></code></a>, <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.suggest_num_RC_limits" title="pyimpspec.analysis.kramers_kronig.suggest_num_RC_limits"><code class="xref py py-func docutils literal notranslate"><span class="pre">suggest_num_RC_limits()</span></code></a>, <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.suggest_num_RC" title="pyimpspec.analysis.kramers_kronig.suggest_num_RC"><code class="xref py py-func docutils literal notranslate"><span class="pre">suggest_num_RC()</span></code></a>, and <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.suggest_representation" title="pyimpspec.analysis.kramers_kronig.suggest_representation"><code class="xref py py-func docutils literal notranslate"><span class="pre">suggest_representation()</span></code></a>.</p>
+<p>The <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext" title="pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext"><code class="xref py py-func docutils literal notranslate"><span class="pre">evaluate_log_F_ext()</span></code></a> function attempts to optimize the range of time constants (i.e., optimize <span class="math notranslate nohighlight">\(F_{\rm ext}\)</span>), but the value of <span class="math notranslate nohighlight">\(F_{\rm ext}\)</span> can also be specified explicitly.
+A list of <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.KramersKronigResult" title="pyimpspec.KramersKronigResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">KramersKronigResult</span></code></a> can be supplied to the <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.suggest_num_RC_limits" title="pyimpspec.analysis.kramers_kronig.suggest_num_RC_limits"><code class="xref py py-func docutils literal notranslate"><span class="pre">suggest_num_RC_limits()</span></code></a> and <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.suggest_num_RC" title="pyimpspec.analysis.kramers_kronig.suggest_num_RC"><code class="xref py py-func docutils literal notranslate"><span class="pre">suggest_num_RC()</span></code></a> functions.
+The former function will return the estimated lower and upper limits (<span class="math notranslate nohighlight">\(N_{\tau\rm,min}\)</span> and <span class="math notranslate nohighlight">\(N_{\tau\rm,max}\)</span>, respectively) of <span class="math notranslate nohighlight">\(N_\tau\)</span> where <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span> is likely to exist.
+The latter function will return a tuple containing the suggested <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.KramersKronigResult" title="pyimpspec.KramersKronigResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">KramersKronigResult</span></code></a> instance (i.e., the one that corresponds to <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span>), a dictionary that maps the numbers of time constants to the scores that were used to suggest <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span>, and the estimated <span class="math notranslate nohighlight">\(N_{\tau\rm,min}\)</span> and <span class="math notranslate nohighlight">\(N_{\tau\rm,max}\)</span>.
+A list of these tuples, where each tuple corresponds to a KK test that was performed on either the impedance or the admittance representation, can then be provided to the <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.suggest_representation" title="pyimpspec.analysis.kramers_kronig.suggest_representation"><code class="xref py py-func docutils literal notranslate"><span class="pre">suggest_representation()</span></code></a> function.
+If <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.perform_kramers_kronig_test" title="pyimpspec.perform_kramers_kronig_test"><code class="xref py py-func docutils literal notranslate"><span class="pre">perform_kramers_kronig_test()</span></code></a> is called with <code class="docutils literal notranslate"><span class="pre">admittance=None</span></code>, then both the impedance and the admittance representation are tested.
+Otherwise, only either the impedance (<code class="docutils literal notranslate"><span class="pre">admittance=False</span></code>) or the admittance (<code class="docutils literal notranslate"><span class="pre">admittance=True</span></code>) is tested.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">DataSet</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">KramersKronigResult</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">generate_mock_data</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">perform_kramers_kronig_test</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec.analysis.kramers_kronig</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">evaluate_log_F_ext</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">suggest_num_RC</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">suggest_representation</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span><span class="s2">&quot;CIRCUIT_1&quot;</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">5e-2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">:</span> <span class="n">KramersKronigResult</span>  <span class="c1"># The suggested result</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">perform_kramers_kronig_test</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The line above is equivalent to the lines below</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># in terms of the work that is performed</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z_evaluations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z_evaluations</span> <span class="o">=</span> <span class="n">evaluate_log_F_ext</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">admittance</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z_suggested_F_ext</span><span class="p">:</span> <span class="nb">float</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z_tests</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z_minimized_statistic</span><span class="p">:</span> <span class="nb">float</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z_suggested_F_ext</span><span class="p">,</span> <span class="n">Z_tests</span><span class="p">,</span> <span class="n">Z_minimized_statistic</span> <span class="o">=</span> <span class="n">Z_evaluations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z_suggestion</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Z_suggestion</span> <span class="o">=</span> <span class="n">suggest_num_RC</span><span class="p">(</span><span class="n">Z_tests</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Y_evaluations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Y_evaluations</span> <span class="o">=</span> <span class="n">evaluate_log_F_ext</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">admittance</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Y_tests</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">]</span> <span class="o">=</span> <span class="n">Y_evaluations</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Y_suggestion</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">Y_suggestion</span> <span class="o">=</span> <span class="n">suggest_num_RC</span><span class="p">(</span><span class="n">Y_tests</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">suggestion</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">suggestion</span> <span class="o">=</span> <span class="n">suggest_representation</span><span class="p">([</span><span class="n">Z_suggestion</span><span class="p">,</span> <span class="n">Y_suggestion</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>  <span class="c1"># Scores for various numbers of RC elements</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lower_limit</span><span class="p">:</span> <span class="nb">int</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">upper_limit</span><span class="p">:</span> <span class="nb">int</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">lower_limit</span><span class="p">,</span> <span class="n">upper_limit</span> <span class="o">=</span> <span class="n">suggestion</span>
+</pre></div>
+</div>
+<p>A single <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.KramersKronigResult" title="pyimpspec.KramersKronigResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">KramersKronigResult</span></code></a> can be plotted on its own, but it is also possible to plot the suggested <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.KramersKronigResult" title="pyimpspec.KramersKronigResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">KramersKronigResult</span></code></a> along with the <span class="math notranslate nohighlight">\(\chi^2_{\rm ps}\)</span> values of all <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.KramersKronigResult" title="pyimpspec.KramersKronigResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">KramersKronigResult</span></code></a> instances so that one can see if the suggested <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.KramersKronigResult" title="pyimpspec.KramersKronigResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">KramersKronigResult</span></code></a> is indeed the best choice.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/7f2e182152e437ea978032fcc8d55fa5/guide_kramers_kronig-4.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-4.svg" class="plot-directive" src="_images/guide_kramers_kronig-4.svg" />
+</figure>
+<p>From the top-left plot one can see that the estimated lower and upper limits define a range of <span class="math notranslate nohighlight">\(N_\tau\)</span> values (filled circles, the y-axis on the left-hand side) where <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span> value is estimated to exist.
+The y-axis on the right-hand side shows the scores assigned based on an approach that makes use of methods 3, 4, and 5.
+These scores are then used to suggest <span class="math notranslate nohighlight">\(N_{\tau\rm,opt}\)</span> (dashed line).</p>
+<p>The <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.perform_kramers_kronig_test" title="pyimpspec.perform_kramers_kronig_test"><code class="xref py py-func docutils literal notranslate"><span class="pre">perform_kramers_kronig_test()</span></code></a> function takes keyword arguments that can be passed on to the <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.suggest_num_RC" title="pyimpspec.analysis.kramers_kronig.suggest_num_RC"><code class="xref py py-func docutils literal notranslate"><span class="pre">suggest_num_RC()</span></code></a> function.
+This can be used to, e.g., select which method(s) to use or to adjust any method-specific settings such as the <span class="math notranslate nohighlight">\(\mu\)</span>-criterion of method 1.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">DataSet</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">KramersKronigResult</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">generate_mock_data</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">perform_kramers_kronig_test</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec.analysis.kramers_kronig</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">evaluate_log_F_ext</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">suggest_num_RC</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">mu_criterion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.85</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span><span class="s2">&quot;CIRCUIT_1&quot;</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">5e-2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">:</span> <span class="n">KramersKronigResult</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">perform_kramers_kronig_test</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">mu_criterion</span><span class="o">=</span><span class="n">mu_criterion</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># The above is equivalent to the following lines</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># in terms of the work that is performed</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">evaluations</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">],</span> <span class="nb">float</span><span class="p">]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">evaluations</span> <span class="o">=</span> <span class="n">evaluate_log_F_ext</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimum_log_Fext</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">],</span> <span class="nb">float</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">optimum_log_Fext</span> <span class="o">=</span> <span class="n">evaluations</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">tests</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">]</span> <span class="o">=</span> <span class="n">optimum_log_Fext</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">suggestion</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">KramersKronigResult</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">suggest_num_RC</span><span class="p">(</span>
+<span class="gp">... </span>  <span class="n">tests</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">mu_criterion</span><span class="o">=</span><span class="n">mu_criterion</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">scores</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lower_limit</span><span class="p">:</span> <span class="nb">int</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">upper_limit</span><span class="p">:</span> <span class="nb">int</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">,</span> <span class="n">scores</span><span class="p">,</span> <span class="n">lower_limit</span><span class="p">,</span> <span class="n">upper_limit</span> <span class="o">=</span> <span class="n">suggestion</span>
+</pre></div>
+</div>
+<p>The plot of relative residuals is typically used to interpret the validity of the immittance spectrum that was tested. Alternatively, statistical tests performed on the residuals can also be used.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">DataSet</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">KramersKronigResult</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">generate_mock_data</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">perform_kramers_kronig_test</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec.analysis.kramers_kronig</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">evaluate_log_F_ext</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">suggest_num_RC</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">suggest_representation</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span><span class="s2">&quot;CIRCUIT_1&quot;</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">5e-2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span><span class="p">:</span> <span class="n">KramersKronigResult</span>  <span class="c1"># The suggested result</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">test</span> <span class="o">=</span> <span class="n">perform_kramers_kronig_test</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">statistics</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">to_statistics_dataframe</span><span class="p">()</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The contents of <code class="docutils literal notranslate"><span class="pre">statistics</span></code> would look something like:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span> <span class="n">Label</span>                                               <span class="o">|</span>         <span class="n">Value</span> <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------------------------------------------------|--------------</span><span class="p">:</span><span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>                              <span class="o">|</span>  <span class="o">-</span><span class="mf">4.46966</span>     <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">RC</span> <span class="n">elements</span>                               <span class="o">|</span>  <span class="mi">13</span>           <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">Fext</span> <span class="p">(</span><span class="n">extension</span> <span class="n">factor</span> <span class="k">for</span> <span class="n">time</span> <span class="n">constant</span> <span class="nb">range</span><span class="p">)</span> <span class="o">|</span>  <span class="o">-</span><span class="mf">0.100386</span>    <span class="o">|</span>
+<span class="o">|</span> <span class="n">Series</span> <span class="n">resistance</span> <span class="p">(</span><span class="n">ohm</span><span class="p">)</span>                             <span class="o">|</span> <span class="mf">103.525</span>       <span class="o">|</span>
+<span class="o">|</span> <span class="n">Series</span> <span class="n">capacitance</span> <span class="p">(</span><span class="n">F</span><span class="p">)</span>                              <span class="o">|</span>   <span class="mf">0.0120676</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">Series</span> <span class="n">inductance</span> <span class="p">(</span><span class="n">H</span><span class="p">)</span>                               <span class="o">|</span>  <span class="o">-</span><span class="mf">2.24707e-06</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Mean</span> <span class="n">of</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">real</span> <span class="p">(</span><span class="o">%</span> <span class="n">of</span> <span class="o">|</span><span class="n">Z</span><span class="o">|</span><span class="p">)</span>                  <span class="o">|</span>  <span class="o">-</span><span class="mf">5.25249e-06</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Mean</span> <span class="n">of</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">imag</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span> <span class="n">of</span> <span class="o">|</span><span class="n">Z</span><span class="o">|</span><span class="p">)</span>                 <span class="o">|</span>   <span class="mf">0.00220288</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">SD</span> <span class="n">of</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">real</span> <span class="p">(</span><span class="o">%</span> <span class="n">of</span> <span class="o">|</span><span class="n">Z</span><span class="o">|</span><span class="p">)</span>                    <span class="o">|</span>   <span class="mf">0.0523757</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">SD</span> <span class="n">of</span> <span class="n">residuals</span><span class="p">,</span> <span class="n">imag</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span> <span class="n">of</span> <span class="o">|</span><span class="n">Z</span><span class="o">|</span><span class="p">)</span>                   <span class="o">|</span>   <span class="mf">0.075694</span>    <span class="o">|</span>
+<span class="o">|</span> <span class="n">Residuals</span> <span class="n">within</span> <span class="mi">1</span> <span class="n">SD</span><span class="p">,</span> <span class="n">real</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>                     <span class="o">|</span>  <span class="mf">68.2927</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">Residuals</span> <span class="n">within</span> <span class="mi">1</span> <span class="n">SD</span><span class="p">,</span> <span class="n">imag</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>                    <span class="o">|</span>  <span class="mf">58.5366</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">Residuals</span> <span class="n">within</span> <span class="mi">2</span> <span class="n">SD</span><span class="p">,</span> <span class="n">real</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>                     <span class="o">|</span>  <span class="mf">97.561</span>       <span class="o">|</span>
+<span class="o">|</span> <span class="n">Residuals</span> <span class="n">within</span> <span class="mi">2</span> <span class="n">SD</span><span class="p">,</span> <span class="n">imag</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>                    <span class="o">|</span>  <span class="mf">95.122</span>       <span class="o">|</span>
+<span class="o">|</span> <span class="n">Residuals</span> <span class="n">within</span> <span class="mi">3</span> <span class="n">SD</span><span class="p">,</span> <span class="n">real</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>                     <span class="o">|</span> <span class="mi">100</span>           <span class="o">|</span>
+<span class="o">|</span> <span class="n">Residuals</span> <span class="n">within</span> <span class="mi">3</span> <span class="n">SD</span><span class="p">,</span> <span class="n">imag</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span>                    <span class="o">|</span> <span class="mi">100</span>           <span class="o">|</span>
+<span class="o">|</span> <span class="n">Lilliefors</span> <span class="n">test</span> <span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span> <span class="n">real</span>                       <span class="o">|</span>   <span class="mf">0.252269</span>    <span class="o">|</span>
+<span class="o">|</span> <span class="n">Lilliefors</span> <span class="n">test</span> <span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span> <span class="n">imag</span><span class="o">.</span>                      <span class="o">|</span>   <span class="mf">0.513698</span>    <span class="o">|</span>
+<span class="o">|</span> <span class="n">Shapiro</span><span class="o">-</span><span class="n">Wilk</span> <span class="n">test</span> <span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span> <span class="n">real</span>                     <span class="o">|</span>   <span class="mf">0.591578</span>    <span class="o">|</span>
+<span class="o">|</span> <span class="n">Shapiro</span><span class="o">-</span><span class="n">Wilk</span> <span class="n">test</span> <span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span> <span class="n">imag</span><span class="o">.</span>                    <span class="o">|</span>   <span class="mf">0.168292</span>    <span class="o">|</span>
+<span class="o">|</span> <span class="n">Estimated</span> <span class="n">SD</span> <span class="n">of</span> <span class="n">Gaussian</span> <span class="n">noise</span> <span class="p">(</span><span class="o">%</span> <span class="n">of</span> <span class="o">|</span><span class="n">Z</span><span class="o">|</span><span class="p">)</span>           <span class="o">|</span>   <span class="mf">0.0643079</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">One</span><span class="o">-</span><span class="n">sample</span> <span class="n">Kolmogorov</span><span class="o">-</span><span class="n">Smirnov</span> <span class="n">test</span> <span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span> <span class="n">real</span>    <span class="o">|</span>   <span class="mf">0.871214</span>    <span class="o">|</span>
+<span class="o">|</span> <span class="n">One</span><span class="o">-</span><span class="n">sample</span> <span class="n">Kolmogorov</span><span class="o">-</span><span class="n">Smirnov</span> <span class="n">test</span> <span class="n">p</span><span class="o">-</span><span class="n">value</span><span class="p">,</span> <span class="n">imag</span><span class="o">.</span>   <span class="o">|</span>   <span class="mf">0.60763</span>     <span class="o">|</span>
+</pre></div>
+</div>
+<p>All three statistical tests (<a class="reference external" href="https://www.statsmodels.org/dev/generated/statsmodels.stats.diagnostic.lilliefors.html">Lilliefors</a>, <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.shapiro.html">Shapiro-Wilk</a>, and <a class="reference external" href="https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kstest.html">Kolmogorov-Smirnov</a>) return <span class="math notranslate nohighlight">\(p\)</span>-values greater than 0.05 (our chosen threshold) for the residuals of both the real and the imaginary parts. The means of the residuals are close to zero as well. All of this indicates that the tested immittance spectrum is likely to be valid. This is also in agreement with the interpretation based on inspecting the plot of the relative residuals.</p>
+<p>Some immittance spectra might not be possible to validate based on testing the impedance representation.
+For example, the Nyquist plot below shows a synthetic impedance spectrum that includes a negative differential resistance (the larger, outer loop that goes from the right-hand side to the left-hand side as the frequency is decreased).
+Similar impedance spectra have been reported when measuring, e.g., <a class="reference external" href="https://iopscience.iop.org/article/10.1149/2.0691805jes">in the passive region of a system with a tantalum working electrode in hydrofluoric acid (Fig. 3b in the reference)</a>.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/3f28790daf956451569f74601e3d70c3/guide_kramers_kronig-5.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-5.svg" class="plot-directive" src="_images/guide_kramers_kronig-5.svg" />
+</figure>
+<p>Attempting to perform KK tests on this impedance data as shown in the previous example incorrectly indicates that the spectrum is not linear, causal, and stable.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/491ed0e63d9665f8a2ff6689345121a0/guide_kramers_kronig-6.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-6.svg" class="plot-directive" src="_images/guide_kramers_kronig-6.svg" />
+</figure>
+<p>However, there are two approaches that can be used to successfully validate this impedance spectrum.
+The first approach is to perform the KK tests on the admittance data either explicitly (i.e., by specifying <code class="docutils literal notranslate"><span class="pre">admittance=True</span></code> when calling the <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.perform_kramers_kronig_test" title="pyimpspec.perform_kramers_kronig_test"><code class="xref py py-func docutils literal notranslate"><span class="pre">perform_kramers_kronig_test()</span></code></a> and <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext" title="pyimpspec.analysis.kramers_kronig.evaluate_log_F_ext"><code class="xref py py-func docutils literal notranslate"><span class="pre">evaluate_log_F_ext()</span></code></a> functions) or by calling <a class="reference internal" href="apidocs_kramers_kronig.html#pyimpspec.perform_kramers_kronig_test" title="pyimpspec.perform_kramers_kronig_test"><code class="xref py py-func docutils literal notranslate"><span class="pre">perform_kramers_kronig_test()</span></code></a> with <code class="docutils literal notranslate"><span class="pre">admittance=None</span></code> (default value). The latter should then test both the impedance and the admittance representation before ultimately suggesting the result for the most appropriate represention, which in this case is the admittance representation.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/6b2a795f6b5abeb7002d0d830d3390e2/guide_kramers_kronig-7.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-7.svg" class="plot-directive" src="_images/guide_kramers_kronig-7.svg" />
+</figure>
+<p>The second approach is to add a parallel resistance of a suitable magnitude to the impedance data and to perform the KK tests on the resulting impedance data.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/7754024816f7784cc7a72f1233487697/guide_kramers_kronig-8.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-8.svg" class="plot-directive" src="_images/guide_kramers_kronig-8.svg" />
+</figure>
+<p>The resistance, <span class="math notranslate nohighlight">\(R_{\rm par}\)</span>, is known <em>a priori</em> to be KK transformable.
+Adding the resistance in parallel to the experimental data, which is represented in this circuit diagram as <span class="math notranslate nohighlight">\(Z_{\rm data}\)</span>, does not negatively affect the compliance of the resulting circuit.
+Thus, the KK compliance of the resulting circuit is dependent on whether or not <span class="math notranslate nohighlight">\(Z_{\rm data}\)</span> is KK compliant.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The magnitude of the resistance to choose depends on the original impedance data.
+In this example, the real part of the impedance at the lowest frequency in the original data is approximately <span class="math notranslate nohighlight">\(-100\)</span> <span class="math notranslate nohighlight">\(\Omega\)</span>.
+A value of 50 <span class="math notranslate nohighlight">\(\Omega\)</span> was chosen for the parallel resistance after testing a few different values.</p>
+</div>
+<p>As can be seen from the results below, the new, and thus also the original, impedance data has been validated successfully.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/5143e7c3993b98f697e86b06c61cfcdd/guide_kramers_kronig-9.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_kramers_kronig-9.svg" class="plot-directive" src="_images/guide_kramers_kronig-9.svg" />
+</figure>
+<p>References:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="https://doi.org/10.1149/1.2044210">Boukamp, B.A., 1995, J. Electrochem. Soc., 142, 1885-1894</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2014.01.034">Schönleber, M., Klotz, D., and Ivers-Tiffée, E., 2014, Electrochim. Acta, 131, 20-27</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1109/IWIS57888.2022.9975131">Plank, C., Rüther, T., and Danzer, M.A., 2022, 2022 International Workshop on Impedance Spectroscopy (IWIS), 1-6</a></p></li>
+<li><p><a class="reference external" href="https://doi.org/10.1016/j.electacta.2024.144951">Yrjänä, V. and Bobacka, J., 2024, Electrochim. Acta, 504, 144951</a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="guide_data.html" class="btn btn-neutral float-left" title="Data parsing" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="guide_zhit.html" class="btn btn-neutral float-right" title="Z-HIT analysis" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, pyimpspec developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

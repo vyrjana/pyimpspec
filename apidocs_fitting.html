@@ -1,0 +1,433 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circuit fitting &mdash; pyimpspec 5.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=2c218288"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script async="async" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Plotting - matplotlib" href="apidocs_plot_mpl.html" />
+    <link rel="prev" title="Equivalent circuits" href="apidocs_circuit.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyimpspec
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="guide.html">Getting started</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="apidocs.html">API Documentation</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="apidocs.html#pyimpspec.get_default_num_procs"><code class="docutils literal notranslate"><span class="pre">get_default_num_procs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs.html#pyimpspec.set_default_num_procs"><code class="docutils literal notranslate"><span class="pre">set_default_num_procs()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_data.html">Data parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_mock_data.html">Mock data</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_kramers_kronig.html">Kramers-Kronig testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_zhit.html">Z-HIT analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_drt.html">Distribution of relaxation times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_circuit.html">Equivalent circuits</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Circuit fitting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-pyimpspec">Function</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pyimpspec.fit_circuit"><code class="docutils literal notranslate"><span class="pre">fit_circuit()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyimpspec.generate_fit_identifiers"><code class="docutils literal notranslate"><span class="pre">generate_fit_identifiers()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-0">Classes</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#pyimpspec.FitIdentifiers"><code class="docutils literal notranslate"><span class="pre">FitIdentifiers</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyimpspec.FitResult"><code class="docutils literal notranslate"><span class="pre">FitResult</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#pyimpspec.FittedParameter"><code class="docutils literal notranslate"><span class="pre">FittedParameter</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_plot_mpl.html">Plotting - matplotlib</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_typing.html">Typing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_exceptions.html">Exceptions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="apidocs_progress.html">Progress</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyimpspec</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="apidocs.html">API Documentation</a></li>
+      <li class="breadcrumb-item active">Circuit fitting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/apidocs_fitting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="circuit-fitting">
+<h1>Circuit fitting<a class="headerlink" href="#circuit-fitting" title="Link to this heading"></a></h1>
+<p>A collection of functions and classes for fitting equivalent circuits to data sets.</p>
+<section id="module-pyimpspec">
+<span id="function"></span><h2>Function<a class="headerlink" href="#module-pyimpspec" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="pyimpspec.fit_circuit">
+<span class="sig-prename descclassname"><span class="pre">pyimpspec.</span></span><span class="sig-name descname"><span class="pre">fit_circuit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'auto'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_nfev</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_procs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">timeout</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraint_expressions</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">constraint_variables</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.fit_circuit" title="Link to this definition"></a></dt>
+<dd><p>Fit a circuit to a data set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>circuit</strong> (<a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a>) – The circuit to fit to a data set.</p></li>
+<li><p><strong>data</strong> (<a class="reference internal" href="apidocs_data.html#pyimpspec.DataSet" title="pyimpspec.DataSet"><code class="xref py py-class docutils literal notranslate"><span class="pre">DataSet</span></code></a>) – The data set that the circuit will be fitted to.</p></li>
+<li><p><strong>method</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – The iteration method(s) to use during fitting.
+See <a class="reference external" href="https://lmfit.github.io/lmfit-py/">lmfit’s documentation</a> for valid method names.
+Note that not all methods supported by lmfit are possible in the current implementation (e.g. some methods may require a function that calculates a Jacobian).
+If a list of multiple methods (or “auto”) is provided, then multiple methods will be tested and the best result will be returned based on the <span class="math notranslate nohighlight">\(\chi^2_{\rm ps}\)</span> value.</p></li>
+<li><p><strong>weight</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – The weight function(s) to use when calculating residuals.
+Currently supported values: “modulus”, “proportional”, “unity”, “boukamp”, and “auto”.
+If a list of multiple weights (or “auto”) is provided, then multiple weights will be tested and the best result will be returned based on the <span class="math notranslate nohighlight">\(\chi^2_{\rm ps}\)</span> value.</p></li>
+<li><p><strong>max_nfev</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of function evaluations when fitting.
+A value less than one equals no limit.</p></li>
+<li><p><strong>num_procs</strong> (<em>int</em><em>, </em><em>optional</em>) – The maximum number of parallel processes to use when performing the fitting with multiple methods and/or weights.
+A value less than 1 results in an attempt to figure out a suitable value based on, e.g., the number of cores detected.
+Additionally, a negative value can be used to reduce the number of processes by that much (e.g., to leave one core for a GUI thread).</p></li>
+<li><p><strong>timeout</strong> (<em>int</em><em>, </em><em>optional</em>) – The amount of time in seconds that a single fit is allowed to take before being timed out.
+If this values is less than one, then no time limit is imposed.</p></li>
+<li><p><strong>constraint_expressions</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>str</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – A mapping of the optional <a class="reference external" href="https://lmfit.github.io/lmfit-py/constraints.html">constraints</a> to apply.</p></li>
+<li><p><strong>constraint_variables</strong> (<em>Optional</em><em>[</em><em>Dict</em><em>[</em><em>str</em><em>, </em><em>dict</em><em>]</em><em>]</em><em>, </em><em>optional</em>) – <p>A mapping of variable names to their keyword arguments (see <a class="reference external" href="https://lmfit.github.io/lmfit-py/parameters.html#lmfit.parameter.Parameter">lmfit.Parameters</a> for more information). These variables may be referenced in the optional <a class="reference external" href="https://lmfit.github.io/lmfit-py/constraints.html">constraints</a>.</p>
+</p></li>
+<li><p><strong>**kwargs</strong></p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#pyimpspec.FitResult" title="pyimpspec.FitResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">FitResult</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="pyimpspec.generate_fit_identifiers">
+<span class="sig-prename descclassname"><span class="pre">pyimpspec.</span></span><span class="sig-name descname"><span class="pre">generate_fit_identifiers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.generate_fit_identifiers" title="Link to this definition"></a></dt>
+<dd><p>Generate the identifiers that are provided to <a class="reference external" href="https://lmfit.github.io/lmfit-py/index.html">lmfit</a> when fitting the provided circuit. These identifiers can be used to define optional <a class="reference external" href="https://lmfit.github.io/lmfit-py/constraints.html">constraints</a> when calling <a class="reference internal" href="#pyimpspec.fit_circuit" title="pyimpspec.fit_circuit"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_circuit()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>circuit</strong> (<a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a>) – The circuit to process.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary that maps each element to a <a class="reference internal" href="#pyimpspec.FitIdentifiers" title="pyimpspec.FitIdentifiers"><code class="xref py py-class docutils literal notranslate"><span class="pre">FitIdentifiers</span></code></a> instance that maps each parameter of that element to the identifier that is used by <a class="reference external" href="https://lmfit.github.io/lmfit-py/index.html">lmfit</a> during fitting.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[<a class="reference internal" href="apidocs_circuit.html#pyimpspec.Element" title="pyimpspec.Element"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></a>, <a class="reference internal" href="#pyimpspec.FitIdentifiers" title="pyimpspec.FitIdentifiers"><code class="xref py py-class docutils literal notranslate"><span class="pre">FitIdentifiers</span></code></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-0">
+<span id="classes"></span><h2>Classes<a class="headerlink" href="#module-0" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="pyimpspec.FitIdentifiers">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyimpspec.</span></span><span class="sig-name descname"><span class="pre">FitIdentifiers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping_or_iterable</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">()</span></span></em>, <em class="sig-param"><span class="positional-only-separator o"><abbr title="Positional-only parameter separator (PEP 570)"><span class="pre">/</span></abbr></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitIdentifiers" title="Link to this definition"></a></dt>
+<dd><p>An object that maps an <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Element" title="pyimpspec.Element"><code class="xref py py-class docutils literal notranslate"><span class="pre">Element</span></code></a>’s parameters to the name/identifier used by the corresponding <a class="reference external" href="https://lmfit.github.io/lmfit-py/parameters.html">lmfit Parameter</a>. The values can be accessed in two ways:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">identifiers.R</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">name:</span> <span class="pre">str</span> <span class="pre">=</span> <span class="pre">identifiers[&quot;R&quot;]</span></code></p></li>
+</ul>
+<p>In this example, the <a class="reference internal" href="#pyimpspec.FitIdentifiers" title="pyimpspec.FitIdentifiers"><code class="xref py py-class docutils literal notranslate"><span class="pre">FitIdentifiers</span></code></a> instance <code class="docutils literal notranslate"><span class="pre">identifiers</span></code> was generated based on a <a class="reference internal" href="apidocs_circuit.html#pyimpspec.circuit.elements.Resistor" title="pyimpspec.circuit.elements.Resistor"><code class="xref py py-class docutils literal notranslate"><span class="pre">Resistor</span></code></a> instance. Thus, <code class="docutils literal notranslate"><span class="pre">identifiers</span></code> has a property called <code class="docutils literal notranslate"><span class="pre">R</span></code>.</p>
+<p>It is also possible to do the following as if <code class="docutils literal notranslate"><span class="pre">identifiers</span></code> was a dictionary:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">{symbol:</span> <span class="pre">identifiers[symbol]</span> <span class="pre">for</span> <span class="pre">symbol</span> <span class="pre">in</span> <span class="pre">identifiers}</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">{symbol:</span> <span class="pre">name</span> <span class="pre">for</span> <span class="pre">symbol,</span> <span class="pre">name</span> <span class="pre">in</span> <span class="pre">identifiers.items()}</span></code></p></li>
+</ul>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyimpspec.FitResult">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyimpspec.</span></span><span class="sig-name descname"><span class="pre">FitResult</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">circuit</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minimizer_result</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">frequencies</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">impedances</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">residuals</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pseudo_chisqr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult" title="Link to this definition"></a></dt>
+<dd><p>An object representing the results of fitting a circuit to a data set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>circuit</strong> (<a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a>) – The fitted circuit.</p></li>
+<li><p><strong>parameters</strong> (Dict[str, Dict[str, <a class="reference internal" href="#pyimpspec.FittedParameter" title="pyimpspec.FittedParameter"><code class="xref py py-class docutils literal notranslate"><span class="pre">FittedParameter</span></code></a>]]) – Fitted parameters and their estimated standard errors (if possible to estimate).</p></li>
+<li><p><strong>minimizer_result</strong> (<a class="reference external" href="https://lmfit.github.io/lmfit-py/fitting.html#lmfit.minimizer.MinimizerResult">lmfit.MinimizerResult</a>) – The results of the fit as provided by the <a class="reference external" href="https://lmfit.github.io/lmfit-py/fitting.html#lmfit.minimizer.minimize">lmfit.minimize</a> function.</p></li>
+<li><p><strong>frequencies</strong> (<a class="reference internal" href="apidocs_typing.html#pyimpspec.Frequencies" title="pyimpspec.Frequencies"><code class="xref py py-class docutils literal notranslate"><span class="pre">Frequencies</span></code></a>) – The frequencies used to perform the fit.</p></li>
+<li><p><strong>impedances</strong> (<a class="reference internal" href="apidocs_typing.html#pyimpspec.ComplexImpedances" title="pyimpspec.ComplexImpedances"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexImpedances</span></code></a>) – The impedances produced by the fitted circuit at each of the frequencies.</p></li>
+<li><p><strong>residuals</strong> (<a class="reference internal" href="apidocs_typing.html#pyimpspec.ComplexResiduals" title="pyimpspec.ComplexResiduals"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexResiduals</span></code></a>) – The residuals for the real (eq. 15 in Schönleber et al., 2014) and imaginary (eq. 16 in Schönleber et al., 2014) parts of the fit.</p></li>
+<li><p><strong>pseudo_chisqr</strong> (<em>float</em>) – The pseudo chi-squared value (<span class="math notranslate nohighlight">\(\chi^2_{\rm ps}\)</span>, eq. 14 in Boukamp, 1995).</p></li>
+<li><p><strong>method</strong> (<em>str</em>) – The iterative method used during the fitting process.</p></li>
+<li><p><strong>weight</strong> (<em>str</em>) – The weight function used during the fitting process.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.get_bode_data">
+<span class="sig-name descname"><span class="pre">get_bode_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.get_bode_data" title="Link to this definition"></a></dt>
+<dd><p>Get the data necessary to plot this FitResult as a Bode plot: the frequencies, the absolute magnitudes of the impedances, and the negative phase angles/shifts of the impedances in degrees.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num_per_decade</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of points per decade.
+A positive value results in data points being calculated using the fitted circuit within the original frequency range.
+Otherwise, only the original frequencies are used.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[<a class="reference internal" href="apidocs_typing.html#pyimpspec.Frequencies" title="pyimpspec.Frequencies"><code class="xref py py-class docutils literal notranslate"><span class="pre">Frequencies</span></code></a>, <a class="reference internal" href="apidocs_typing.html#pyimpspec.Impedances" title="pyimpspec.Impedances"><code class="xref py py-class docutils literal notranslate"><span class="pre">Impedances</span></code></a>, <a class="reference internal" href="apidocs_typing.html#pyimpspec.Phases" title="pyimpspec.Phases"><code class="xref py py-class docutils literal notranslate"><span class="pre">Phases</span></code></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.get_frequencies">
+<span class="sig-name descname"><span class="pre">get_frequencies</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.get_frequencies" title="Link to this definition"></a></dt>
+<dd><p>Get the frequencies in the fitted frequency range.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num_per_decade</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of points per decade.
+A positive value results in frequencies being calculated within the original frequency range.
+Otherwise, only the original frequencies are used.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="apidocs_typing.html#pyimpspec.Frequencies" title="pyimpspec.Frequencies"><code class="xref py py-class docutils literal notranslate"><span class="pre">Frequencies</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.get_impedances">
+<span class="sig-name descname"><span class="pre">get_impedances</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.get_impedances" title="Link to this definition"></a></dt>
+<dd><p>Get the impedance response of the fitted circuit.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num_per_decade</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of points per decade.
+A positive value results in data points being calculated using the fitted circuit within the original frequency range.
+Otherwise, only the original frequencies are used.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="apidocs_typing.html#pyimpspec.ComplexImpedances" title="pyimpspec.ComplexImpedances"><code class="xref py py-class docutils literal notranslate"><span class="pre">ComplexImpedances</span></code></a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.get_label">
+<span class="sig-name descname"><span class="pre">get_label</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.get_label" title="Link to this definition"></a></dt>
+<dd><p>Get the label for this result.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.get_nyquist_data">
+<span class="sig-name descname"><span class="pre">get_nyquist_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_per_decade</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.get_nyquist_data" title="Link to this definition"></a></dt>
+<dd><p>Get the data necessary to plot this FitResult as a Nyquist plot: the real and the negative imaginary parts of the impedances.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>num_per_decade</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of points per decade.
+A positive value results in data points being calculated using the fitted circuit within the original frequency range.
+Otherwise, only the original frequencies are used.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Tuple[<a class="reference internal" href="apidocs_typing.html#pyimpspec.Impedances" title="pyimpspec.Impedances"><code class="xref py py-class docutils literal notranslate"><span class="pre">Impedances</span></code></a>, <a class="reference internal" href="apidocs_typing.html#pyimpspec.Impedances" title="pyimpspec.Impedances"><code class="xref py py-class docutils literal notranslate"><span class="pre">Impedances</span></code></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.get_parameters">
+<span class="sig-name descname"><span class="pre">get_parameters</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.get_parameters" title="Link to this definition"></a></dt>
+<dd><p>Get information about the the fitted parameters as FittedParameter objects.
+The outer dictionary has the labels of the elements as keys and the inner dictionary has the symbols of the parameters as keys.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Dict[str, <a class="reference internal" href="#pyimpspec.FittedParameter" title="pyimpspec.FittedParameter">FittedParameter</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.get_residuals_data">
+<span class="sig-name descname"><span class="pre">get_residuals_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.get_residuals_data" title="Link to this definition"></a></dt>
+<dd><p>Get the data necessary to plot the relative residuals for this result: the frequencies, the relative residuals for the real parts of the impedances in percents, and the relative residuals for the imaginary parts of the impedances in percents.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Tuple[<a class="reference internal" href="apidocs_typing.html#pyimpspec.Frequencies" title="pyimpspec.Frequencies"><code class="xref py py-class docutils literal notranslate"><span class="pre">Frequencies</span></code></a>, <a class="reference internal" href="apidocs_typing.html#pyimpspec.Residuals" title="pyimpspec.Residuals"><code class="xref py py-class docutils literal notranslate"><span class="pre">Residuals</span></code></a>, <a class="reference internal" href="apidocs_typing.html#pyimpspec.Residuals" title="pyimpspec.Residuals"><code class="xref py py-class docutils literal notranslate"><span class="pre">Residuals</span></code></a>]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.to_parameters_dataframe">
+<span class="sig-name descname"><span class="pre">to_parameters_dataframe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">running</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.to_parameters_dataframe" title="Link to this definition"></a></dt>
+<dd><p>Get the fitted parameters and the corresponding estimated errors as a <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">pandas.DataFrame</a> object.
+:param running: Whether or not to use running counts as the lower indices of elements.
+:type running: bool, optional</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">pandas.DataFrame</a></p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>running</strong> (<em>bool</em>)</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FitResult.to_statistics_dataframe">
+<span class="sig-name descname"><span class="pre">to_statistics_dataframe</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FitResult.to_statistics_dataframe" title="Link to this definition"></a></dt>
+<dd><p>Get the statistics related to the fit as a <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">pandas.DataFrame</a> object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">pandas.DataFrame</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="pyimpspec.FittedParameter">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">pyimpspec.</span></span><span class="sig-name descname"><span class="pre">FittedParameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stderr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fixed</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">unit</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FittedParameter" title="Link to this definition"></a></dt>
+<dd><p>An object representing a fitted parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>value</strong> (<em>float</em>) – The fitted value.</p></li>
+<li><p><strong>stderr</strong> (<em>float</em>) – The estimated standard error of the fitted value. If the value is numpy.nan, then the standard error could not be estimated.</p></li>
+<li><p><strong>fixed</strong> (<em>bool</em>) – Whether or not this parameter had a fixed value during the circuit fitting.</p></li>
+<li><p><strong>unit</strong> (<em>str</em>) – The parameter’s unit.</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FittedParameter.get_error">
+<span class="sig-name descname"><span class="pre">get_error</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FittedParameter.get_error" title="Link to this definition"></a></dt>
+<dd><p>Get the estimated absolute standard error of this parameter or numpy.nan if it was not possible to provide an estimate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FittedParameter.get_relative_error">
+<span class="sig-name descname"><span class="pre">get_relative_error</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FittedParameter.get_relative_error" title="Link to this definition"></a></dt>
+<dd><p>Get the estimated relative standard error of this parameter or numpy.nan if it was not possible to estimate.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FittedParameter.get_unit">
+<span class="sig-name descname"><span class="pre">get_unit</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FittedParameter.get_unit" title="Link to this definition"></a></dt>
+<dd><p>Get the unit of this parameter if it has one.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>str</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FittedParameter.get_value">
+<span class="sig-name descname"><span class="pre">get_value</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FittedParameter.get_value" title="Link to this definition"></a></dt>
+<dd><p>Get the fitted value of this parameter.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="pyimpspec.FittedParameter.is_fixed">
+<span class="sig-name descname"><span class="pre">is_fixed</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#pyimpspec.FittedParameter.is_fixed" title="Link to this definition"></a></dt>
+<dd><p>Check whether or not this parameter was fixed during the fitting process.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="apidocs_circuit.html" class="btn btn-neutral float-left" title="Equivalent circuits" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="apidocs_plot_mpl.html" class="btn btn-neutral float-right" title="Plotting - matplotlib" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, pyimpspec developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
