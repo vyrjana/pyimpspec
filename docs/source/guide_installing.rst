@@ -16,7 +16,7 @@ The package **may** also work on other platforms depending on whether or not tho
 Requirements
 ------------
 
-- `Python <https://www.python.org>`_ (3.10, 3.11, or 3.12)
+- `Python <https://www.python.org>`_ (3.10, 3.11, 3.12, or 3.13)
 - The following Python packages
 
   - `Jinja <https://jinja.palletsprojects.com/>`_

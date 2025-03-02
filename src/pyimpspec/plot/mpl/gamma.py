@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -180,7 +180,7 @@ def _plot_bht_gammas(
         peaks_real, peaks_imag = drt._peak_analysis
 
         for peaks in (peaks_real, peaks_imag):
-            peaks_color = COLOR_BLUE if peaks == peaks_real else COLOR_RED
+            peaks_color = COLOR_BLUE if peaks is peaks_real else COLOR_RED
 
             baseline = None
             total_y = None

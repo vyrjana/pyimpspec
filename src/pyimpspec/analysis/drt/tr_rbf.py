@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 
 from dataclasses import dataclass
 from time import time
-from multiprocessing import Pool
+from multiprocessing import get_context
 from numpy import (
     abs as array_abs,
     arccos,
@@ -1872,7 +1872,7 @@ def calculate_drt_tr_rbf(
         A_re: NDArray[float64]
         A_im: NDArray[float64]
         if num_procs > 1:
-            with Pool(2) as pool:
+            with get_context(method="spawn").Pool(2) as pool:
                 for i, res in enumerate(pool.imap(_assemble_A_matrix, args)):
                     if i == 0:
                         A_re = res

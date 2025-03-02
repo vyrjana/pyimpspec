@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 
 from contextlib import redirect_stdout
 from dataclasses import dataclass
-from multiprocessing import Pool
+from multiprocessing import get_context
 from os import devnull
 from sys import version_info as _python_version_info
 from numpy import (
@@ -1084,8 +1084,11 @@ def _perform_attempts(
 
     prog: Progress
     with Progress("Calculating Hilbert transforms", total=num_attempts + 1) as prog:
-        if num_procs > 1:
-            with Pool(num_procs) as pool:
+        if num_procs > 1 and num_attempts > 1:
+            with get_context(method="spawn").Pool(min((
+                num_procs,
+                num_attempts,
+            ))) as pool:
                 for res in pool.imap_unordered(
                     _hilbert_transform_process,
                     args,

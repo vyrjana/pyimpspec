@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from multiprocessing import Pool
+from multiprocessing import get_context
 from typing import (
     Any,
     Callable,
@@ -140,25 +140,13 @@ def _reconstruct_modulus_data(
                 )
             )
 
-    ln_modulus: NDArray[float64]
-    if len(args) > 1 and num_procs > 1:
-        with Pool(num_procs) as pool:
-            for ln_modulus, smoothing, interpolation in pool.imap_unordered(
-                _reconstruct,
-                args,
-            ):
-                reconstructions.append(
-                    (
-                        ln_modulus,
-                        simulated_phase[interpolation][smoothing],
-                        smoothing,
-                        interpolation,
-                    )
-                )
-                prog.increment()
-
-    else:
-        for ln_modulus, smoothing, interpolation in map(_reconstruct, args):
+    def _apply_map(
+        function: Callable,
+        args: List[Tuple[NDArray[float64], Any, Any, str, str, bool]],
+        _map: Callable,
+    ):
+        ln_modulus: NDArray[float64]
+        for ln_modulus, smoothing, interpolation in _map(function, args):
             reconstructions.append(
                 (
                     ln_modulus,
@@ -168,5 +156,22 @@ def _reconstruct_modulus_data(
                 )
             )
             prog.increment()
+
+    if len(args) > 1 and num_procs > 1:
+        with get_context(method="spawn").Pool(min((
+            num_procs,
+            len(args),
+        ))) as pool:
+            _apply_map(
+                function=_reconstruct,
+                args=args,
+                _map=pool.imap_unordered,
+            )
+    else:
+        _apply_map(
+            function=_reconstruct,
+            args=args,
+            _map=map,
+        )
 
     return reconstructions

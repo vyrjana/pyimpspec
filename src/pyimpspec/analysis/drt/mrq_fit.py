@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -29,6 +29,8 @@ from numpy import (
     exp,
     float64,
     isclose,
+    isinf,
+    isnan,
     log as ln,
     log10 as log,
     pi,
@@ -426,6 +428,9 @@ def _calculate_tau_gamma(
 
         n: float = parameters.get("n", 1.0)
         tau_0: float = (R * Y) ** (1.0 / n)
+        if tau_0 <= 0.0:
+            raise ValueError(f"Expected a characteristic time constant greater than zero instead of tau_0 = ({R=:.3g} * {Y=:.3g}) ** (1/{n=:.3g}) = {tau_0:.3g}")
+
         if isclose(abs(n), 1.0, atol=1e-2):
             gamma += (
                 R / (W * sqrt(pi)) * exp(-((ln(tau / tau_0) / W) ** 2))
@@ -437,6 +442,11 @@ def _calculate_tau_gamma(
                 * (sin((1 - n) * pi))
                 / (cosh(n * ln(tau / tau_0)) - cos((1 - n) * pi))
             )
+
+    if isinf(gamma).any():
+        raise ValueError("Expected gamma values to be finite")
+    elif isnan(gamma).any():
+        raise ValueError("Expected gamma values to not be undefined")
 
     return (
         tau,

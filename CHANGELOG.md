@@ -1,3 +1,10 @@
+# 5.1.2 (2025/MM/DD)
+
+- Updated the m(RQ)-fit implementation to raise exceptions in cases that would result in, e.g., negative time constants or undefined values in the DRT.
+- Updated instances of `multiprocessing.Pool` to use the `"spawn"` method on all platforms to avoid the intermittent hangs that can occur when using the `"fork"` method (default on Linux).
+- Fixed a bug that raised a `ValueError` when plotting the peak analysis results for a `BHTResult` instance.
+
+
 # 5.1.1 (2024/11/20)
 
 - Added a docstring to the `Circuit.serialize` method.

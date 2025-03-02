@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -161,7 +161,7 @@ def get_argument_parser() -> ArgumentParser:
         prog="pyimpspec",
         allow_abbrev=False,
         description="""
-pyimpspec Copyright (C) 2024 pyimpspec developers
+pyimpspec Copyright (C) 2025 pyimpspec developers
 This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
 This is free software, and you are welcome to redistribute it
 under certain conditions; type `show c' for details.

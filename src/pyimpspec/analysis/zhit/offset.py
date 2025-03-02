@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -18,8 +18,9 @@
 # the LICENSES folder.
 
 from cmath import rect as _rect
-from multiprocessing import Pool
+from multiprocessing import get_context
 from typing import (
+    Callable,
     Dict,
     List,
     Tuple,
@@ -158,15 +159,30 @@ def _adjust_modulus_offset(
                 )
             )
 
-    if len(args) > 1 and num_procs > 1:
-        with Pool(num_procs) as pool:
-            for res in pool.imap_unordered(_adjust_offset, args):
-                results.append(res)
-                prog.increment()
-
-    else:
-        for res in map(_adjust_offset, args):
+    def _apply_map(
+        function: Callable,
+        args: list,
+        _map: Callable,
+    ):
+        for res in _map(function, args):
             results.append(res)
             prog.increment()
+
+    if len(args) > 1 and num_procs > 1:
+        with get_context(method="spawn").Pool(min((
+            num_procs,
+            len(args),
+        ))) as pool:
+            _apply_map(
+                function=_adjust_offset,
+                args=args,
+                _map=pool.imap_unordered,
+            )
+    else:
+        _apply_map(
+            function=_adjust_offset,
+            args=args,
+            _map=map,
+        )
 
     return sorted(results, key=lambda _: _[0])

@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 from copy import deepcopy
 from dataclasses import dataclass
-from multiprocessing import Pool
+from multiprocessing import get_context
 from multiprocessing.context import TimeoutError as MPTimeoutError
 from types import SimpleNamespace
 from typing import (
@@ -1119,9 +1119,12 @@ def fit_circuit(
             "Performing fit" + ("s" if len(method_weight_combos) > 1 else "")
         )
         res: Tuple[Circuit, float, Optional["MinimizerResult"], str, str, str]
-        if num_procs > 1 or timeout > 0:
-            with Pool(num_procs) as pool:
-                iterator = pool.imap(_fit_process, args, 1)
+        if (num_procs > 1 and len(method_weight_combos) > 1) or timeout > 0:
+            with get_context(method="spawn").Pool(min((
+                num_procs,
+                len(method_weight_combos),
+            ))) as pool:
+                iterator = pool.imap_unordered(_fit_process, args, 1)
                 while True:
                     try:
                         if timeout > 0:

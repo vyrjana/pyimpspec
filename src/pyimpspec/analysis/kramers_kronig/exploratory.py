@@ -1,5 +1,5 @@
 # pyimpspec is licensed under the GPLv3 or later (https://www.gnu.org/licenses/gpl-3.0.html).
-# Copyright 2024 pyimpspec developers
+# Copyright 2025 pyimpspec developers
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 from collections import namedtuple
 from functools import partial
-from multiprocessing import Pool
+from multiprocessing import get_context
 from multiprocessing.context import TimeoutError as MPTimeoutError
 from warnings import (
     catch_warnings,
@@ -218,7 +218,10 @@ def _use_cnls(
         prog.set_message("Performing tests")
 
     fits: List[Tuple[int, Circuit]] = []
-    with Pool(num_procs) as pool:
+    with get_context(method="spawn").Pool(min((
+        num_procs,
+        len(num_RCs),
+    ))) as pool:
         threshold: Optional[float] = None
         log_sum_abs_tau_var: Dict[int, float] = {}
         max_count: int = 5
@@ -1237,21 +1240,13 @@ def evaluate_log_F_ext(
             )
             if num_F_ext_evaluations <= 0:
                 evaluations = _evaluate_log_F_ext_using_lmfit(**evaluation_kwargs)
-            elif num_procs > 1:
-                # TODO: Figure out why this causes a RuntimeError related to
-                # the matplotlib window. Tends to happen when using the CLI and
-                # several windows have been shown. The same doesn't happen when,
-                # e.g., performing multiple fits in a row via the CLI.
-                # EDIT: Seems to be related to using an interactive
-                # matplotlib backend such as TkAgg. Probably need to figure out
-                # how to handle using a combination of Agg for generating
-                # figures and then also supporting displaying them using, e.g.,
-                # TkAgg.
-                from matplotlib import get_backend
-
-                with Pool(num_procs) as pool:
+            elif test != "cnls" and num_procs > 1 and num_F_ext_evaluations > 1:
+                with get_context(method="spawn").Pool(min((
+                    num_procs,
+                    num_F_ext_evaluations,
+                ))) as pool:
                     evaluations = _evaluate_log_F_ext_using_custom_approach(
-                        _map=pool.map if get_backend().lower() == "agg" else map,
+                        _map=pool.imap_unordered,
                         **evaluation_kwargs,
                     )
             else:

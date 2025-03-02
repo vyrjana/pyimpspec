@@ -10,14 +10,14 @@ entry_points = {
 dependencies = [
     "Jinja2~=3.1",  # Needed when turning pandas.DataFrames instances into, e.g., LaTeX strings.
     "lmfit~=1.3",  # Needed for performing non-linear fitting.
-    "matplotlib~=3.9",  # Needed for the plotting module.
+    "matplotlib~=3.10",  # Needed for the plotting module.
     "numdifftools~=0.9",  # Needed for estimating uncertainties during circuit fitting
-    "numpy~=2.1",
+    "numpy~=2.2",
     "odfpy~=1.4",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
     "openpyxl~=3.1",  # Needed by pandas for parsing newer Excel files (.xlsx).
     "pandas~=2.2",  # Needed for dealing with various file formats.
     "schemdraw~=0.19",  # Needed to draw circuit diagrams
-    "scipy~=1.14",  # Used in the DRT calculations
+    "scipy~=1.15",  # Used in the DRT calculations
     "statsmodels~=0.14",  # Used for smoothing (LOWESS) in Z-HIT
     "sympy~=1.13",  # Used to generate expressions for circuits
     "tabulate~=0.9",  # Required by pandas to generate Markdown tables.
@@ -29,8 +29,8 @@ dependencies = [
 dev_dependencies = [
     "build~=1.2",
     "flake8~=7.1",
-    "setuptools~=75.5",
-    "sphinx~=8.1",
+    "setuptools~=75.8",
+    "sphinx~=8.2",
     "sphinx-rtd-theme~=3.0",
 ]
 
@@ -40,7 +40,7 @@ optional_dependencies = {
     "dev": dev_dependencies,
 }
 
-version = "5.1.1"
+version = "5.1.2"
 
 if __name__ == "__main__":
     with open("requirements.txt", "w") as fp:
@@ -92,6 +92,7 @@ if __name__ == "__main__":
             "Programming Language :: Python :: 3.10",
             "Programming Language :: Python :: 3.11",
             "Programming Language :: Python :: 3.12",
+            "Programming Language :: Python :: 3.13",
             "Programming Language :: Python :: 3 :: Only",
             "Topic :: Scientific/Engineering :: Chemistry",
             "Topic :: Scientific/Engineering :: Physics",
