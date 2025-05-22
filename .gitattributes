@@ -1,0 +1,10 @@
+*.bat text
+*.cff text
+*.cfg text
+*.in text
+*.iss text
+*.md text
+*.py text
+*.rst text
+*.sh text
+*.txt text
