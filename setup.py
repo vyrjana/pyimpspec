@@ -16,10 +16,10 @@ dependencies = [
     "odfpy~=1.4",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
     "openpyxl~=3.1",  # Needed by pandas for parsing newer Excel files (.xlsx).
     "pandas~=2.2",  # Needed for dealing with various file formats.
-    "schemdraw~=0.19",  # Needed to draw circuit diagrams
+    "schemdraw~=0.20",  # Needed to draw circuit diagrams
     "scipy~=1.15",  # Used in the DRT calculations
     "statsmodels~=0.14",  # Used for smoothing (LOWESS) in Z-HIT
-    "sympy~=1.13",  # Used to generate expressions for circuits
+    "sympy~=1.14",  # Used to generate expressions for circuits
     "tabulate~=0.9",  # Required by pandas to generate Markdown tables.
     # TODO: The 'xdg' package has been renamed to 'xdg-base-dirs' and changed
     # to only support Python >=3.10. Update at some point in the future.
@@ -28,8 +28,8 @@ dependencies = [
 
 dev_dependencies = [
     "build~=1.2",
-    "flake8~=7.1",
-    "setuptools~=75.8",
+    "flake8~=7.2",
+    "setuptools~=80.7",
     "sphinx~=8.2",
     "sphinx-rtd-theme~=3.0",
 ]
