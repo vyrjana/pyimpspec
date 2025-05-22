@@ -554,7 +554,6 @@ class Parser:
             if not isinstance(token, LCurly):
                 return
 
-            nonlocal new_tokens
             token = self._tokens.pop(0)
 
             while not isinstance(token, RCurly):

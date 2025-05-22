@@ -47,8 +47,6 @@ _WINDOW_FUNCTIONS: Dict[str, Callable] = {}
 def _initialize_window_functions():
     from scipy.signal import windows as scipy_windows
 
-    global _WINDOW_FUNCTIONS
-
     name: str
     for name in dir(scipy_windows):
         if name.startswith("_"):

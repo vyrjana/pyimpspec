@@ -169,9 +169,6 @@ _UNFILLED_MARKERS: Set[Union[str, int]] = set()
 
 
 def _get_marker_color_args(marker: str, color: Any) -> Dict[str, Any]:
-    global _FILLED_MARKERS
-    global _UNFILLED_MARKERS
-
     if len(_FILLED_MARKERS) == 0 or len(_UNFILLED_MARKERS) == 0:
         from matplotlib.lines import Line2D
 

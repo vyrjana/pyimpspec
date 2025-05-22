@@ -43,7 +43,6 @@ def register(callback: Callable) -> int:
         An identifier/handle that can be used to unregister the callback function.
     """
     global _COUNTER
-    global _CALLBACKS
 
     if not callable(callback):
         raise TypeError(f"Expected a callable instead of {callback=}")
@@ -68,8 +67,6 @@ def unregister(identifier: int) -> bool:
     bool
         True if the callback function was successfully unregistered.
     """
-    global _CALLBACKS
-
     if not _is_integer(identifier):
         raise TypeError(f"Expected an integer instead of {identifier=}")
     elif identifier <= 0:

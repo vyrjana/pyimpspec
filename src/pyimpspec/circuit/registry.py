@@ -547,8 +547,6 @@ def register_element(definition: ElementDefinition, **kwargs):
 
     **kwargs
     """
-    global _ELEMENTS
-
     symbol: str
     Class: Type[Element]
     symbol, Class = _initialize_element(definition, **kwargs)

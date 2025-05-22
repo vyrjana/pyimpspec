@@ -155,7 +155,6 @@ def to_circuitikz(
         return dimensions[element]
 
     def phase_1_series(series: Series, x: float, y: float) -> Tuple[float, float]:
-        nonlocal num_nested_parallels
         width: float = 0.0
         height: float = 0.0
 
