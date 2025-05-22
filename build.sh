@@ -87,7 +87,8 @@ fi
 # NOTE: May need to skip flake8 in some cases when trying to build. Currently
 #       (2024-08-29) raising exceptions when running flake8 v7.1.1 on:
 #       'Python 3.12.4 (main, Jun  7 2024, 06:33:07) [GCC 14.1.1 20240522] on linux'
-flake8 . --select=E9,F63,F7,F82 --show-source --statistics
+flake8 ./src/pyimpspec --config .flake8
+flake8 ./tests --config .flake8
 echo "flake8 didn't find any issues..."
 echo
 
