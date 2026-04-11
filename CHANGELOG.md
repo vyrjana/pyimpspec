@@ -3,6 +3,9 @@
 - Updated supported Python versions (dropped 3.10 support and added 3.14 support).
 - Updated minimum versions of dependencies.
 - Switched from using `xdg` to `xdg-base-dirs`.
+- Fixed bug that caused the Z-HIT implementation to not find any windowing functions in recent `scipy` versions.
+
+
 # 5.1.2 (2025/03/02)
 
 - Updated the m(RQ)-fit implementation to raise exceptions in cases that would result in, e.g., negative time constants or undefined values in the DRT.

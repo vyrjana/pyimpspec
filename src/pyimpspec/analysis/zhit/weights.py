@@ -17,15 +17,12 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from inspect import (
-    Signature,
-    signature,
-)
 from typing import (
     Callable,
     Dict,
     List,
     Optional,
+    Tuple,
 )
 from numpy import (
     ceil,
@@ -47,22 +44,31 @@ _WINDOW_FUNCTIONS: Dict[str, Callable] = {}
 def _initialize_window_functions():
     from scipy.signal import windows as scipy_windows
 
+    valid_window_names: Tuple[str, ...] = (
+        "barthann",
+        "bartlett",
+        "blackman",
+        "blackmanharris",
+        "bohman",
+        "boxcar",
+        "cosine",
+        "flattop",
+        "hamming",
+        "hann",
+        "lanczos",
+        "nuttall",
+        "parzen",
+        "triang",
+    )
+
     name: str
     for name in dir(scipy_windows):
-        if name.startswith("_"):
-            continue
-        elif not callable(getattr(scipy_windows, name)):
+        if name not in valid_window_names:
             continue
 
         func: Callable = getattr(scipy_windows, name)
-        sig: Signature = signature(func)
-
-        if not ("M" in sig.parameters and "sym" in sig.parameters):
-            continue
-        elif len(sig.parameters) > 2:
-            continue
-
-        _WINDOW_FUNCTIONS[name] = func
+        if callable(func):
+            _WINDOW_FUNCTIONS[name] = func
 
 
 def _generate_weights(
