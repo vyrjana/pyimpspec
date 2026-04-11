@@ -20,10 +20,8 @@ dependencies = [
     "scipy~=1.17",  # Used in the DRT calculations
     "statsmodels~=0.14",  # Used for smoothing (LOWESS) in Z-HIT
     "sympy~=1.14",  # Used to generate expressions for circuits
-    # TODO: The 'xdg' package has been renamed to 'xdg-base-dirs' and changed
-    # to only support Python >=3.10. Update at some point in the future.
-    "xdg~=6.0",
     "tabulate~=0.10",  # Required by pandas to generate Markdown tables.
+    "xdg-base-dirs~=6.0",
 ]
 
 dev_dependencies = [

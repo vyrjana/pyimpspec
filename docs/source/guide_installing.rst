@@ -32,7 +32,7 @@ Requirements
   - `statsmodels <https://www.statsmodels.org/>`_
   - sympy_
   - `tabulate <https://github.com/astanin/python-tabulate>`_
-  - `xdg <https://github.com/srstevenson/xdg>`_
+  - `xdg-base-dirs <https://github.com/srstevenson/xdg-base-dirs>`_
 
 These Python packages (and their dependencies) are installed automatically when pyimpspec is installed using, e.g., `pip <https://pip.pypa.io/en/stable/>`_.
 

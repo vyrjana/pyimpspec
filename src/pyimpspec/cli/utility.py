@@ -406,7 +406,7 @@ def print_command_help(parser: ArgumentParser, command: str):
 
 
 def get_config_dir() -> str:
-    from xdg import xdg_config_home
+    from xdg_base_dirs import xdg_config_home
 
     return join(xdg_config_home(), "pyimpspec")
 

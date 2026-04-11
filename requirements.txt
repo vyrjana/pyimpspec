@@ -10,5 +10,5 @@ schemdraw~=0.22
 scipy~=1.17
 statsmodels~=0.14
 sympy~=1.14
-xdg~=6.0
 tabulate~=0.10
+xdg-base-dirs~=6.0
