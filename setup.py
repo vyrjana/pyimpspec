@@ -12,26 +12,26 @@ dependencies = [
     "lmfit~=1.3",  # Needed for performing non-linear fitting.
     "matplotlib~=3.10",  # Needed for the plotting module.
     "numdifftools~=0.9",  # Needed for estimating uncertainties during circuit fitting
-    "numpy~=2.2",
+    "numpy~=2.4",
     "odfpy~=1.4",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
     "openpyxl~=3.1",  # Needed by pandas for parsing newer Excel files (.xlsx).
-    "pandas~=2.2",  # Needed for dealing with various file formats.
-    "schemdraw~=0.20",  # Needed to draw circuit diagrams
-    "scipy~=1.15",  # Used in the DRT calculations
+    "pandas~=3.0",  # Needed for dealing with various file formats.
+    "schemdraw~=0.22",  # Needed to draw circuit diagrams
+    "scipy~=1.17",  # Used in the DRT calculations
     "statsmodels~=0.14",  # Used for smoothing (LOWESS) in Z-HIT
     "sympy~=1.14",  # Used to generate expressions for circuits
-    "tabulate~=0.9",  # Required by pandas to generate Markdown tables.
     # TODO: The 'xdg' package has been renamed to 'xdg-base-dirs' and changed
     # to only support Python >=3.10. Update at some point in the future.
     "xdg~=6.0",
+    "tabulate~=0.10",  # Required by pandas to generate Markdown tables.
 ]
 
 dev_dependencies = [
-    "build~=1.2",
-    "flake8~=7.2",
-    "setuptools~=80.7",
-    "sphinx~=8.2",
-    "sphinx-rtd-theme~=3.0",
+    "build~=1.4",
+    "flake8~=7.3",
+    "setuptools~=82.0",
+    "sphinx~=9.1",
+    "sphinx-rtd-theme~=3.1",
 ]
 
 optional_dependencies = {

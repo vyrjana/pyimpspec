@@ -1,3 +1,6 @@
+# 5.1.3 (2026/04/12)
+
+- Updated minimum versions of dependencies.
 # 5.1.2 (2025/03/02)
 
 - Updated the m(RQ)-fit implementation to raise exceptions in cases that would result in, e.g., negative time constants or undefined values in the DRT.
