@@ -16,7 +16,7 @@ The package **may** also work on other platforms depending on whether or not tho
 Requirements
 ------------
 
-- `Python <https://www.python.org>`_ (3.10, 3.11, 3.12, or 3.13)
+- `Python <https://www.python.org>`_ (3.11, 3.12, 3.13, or 3.14)
 - The following Python packages
 
   - `Jinja <https://jinja.palletsprojects.com/>`_
@@ -142,4 +142,3 @@ Alternatively, the CLI can be accessed by running pyimpspec as a module:
 .. raw:: latex
 
     \clearpage
-
