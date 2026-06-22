@@ -1,3 +1,8 @@
+# Unreleased
+
+- Added support for parsing BioLogic's raw binary `.mpr` files. Parsing is delegated to the optional `galvani` package; the existing `.mpt` text format remains dependency-free and should be preferred when available.
+
+
 # 5.1.3 (2026/04/12)
 
 - Updated supported Python versions (dropped 3.10 support and added 3.14 support).

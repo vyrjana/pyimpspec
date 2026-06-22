@@ -6,7 +6,7 @@ Data parsing
 Individual impedance spectra are represented in pyimpspec as |DataSet| objects.
 The |parse_data| function acts as a wrapper for the various parsing functions available for different file formats such as:
 
-- BioLogic: ``.mpt``
+- BioLogic: ``.mpt`` and ``.mpr`` (the latter requires the optional ``galvani`` package)
 - Eco Chemie: ``.dfr``
 - Gamry: ``.dta``
 - Ivium: ``.idf`` and ``.ids``

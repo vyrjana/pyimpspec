@@ -615,6 +615,33 @@ class TestFormatParsers(TestCase):
         for data in parse_data(Path(path)):
             self.validate(data, control)
 
+    def test_mpr(self):
+        # Parsing BioLogic's binary .mpr format relies on the optional 'galvani'
+        # package and a representative fixture (only EC-Lab can write .mpr files,
+        # so a fixture matching the shared control spectrum cannot be generated
+        # here). Skip gracefully when either is unavailable.
+        try:
+            import galvani  # noqa: F401
+        except ImportError:
+            self.skipTest("the optional 'galvani' package is not installed")
+
+        from glob import glob
+
+        paths: List[str] = sorted(glob(join(dirname(__file__), "data*.mpr")))
+        if len(paths) == 0:
+            self.skipTest("no .mpr test fixture is available")
+
+        path: str
+        for path in paths:
+            data_sets: List[DataSet] = parse_data(path)
+            self.assertGreater(len(data_sets), 0)
+
+            data: DataSet
+            for data in data_sets:
+                self.assertGreater(data.get_num_points(), 0)
+                f: Frequencies = data.get_frequencies()
+                self.assertTrue((f[:-1] >= f[1:]).all())  # descending frequency
+
         path = join(dirname(__file__), "drift-corrected-data.dta")
         data_sets: List[DataSet] = parse_data(path)
 

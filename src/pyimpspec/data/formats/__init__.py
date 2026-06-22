@@ -22,6 +22,7 @@ from .dfr import parse_dfr
 from .dta import parse_dta
 from .i2b import parse_i2b
 from .ids import parse_ids
+from .mpr import parse_mpr
 from .mpt import parse_mpt
 from .p00 import parse_p00
 from .spreadsheet import parse_spreadsheet
