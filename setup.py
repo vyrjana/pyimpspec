@@ -8,33 +8,33 @@ entry_points = {
 }
 
 dependencies = [
-    "Jinja2~=3.1",  # Needed when turning pandas.DataFrames instances into, e.g., LaTeX strings.
-    "lmfit~=1.3",  # Needed for performing non-linear fitting.
-    "matplotlib~=3.10",  # Needed for the plotting module.
-    "numdifftools~=0.9",  # Needed for estimating uncertainties during circuit fitting
-    "numpy~=2.4",
-    "odfpy~=1.4",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
-    "openpyxl~=3.1",  # Needed by pandas for parsing newer Excel files (.xlsx).
-    "pandas~=3.0",  # Needed for dealing with various file formats.
-    "schemdraw~=0.22",  # Needed to draw circuit diagrams
-    "scipy~=1.17",  # Used in the DRT calculations
-    "statsmodels~=0.14",  # Used for smoothing (LOWESS) in Z-HIT
-    "sympy~=1.14",  # Used to generate expressions for circuits
-    "tabulate~=0.10",  # Required by pandas to generate Markdown tables.
-    "xdg-base-dirs~=6.0",
+    "Jinja2==3.1.6",  # Needed when turning pandas.DataFrames instances into, e.g., LaTeX strings.
+    "lmfit==1.3.4",  # Needed for performing non-linear fitting.
+    "matplotlib==3.11.1",  # Needed for the plotting module.
+    "numdifftools==0.9.42",  # Needed for estimating uncertainties during circuit fitting
+    "numpy==2.5.1",
+    "odfpy==1.4.1",  # Needed by pandas for parsing OpenDocument spreadsheet formats.
+    "openpyxl==3.1.5",  # Needed by pandas for parsing newer Excel files (.xlsx).
+    "pandas==3.0.5",  # Needed for dealing with various file formats.
+    "schemdraw==0.23",  # Needed to draw circuit diagrams
+    "scipy==1.17.1",  # Used in the DRT calculations
+    "statsmodels==0.14.6",  # Used for smoothing (LOWESS) in Z-HIT
+    "sympy==1.14.0",  # Used to generate expressions for circuits
+    "tabulate==0.10.0",  # Required by pandas to generate Markdown tables.
+    "xdg-base-dirs==6.0.2",
 ]
 
 dev_dependencies = [
-    "build~=1.4",
-    "flake8~=7.3",
-    "setuptools~=82.0",
-    "sphinx~=9.1",
-    "sphinx-rtd-theme~=3.1",
+    "setuptools==83.0.0",
+    "build==1.5.0",
+    "flake8==7.3.0",
+    "sphinx==9.1.0",
+    "sphinx-rtd-theme==3.1.0",
 ]
 
 optional_dependencies = {
-    "cvxopt": "cvxopt~=1.3",  # Used in the DRT calculations (TR-RBF method)
-    "kvxopt": "kvxopt~=1.3",  # Fork of cvxopt that may provide wheels for additional platforms
+    "cvxopt": "cvxopt==1.3.3",  # Used in the DRT calculations (TR-RBF method)
+    "kvxopt": "kvxopt==1.3.3.1",  # Fork of cvxopt that may provide wheels for additional platforms
     "dev": dev_dependencies,
 }
 
