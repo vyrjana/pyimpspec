@@ -77,7 +77,7 @@ def parse_crv(path: Union[str, Path]) -> List[DataSet]:
     num_points: int = int(line)
 
     if not lines:
-        raise UnsupportedFileFormat(f"Expected to fine lines containing at least five columns instead of {line=}")
+        raise UnsupportedFileFormat(f"Expected to find lines containing at least {num_separators + 1} columns instead of {line=}")
 
     freq: List[float] = []
     real: List[float] = []
