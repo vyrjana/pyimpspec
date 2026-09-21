@@ -59,6 +59,7 @@ from numpy import (
     square,
     std,
     sum as array_sum,
+    tile,
     trace,
     where,
     zeros,
@@ -69,7 +70,6 @@ from numpy.linalg import (
     inv,
     solve,
 )
-from numpy.matlib import repmat
 from numpy.random import randn
 from numpy.typing import NDArray
 from pyimpspec.data import DataSet
@@ -464,9 +464,9 @@ def _generate_truncated_multivariate_gaussians(
                 callback(now - start, now - sample_start, i)
 
     if cov:
-        Xs = R.T @ Xs + repmat(mu.reshape(mu.shape[0], 1), 1, L)
+        Xs = R.T @ Xs + tile(mu.reshape(mu.shape[0], 1), (1, L))
     else:
-        Xs = solve(R, Xs) + repmat(mu.reshape(mu.shape[0], 1), 1, L)
+        Xs = solve(R, Xs) + tile(mu.reshape(mu.shape[0], 1), (1, L))
 
     return Xs
 

@@ -35,6 +35,7 @@ from .data_set import (
     dataframe_to_data_sets,
 )
 from .formats import (
+    parse_crv,
     parse_csv,
     parse_dfr,
     parse_dta,
@@ -59,6 +60,7 @@ def get_parsers() -> Dict[str, Callable]:
     """
     return {
         ".P00": parse_p00,
+        ".crv": parse_crv,
         ".dfr": parse_dfr,
         ".dta": parse_dta,
         ".i2b": parse_i2b,

@@ -761,3 +761,18 @@ class TestFormatParsers(TestCase):
 
         for data in parse_data(Path(path)):
             self.validate(data, control)
+
+    def test_crv(self):
+        control: DataSet = get_control_data()
+
+        paths: List[str] = get_test_files(".crv")
+        self.assertTrue(len(paths) > 0)
+
+        data: DataSet
+        path: str
+        for path in paths:
+            for data in parse_data(path):
+                self.validate(data, control)
+
+        for data in parse_data(Path(path)):
+            self.validate(data, control)

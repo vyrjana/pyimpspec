@@ -10,6 +10,7 @@ The |parse_data| function acts as a wrapper for the various parsing functions av
 - Eco Chemie: ``.dfr``
 - Gamry: ``.dta``
 - Ivium: ``.idf`` and ``.ids``
+- OrigaLys: ``.crv``
 - PalmSens: ``.pssession``
 - ZView: ``.z``
 - Spreadsheets: ``.xlsx`` and ``.ods``

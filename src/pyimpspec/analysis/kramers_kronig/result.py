@@ -477,7 +477,7 @@ class KramersKronigResult:
             The p-values for the tests performed on the residuals of the real and imaginary parts.
             The null hypothesis is that the distributions of the residuals are identical to the normal distribution with a mean of zero and the provided (or estimated) standard deviation.
         """
-        from scipy.stats import kstest
+        from scipy.stats import kstest, norm
 
         if not _is_floating(standard_deviation):
             raise TypeError(f"Expected a float instead of {standard_deviation=}")
@@ -492,7 +492,7 @@ class KramersKronigResult:
             map(
                 lambda samples: kstest(
                     rvs=samples,
-                    cdf="norm",
+                    cdf=norm.cdf,
                     args=(0.0, standard_deviation),
                 ).pvalue,
                 (real, imag),

@@ -1,3 +1,13 @@
+# 5.2.0 (2026/MM/DD)
+
+- Added support for `.crv` files from OrigaLys.
+- Fixed bug when performing Kolmogorov-Smirnov test with SciPy 1.18+ installed.
+  - Note that constrained fitting does not work with SciPy 1.18.x installed. The exact cause is currently unknown.
+- Updated TR-RBF implementation to replace the use of the deprecated `numpy.matlib.repmat` with `numpy.tile`.
+- Migrated to using `pyproject.toml` and `uv.lock`.
+- Updated supported range of Python versions: 3.12, 3.13, and 3.14.
+
+
 # 5.1.3 (2026/04/12)
 
 - Updated supported Python versions (dropped 3.10 support and added 3.14 support).

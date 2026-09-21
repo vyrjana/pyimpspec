@@ -17,6 +17,7 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
+from .crv import parse_crv
 from .csv import parse_csv
 from .dfr import parse_dfr
 from .dta import parse_dta
@@ -24,6 +25,6 @@ from .i2b import parse_i2b
 from .ids import parse_ids
 from .mpt import parse_mpt
 from .p00 import parse_p00
+from .pssession import parse_pssession
 from .spreadsheet import parse_spreadsheet
 from .z import parse_z
-from .pssession import parse_pssession
