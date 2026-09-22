@@ -1566,99 +1566,6 @@ class KramersKronigMatrixInversion(TestCase):
                             )
 
 
-class KramersKronigCNLS(TestCase):
-    @classmethod
-    def setUpClass(cls):
-        cls.f: Frequencies = VALID_DATA.get_frequencies()
-        cls.Z_exp: ComplexImpedances = VALID_DATA.get_impedances()
-
-    def test_test_wrapper(self):
-        method: str = "leastsq"
-        max_nfev: int = 20
-
-        admittance: bool
-        for admittance in (False, True):
-            weight: NDArray[float64]
-            weight = pyimpspec.analysis.kramers_kronig.utility._boukamp_weight(
-                Z=self.Z_exp,
-                admittance=admittance,
-            )
-
-            add_capacitance: bool
-            add_inductance: bool
-            for add_capacitance, add_inductance in (
-                (False, False),
-                (True, False),
-                (False, True),
-                (True, True),
-            ):
-                num_RC: int
-                for num_RC in (2, 5, 10):
-                    log_F_ext: float
-                    for log_F_ext in (0.0, -0.5, 0.5):
-                        n: int
-                        circuit: Circuit
-                        (
-                            n,
-                            circuit,
-                        ) = pyimpspec.analysis.kramers_kronig.cnls._test_wrapper(
-                            (
-                                self.f,
-                                self.Z_exp,
-                                weight,
-                                num_RC,
-                                add_capacitance,
-                                add_inductance,
-                                admittance,
-                                log_F_ext,
-                                method,
-                                max_nfev,
-                            )
-                        )
-                        elements: List[Element] = circuit.get_elements(recursive=True)
-
-                        self.assertIsInstance(num_RC, int)
-                        self.assertEqual(n, num_RC)
-                        self.assertIsInstance(circuit, Circuit)
-                        self.assertEqual(
-                            len(elements),
-                            num_RC
-                            + (
-                                3
-                                if add_capacitance and add_inductance
-                                else (2 if add_capacitance or add_inductance else 1)
-                            ),
-                        )
-                        self.assertEqual(
-                            len([e for e in elements if isinstance(e, Resistor)]), 1
-                        )
-                        self.assertEqual(
-                            len(
-                                [
-                                    e
-                                    for e in elements
-                                    if isinstance(
-                                        e,
-                                        (
-                                            KramersKronigAdmittanceRC
-                                            if admittance
-                                            else KramersKronigRC
-                                        ),
-                                    )
-                                ]
-                            ),
-                            num_RC,
-                        )
-                        self.assertEqual(
-                            len([e for e in elements if isinstance(e, Capacitor)]),
-                            1 if add_capacitance else 0,
-                        )
-                        self.assertEqual(
-                            len([e for e in elements if isinstance(e, Inductor)]),
-                            1 if add_inductance else 0,
-                        )
-
-
 class KramersKronigEvaluateLogFExt(TestCase):
     @classmethod
     def setUpClass(cls):
@@ -1881,7 +1788,6 @@ class KramersKronigPerformTest(TestCase):
             "complex-inv",
             "real-inv",
             "imaginary-inv",
-            "cnls",
         ):
             result: KramersKronigResult = (
                 pyimpspec.analysis.kramers_kronig.perform_kramers_kronig_test(

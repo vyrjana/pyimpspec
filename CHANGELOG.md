@@ -6,6 +6,7 @@
 - Updated TR-RBF implementation to replace the use of the deprecated `numpy.matlib.repmat` with `numpy.tile`.
 - Migrated to using `pyproject.toml` and `uv.lock`.
 - Updated supported range of Python versions: 3.12, 3.13, and 3.14.
+- Deprecated the CNLS implementation of the Kramers-Kronig test.
 
 
 # 5.1.3 (2026/04/12)

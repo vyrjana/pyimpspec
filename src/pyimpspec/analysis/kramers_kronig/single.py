@@ -76,6 +76,7 @@ def perform_kramers_kronig_test(
         These three implementations use least squares fitting (see `numpy.linalg.lstsq <https://numpy.org/doc/stable/reference/generated/numpy.linalg.lstsq.html>`_).
         The implementations ending with "-inv" use matrix inversion, which was the default in pyimpspec prior to version 5.0.0.
         The "cnls" implementation uses complex non-linear least squares fitting.
+        Note that "cnls" is deprecated and will be removed soon.
 
     num_RC: int, optional
         The number of RC elements to use.
