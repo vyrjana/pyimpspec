@@ -285,7 +285,9 @@ This can be used to, e.g., select which method(s) to use or to adjust any method
    >>> test, scores, lower_limit, upper_limit = suggestion
 
 
-The plot of relative residuals is typically used to interpret the validity of the immittance spectrum that was tested. Alternatively, statistical tests performed on the residuals can also be used.
+The plot of relative residuals is typically used to interpret the validity of the immittance spectrum that was tested.
+Unless the data is quite noisy or invalid, the relative residuals should be randomly distributed, have a mean of zero, and reside between :math:`\pm 0.5\%`.
+Alternatively, statistical tests performed on the residuals can also be used.
 
 .. doctest::
 
@@ -341,7 +343,9 @@ The contents of ``statistics`` would look something like:
    | One-sample Kolmogorov-Smirnov test p-value, imag.   |   0.60763     |
 
 
-All three statistical tests (`Lilliefors <https://www.statsmodels.org/dev/generated/statsmodels.stats.diagnostic.lilliefors.html>`_, `Shapiro-Wilk <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.shapiro.html>`_, and `Kolmogorov-Smirnov <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kstest.html>`_) return :math:`p`-values greater than 0.05 (our chosen threshold) for the residuals of both the real and the imaginary parts. The means of the residuals are close to zero as well. All of this indicates that the tested immittance spectrum is likely to be valid. This is also in agreement with the interpretation based on inspecting the plot of the relative residuals.
+All three statistical tests (`Lilliefors <https://www.statsmodels.org/dev/generated/statsmodels.stats.diagnostic.lilliefors.html>`_, `Shapiro-Wilk <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.shapiro.html>`_, and `Kolmogorov-Smirnov <https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.kstest.html>`_) return :math:`p`-values greater than 0.05 (our chosen threshold) for the residuals of both the real and the imaginary parts.
+The means of the residuals are close to zero as well. All of this indicates that the tested immittance spectrum is likely to be valid.
+This is also in agreement with the interpretation based on inspecting the plot of the relative residuals.
 
 
 Some immittance spectra might not be possible to validate based on testing the impedance representation.

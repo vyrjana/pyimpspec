@@ -16,7 +16,7 @@ The package **may** also work on other platforms depending on whether or not tho
 Requirements
 ------------
 
-- `Python <https://www.python.org>`_ (3.11, 3.12, 3.13, or 3.14)
+- `Python <https://www.python.org>`_ (3.12, 3.13, or 3.14)
 - The following Python packages
 
   - `Jinja <https://jinja.palletsprojects.com/>`_
@@ -35,6 +35,13 @@ Requirements
   - `xdg-base-dirs <https://github.com/srstevenson/xdg-base-dirs>`_
 
 These Python packages (and their dependencies) are installed automatically when pyimpspec is installed using, e.g., `pip <https://pip.pypa.io/en/stable/>`_.
+
+
+.. note::
+
+   You may need to install additional packages (e.g., `PyQt6 <https://pypi.org/project/PyQt6/>`_) if you wish to view interactive matplotlib_ plots.
+   See matplotlib_'s documentation on `interactive backends <https://matplotlib.org/stable/users/explain/figure/backends.html#interactive-backends>`_ for more options.
+
 
 The following Python packages can be installed as optional dependencies for additional functionality:
 

@@ -36,6 +36,7 @@ How to use
 
 Below is an example where simplified Randles circuits with or without drifting have been plotted as "Drifting" and "Valid", respectively.
 The impedance spectrum ("Z-HIT") reconstructed from the phase data of the drifting spectrum has also been plotted and it is a close match to the impedance spectrum without drift.
+For valid data, the relative residuals typically reside between :math:`\pm (2{\rm\ to\ }3)\%`.
 
 
 .. plot::
