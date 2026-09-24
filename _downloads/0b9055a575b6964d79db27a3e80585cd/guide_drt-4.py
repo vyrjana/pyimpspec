@@ -1,0 +1,27 @@
+from pyimpspec import (
+  generate_mock_data,
+  parse_cdc,
+)
+from pyimpspec.analysis.drt import calculate_drt_tr_rbf
+from pyimpspec import mpl
+
+cdc = "R{R=100}(R{R=300}C{C=5e-6})(R{R=450}C{C=1e-5})"
+circuit = parse_cdc(cdc)
+drawing = circuit.to_drawing()
+drawing.draw()
+
+data = generate_mock_data(cdc, noise=5e-2, seed=42)[0]
+drt = calculate_drt_tr_rbf(data)
+
+figure, axes = mpl.plot_nyquist(data, colors=dict(impedance="black"), markers=dict(impedance="o"))
+mpl.plot_nyquist(drt, colors=dict(impedance="red"), markers=dict(impedance="+"), figure=figure, axes=axes)
+figure.tight_layout()
+
+figure, axes = mpl.plot_gamma(drt)
+figure.tight_layout()
+
+peaks = drt.analyze_peaks()
+figure, axes = mpl.plot_gamma(drt)
+figure.tight_layout()
+
+peaks.to_peaks_dataframe().to_markdown(index=False)
