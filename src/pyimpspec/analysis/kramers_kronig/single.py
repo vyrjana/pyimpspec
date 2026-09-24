@@ -17,6 +17,7 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
+from warnings import warn
 from pyimpspec.typing.helpers import (
     Dict,
     List,
@@ -148,6 +149,12 @@ def perform_kramers_kronig_test(
     options: List[bool] = [False, True] if admittance is None else [admittance]
     results: List[Union[KramersKronigResult, Tuple[KramersKronigResult, Dict[int, float], int, int]]] = []
     err: Optional[Exception] = None
+
+    if test == "cnls":
+        warn(
+            message="The CNLS implementation of the Kramers-Kronig test has been deprecated and will be removed soon.",
+            category=DeprecationWarning,
+        )
 
     for admittance in options:
         try:

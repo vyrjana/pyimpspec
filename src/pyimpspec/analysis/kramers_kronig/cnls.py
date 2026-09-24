@@ -17,7 +17,6 @@
 # The licenses of pyimpspec's dependencies and/or sources of portions of code are included in
 # the LICENSES folder.
 
-from warnings import deprecated
 from typing import (
     Dict,
     Tuple,
@@ -74,7 +73,6 @@ def _complex_residual(
     )
 
 
-@deprecated("The CNLS implementation of the Kramers-Kronig test has been deprecated and will be removed soon.")
 def _test_wrapper(args: tuple) -> Tuple[int, Circuit]:
     from lmfit import minimize
     from lmfit.minimizer import MinimizerResult

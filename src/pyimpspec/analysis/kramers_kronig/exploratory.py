@@ -24,6 +24,7 @@ from multiprocessing.context import TimeoutError as MPTimeoutError
 from warnings import (
     catch_warnings,
     filterwarnings,
+    warn,
 )
 from numpy import (
     argmin,
@@ -1427,6 +1428,12 @@ def perform_exploratory_kramers_kronig_tests(
     """
     if not (_is_boolean(admittance) or admittance is None):
         raise TypeError(f"Expected a boolean or None instead of {admittance=}")
+
+    if test == "cnls":
+        warn(
+            message="The CNLS implementation of the Kramers-Kronig test has been deprecated and will be removed soon.",
+            category=DeprecationWarning,
+        )
 
     evaluations: List[Tuple[float, List[KramersKronigResult], float]]
     evaluations = _evaluate_representations(
