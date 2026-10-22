@@ -18,6 +18,7 @@
 # the LICENSES folder.
 
 from copy import deepcopy
+from functools import cached_property
 from dataclasses import dataclass
 from multiprocessing import get_context
 from multiprocessing.context import TimeoutError as MPTimeoutError
@@ -43,6 +44,7 @@ from numpy import (
     float64,
     inf,
     isnan,
+    log as ln,
     log10 as log,
     nan,
     ones,
@@ -248,6 +250,35 @@ class FitResult:
 
     def __repr__(self) -> str:
         return f"FitResult ({self.circuit.to_string()}, {hex(id(self))})"
+
+    @cached_property
+    def rss(self) -> float:
+        """
+        Residual sum of squares
+        """
+        return sum(self.residuals.real**2 + self.residuals.imag**2)
+
+    @cached_property
+    def aic(self) -> float:
+        """
+        Akaike information-criterion
+        """
+        N: int = self.minimizer_result.ndata
+        N_varys: int = self.minimizer_result.nvarys
+        aic: float = N * ln(self.rss / N) + 2 * N_varys
+
+        return aic
+
+    @cached_property
+    def bic(self) -> float:
+        """
+        Bayesian information-criterion
+        """
+        N: int = self.minimizer_result.ndata
+        N_varys: int = self.minimizer_result.nvarys
+        bic: float = N * ln(self.rss / N) + ln(N) * N_varys
+
+        return bic
 
     def get_label(self) -> str:
         """
@@ -488,10 +519,9 @@ class FitResult:
         result: MinimizerResult = self.minimizer_result
         statistics: Dict[str, Union[int, float, str]] = {
             "Log pseudo chi-squared": log(self.pseudo_chisqr),
-            "Log chi-squared": log(result.chisqr),
-            "Log chi-squared (reduced)": log(result.redchi),
-            "Akaike info. criterion": result.aic,
-            "Bayesian info. criterion": result.bic,
+            "Residual sum of squares": self.rss,
+            "Akaike info. criterion": self.aic,
+            "Bayesian info. criterion": self.bic,
             "Degrees of freedom": result.nfree,
             "Number of data points": result.ndata,
             "Number of function evaluations": result.nfev,
