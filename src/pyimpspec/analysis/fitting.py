@@ -626,7 +626,7 @@ def _residual(
     circuit: Circuit,
     f: Frequencies,
     Z_exp: ComplexImpedances,
-    weight_func: Callable,
+    weight: NDArray[float64],
     identifiers: Dict[int, Element],
 ) -> NDArray[float64]:
     _from_lmfit(params, identifiers)
@@ -639,38 +639,26 @@ def _residual(
         dtype=float64,
     )
 
-    return weight_func(Z_exp=Z_exp, Z_fit=Z_fit)**0.5 * errors
+    return weight * errors
 
 
-def _unity_weight(
-    Z_exp: ComplexImpedances,
-    Z_fit: ComplexImpedances,
-) -> NDArray[float64]:
+def _unity_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
     return ones(shape=(2, Z_exp.size), dtype=float64)
 
 
-def _modulus_weight(
-    Z_exp: ComplexImpedances,
-    Z_fit: ComplexImpedances,
-) -> NDArray[float64]:
-    return ones(shape=(2, Z_exp.size), dtype=float64) / abs(Z_fit)
+def _modulus_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
+    return ones(shape=(2, Z_exp.size), dtype=float64) / abs(Z_exp)
 
 
-def _proportional_weight(
-    Z_exp: ComplexImpedances,
-    Z_fit: ComplexImpedances,
-) -> NDArray[float64]:
+def _proportional_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
     weight: NDArray[float64] = ones(shape=(2, Z_exp.size), dtype=float64)
-    weight[0] = weight[0] / Z_fit.real**2
-    weight[1] = weight[1] / Z_fit.imag**2
+    weight[0] = weight[0] / Z_exp.real**2
+    weight[1] = weight[1] / Z_exp.imag**2
 
     return weight
 
 
-def _boukamp_weight(
-    Z_exp: ComplexImpedances,
-    Z_fit: ComplexImpedances,
-) -> NDArray[float64]:
+def _boukamp_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
     # See eq. 13 in Boukamp (1995)
     return (Z_exp.real**2 + Z_exp.imag**2) ** -1  # type: ignore
 
@@ -828,7 +816,7 @@ def _fit_process(
     identifiers: Dict[Element, FitIdentifiers]
     identifiers = generate_fit_identifiers(circuit)
 
-    weight_func: Callable = _WEIGHT_FUNCTIONS[weight]
+    calculated_weight: NDArray[float64] = _WEIGHT_FUNCTIONS[weight](Z_exp=Z_exp)**0.5
 
     with catch_warnings():
         if auto:
@@ -845,7 +833,7 @@ def _fit_process(
                     circuit,
                     f,
                     Z_exp,
-                    weight_func,
+                    calculated_weight,
                     identifiers,
                 ),
                 max_nfev=None if max_nfev < 1 else max_nfev,
