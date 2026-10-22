@@ -633,13 +633,13 @@ def _residual(
     Z_fit: ComplexImpedances = circuit.get_impedances(f)
     errors: NDArray[float64] = array(
         [
-            (Z_exp.real - Z_fit.real) ** 2,
-            (Z_exp.imag - Z_fit.imag) ** 2,
+            (Z_exp.real - Z_fit.real),
+            (Z_exp.imag - Z_fit.imag),
         ],
         dtype=float64,
     )
 
-    return weight_func(Z_exp, Z_fit) * errors
+    return weight_func(Z_exp=Z_exp, Z_fit=Z_fit)**0.5 * errors
 
 
 def _unity_weight(
