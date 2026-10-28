@@ -166,14 +166,14 @@ In this case, the high-frequency resistive-capacitive peak does not directly tel
 However, we can still obtain an estimated value: :math:`R_1 \approx 289.999\ \Omega - 150.012\ \Omega \approx 140\ \Omega`.
 Other estimated values such as capacitances and inductances can also be obtained:
 
-- :math:`R_2 \approx 230\ \Omega` and :math:`C_1 \approx 0.0023\ {\rm s} / 230\ \Omega \approx 10^{-6}\ {\rm F}`
+- :math:`R_2 \approx 230\ \Omega` and :math:`C_1 \approx 0.00023\ {\rm s} / 230\ \Omega \approx 10^{-6}\ {\rm F}`
 - :math:`R_3 \approx 576\ \Omega` and :math:`C_2 \approx 0.0576\ {\rm s} / 576.007\ \Omega \approx 10^{-4}\ {\rm F}`
 - :math:`R_4 \approx 150\ \Omega` and :math:`L_2 \approx 0.266667\ {\rm s} \times 150.012\ \Omega \approx 40\ {\rm H}`
 
 The above is a best-case scenario, but even with a bit of added noise (:math:`\sigma = 0.05\ \% \times |Z|`) one can still obtain decent estimates despite the additional peaks:
 
 - :math:`R1 \approx 289.925\ \Omega - 149.085\ \Omega \approx 141\ \Omega`.
-- :math:`R_2 \approx 230\ \Omega` and :math:`C_1 \approx 0.00230559\ {\rm s} / 230.233\ \Omega \approx 10^{-6}\ {\rm F}`
+- :math:`R_2 \approx 230\ \Omega` and :math:`C_1 \approx 0.000230559\ {\rm s} / 230.233\ \Omega \approx 10^{-6}\ {\rm F}`
 - :math:`R_3 \approx 574\ \Omega` and :math:`C_2 \approx 0.0574022\ {\rm s} / 574.438\ \Omega \approx 10^{-4}\ {\rm F}`
 - :math:`R_4 \approx 149\ \Omega` and :math:`L_2 \approx 0.271608\ {\rm s} \times 149.085\ \Omega \approx 40\ {\rm H}`
 
