@@ -41,6 +41,7 @@ from warnings import (
 from numpy import (
     angle,
     array,
+    complex128,
     float64,
     inf,
     isnan,
@@ -226,10 +227,13 @@ class FitResult:
         The impedances produced by the fitted circuit at each of the frequencies.
 
     residuals: |ComplexResiduals|
-        The residuals for the real (eq. 15 in Schönleber et al., 2014) and imaginary (eq. 16 in Schönleber et al., 2014) parts of the fit.
+        The relative residuals for the real (eq. 15 in Schönleber et al., 2014) and imaginary (eq. 16 in Schönleber et al., 2014) parts of the fit.
 
     pseudo_chisqr: float
         The pseudo chi-squared value (|pseudo chi-squared|, eq. 14 in Boukamp, 1995).
+
+    rss: float
+        The residual sum of squares.
 
     method: str
         The iterative method used during the fitting process.
@@ -245,18 +249,12 @@ class FitResult:
     impedances: ComplexImpedances
     residuals: ComplexResiduals
     pseudo_chisqr: float
+    rss: float
     method: str
     weight: str
 
     def __repr__(self) -> str:
         return f"FitResult ({self.circuit.to_string()}, {hex(id(self))})"
-
-    @cached_property
-    def rss(self) -> float:
-        """
-        Residual sum of squares
-        """
-        return sum(self.residuals.real**2 + self.residuals.imag**2)
 
     @cached_property
     def aic(self) -> float:
@@ -519,7 +517,7 @@ class FitResult:
         result: MinimizerResult = self.minimizer_result
         statistics: Dict[str, Union[int, float, str]] = {
             "Log pseudo chi-squared": log(self.pseudo_chisqr),
-            "Residual sum of squares": self.rss,
+            "Log residual sum of squares": log(self.rss),
             "Akaike info. criterion": self.aic,
             "Bayesian info. criterion": self.bic,
             "Degrees of freedom": result.nfree,
@@ -1199,6 +1197,8 @@ def _convert_intermediate_result(
         raise FittingError(error_msg)
 
     Z_fit: ComplexImpedances = circuit.get_impedances(f)
+    complex_residuals: NDArray[complex128] = Z_exp - Z_fit
+    rss: float = sum(complex_residuals.real**2 + complex_residuals.imag**2)
 
     return FitResult(
         circuit=circuit,
@@ -1210,6 +1210,7 @@ def _convert_intermediate_result(
         # in Schönleber et al. (2014)
         residuals=_calculate_residuals(Z_exp, Z_fit),
         pseudo_chisqr=Xps,
+        rss=rss,
         method=method,
         weight=weight,
     )
