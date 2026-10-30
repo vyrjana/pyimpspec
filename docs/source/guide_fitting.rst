@@ -29,7 +29,7 @@ The |fit_circuit| function performs the fitting and returns a |FitResult| object
    ...   generate_mock_data,
    ... )
    >>>
-   >>> data: DataSet = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+   >>> data: DataSet = generate_mock_data("CIRCUIT_1", noise=0.1, seed=42)[0]
    >>> circuit: Circuit = parse_cdc("R(RC)(RW)")
    >>> fit: FitResult = fit_circuit(circuit, data)
 
@@ -48,7 +48,7 @@ The two figures below show the impedance spectrum and the fitted circuit as a Ny
      generate_mock_data,
    )
    from pyimpspec import mpl
-   data = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+   data = generate_mock_data("CIRCUIT_1", noise=0.1, seed=42)[0]
    circuit = parse_cdc("R(RC)(RW)")
    fit = fit_circuit(circuit, data)
 
@@ -83,7 +83,7 @@ Thus, it is quite easy to generate a table containing the fitted parameter value
    ...   generate_mock_data,
    ... )
    >>>
-   >>> data: DataSet = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
+   >>> data: DataSet = generate_mock_data("CIRCUIT_1", noise=0.1, seed=42)[0]
    >>> circuit: Circuit = parse_cdc("R(RC)(RW)")
    >>> fit: FitResult = fit_circuit(circuit, data)
    >>>
@@ -111,26 +111,26 @@ The contents of ``parameters`` and ``statistics`` in the example above would be 
 
 .. code::
 
-   | Element   | Parameter   |         Value |   Std. err. (%) | Unit      | Fixed   |
-   |:----------|:------------|--------------:|----------------:|:----------|:--------|
-   | R_1       | R           |  99.9526      |      0.0270415  | ohm       | No      |
-   | R_2       | R           | 200.295       |      0.0161802  | ohm       | No      |
-   | C_1       | C           |   7.98617e-07 |      0.00251256 | F         | No      |
-   | R_3       | R           | 499.93        |      0.0228977  | ohm       | No      |
-   | W_1       | Y           |   0.000400664 |      0.0303443  | S*s^(1/2) | No      |
-
+   | Element   | Parameter   |         Value |   Std. err. (%) | Unit   | Fixed   |
+   |:----------|:------------|--------------:|----------------:|:-------|:--------|
+   | R_1       | R           | 100.019       |       0.0510552 | ohm    | No      |
+   | R_2       | R           | 199.805       |       0.0792938 | ohm    | No      |
+   | C_1       | C           |   7.99849e-07 |       0.0882405 | F      | No      |
+   | R_3       | R           | 500.029       |       0.117923  | ohm    | No      |
+   | W_1       | Y           |   0.00039991  |       0.198213  | S*s^n  | No      |
+   | W_1       | n           |   0.5         |     nan         |        | Yes     |
+   
    | Label                          | Value               |
    |:-------------------------------|:--------------------|
-   | Log pseudo chi-squared         | -5.334885584145635  |
-   | Log chi-squared                | -10.8934043180641   |
-   | Log chi-squared (reduced)      | -12.617680187664888 |
-   | Akaike info. criterion         | -1680.3191375061115 |
-   | Bayesian info. criterion       | -1670.0169224533793 |
-   | Degrees of freedom             | 53                  |
-   | Number of data points          | 58                  |
-   | Number of function evaluations | 45                  |
+   | Log pseudo chi-squared         | -4.160334813189715  |
+   | Log residual sum of squares    | 1.122377404804515   |
+   | Akaike info. criterion         | -139.43268083233875 |
+   | Bayesian info. criterion       | -127.39908459601747 |
+   | Degrees of freedom             | 77                  |
+   | Number of data points          | 82                  |
+   | Number of function evaluations | 204                 |
    | Method                         | least_squares       |
-   | Weight                         | proportional        |
+   | Weight                         | boukamp             |
 
 .. note::
 
@@ -181,13 +181,14 @@ The contents of ``parameters`` and ``statistics`` in the example above would be 
 
 .. code::
 
-   | Element   | Parameter   |         Value |   Std. err. (%) | Unit      | Fixed   |
-   |:----------|:------------|--------------:|----------------:|:----------|:--------|
-   | R_0       | R           |  99.9526      |      0.0270415  | ohm       | No      |
-   | R_1       | R           | 200.295       |      0.0161802  | ohm       | No      |
-   | C_2       | C           |   7.98617e-07 |      0.00251256 | F         | No      |
-   | R_3       | R           | 499.93        |      0.0228977  | ohm       | No      |
-   | W_4       | Y           |   0.000400664 |      0.0303443  | S*s^(1/2) | No      |
+   | Element   | Parameter   |         Value |   Std. err. (%) | Unit   | Fixed   |
+   |:----------|:------------|--------------:|----------------:|:-------|:--------|
+   | R_0       | R           | 100.009       |       0.0272264 | ohm    | No      |
+   | R_1       | R           | 199.904       |       0.0760636 | ohm    | No      |
+   | C_2       | C           |   7.99918e-07 |       0.453359  | F      | No      |
+   | R_3       | R           | 500.016       |       0.0796571 | ohm    | No      |
+   | W_4       | Y           |   0.000399959 |       0.187019  | S*s^n  | No      |
+   | W_4       | n           |   0.5         |     nan         |        | Yes     |
 
 
 
@@ -195,326 +196,62 @@ Using mathematical constraints
 ------------------------------
 
 It is possible to make use of `lmfit`_'s support for `mathemical constraints <https://lmfit.github.io/lmfit-py/constraints.html>`_.
-We will fit a circuit to the following impedance spectrum.
+For example, let's say that we have a series of impedance spectra that we wish to analyze using the same equivalent circuit model where there are three repeating ``(RC)`` units that should correspond to the high-, mid-, and low-frequency ranges.
 
 
-.. plot::
-
-   from pyimpspec import mpl
-   from pyimpspec import generate_mock_data
-
-   data = generate_mock_data("CIRCUIT_5", noise=5e-2, seed=42)[0]
-   figure, axes = mpl.plot_nyquist(data, colors={"impedance": "black"})
-   figure.tight_layout()
+.. plot:: example_fitting_constraints_circuit.py
 
 
-The circuit that we will use is given by the following CDC: ``R(RQ)(RQ)(RQ)``.
+Fitting this circuit to the first impedance spectrum yields a good fit but the fitted parameters of the ``(RC)`` units do not correspond to the expected order.
+The time constants of the high-, mid-, and low-frequency ``(RC)`` units should have the following trend: :math:`\tau_{\rm hf} < \tau_{\rm mf} < \tau_{\rm lf}`.
+However, this is not the case since :math:`\tau_{\rm hf} \approx 10^{-3.1}\ {\rm s}`, :math:`\tau_{\rm mf} \approx 10^{-4.5}\ {\rm s}`, and :math:`\tau_{\rm lf} \approx 10^{-2.0}\ {\rm s}`.
 
-
-.. plot::
-
-   from pyimpspec import Circuit, parse_cdc
-   circuit: Circuit = parse_cdc("R(RQ)(RQ)(RQ)")
-   drawing = circuit.to_drawing()
-   drawing.draw()
-
-
-If we simply fit this circuit to the impedance spectrum, then we will get a fit that is not great but manages to somewhat resemble the data.
-Also, the fitted ``(RQ)`` units may not align nicely with what we can see in the Nyquist plot from left to right.
-For example, ``R4`` and ``Q3`` correspond to the semicircle in the middle based on the values of their parameters when compared to the values of the parameters of the other ``(RQ)`` units.
-
-
-.. plot::
-
-   from pyimpspec import (
-     Circuit,
-     DataSet,
-     Element,
-     FitResult,
-     fit_circuit,
-     generate_mock_data,
-     mpl,
-     parse_cdc,
-   )
-   from typing import (
-     Dict,
-     List,
-   )
-   
-   data: DataSet = generate_mock_data("CIRCUIT_5", noise=5e-2, seed=42)[0]
-
-   circuit: Circuit = parse_cdc("R(RQ)(RQ)(RQ)")
-   
-   fit: FitResult = fit_circuit(
-     circuit,
-     data,
-     method="least_squares",
-     weight="boukamp",
-   )
-   print(fit.to_parameters_dataframe().to_markdown(index=False))
-   print(fit.to_statistics_dataframe().to_markdown(index=False))
-   
-   figure, axes = mpl.plot_fit(
-     fit,
-     data=data,
-     colored_axes=True,
-     legend=False,
-     title="Without constraints",
-   )
-   figure.tight_layout()
-
-.. code::
-
-   | Element   | Parameter   |         Value |   Std. err. (%) | Unit   | Fixed   |
-   |:----------|:------------|--------------:|----------------:|:-------|:--------|
-   | R_1       | R           | 151.126       |       0.387059  | ohm    | No      |
-   | R_2       | R           | 259.693       |       0.944897  | ohm    | No      |
-   | Q_1       | Y           |   1.07068e-07 |       0.126065  | S*s^n  | No      |
-   | Q_1       | n           |   0.950525    |       0.0555558 |        | No      |
-   | R_3       | R           | 581.496       |       1.97511   | ohm    | No      |
-   | Q_2       | Y           |   1.8216e-05  |       6.33997   | S*s^n  | No      |
-   | Q_2       | n           |   0.85963     |       1.65839   |        | No      |
-   | R_4       | R           | 726.502       |       0.695414  | ohm    | No      |
-   | Q_3       | Y           |   4.18597e-07 |       0.325163  | S*s^n  | No      |
-   | Q_3       | n           |   0.940476    |       0.115395  |        | No      |
-   
-   | Label                          | Value               |
-   |:-------------------------------|:--------------------|
-   | Log pseudo chi-squared         | -2.6523611472485586 |
-   | Log chi-squared                | -6.941315663341954  |
-   | Log chi-squared (reduced)      | -8.798648159773222  |
-   | Akaike info. criterion         | -1651.9545159942043 |
-   | Bayesian info. criterion       | -1627.8873235215617 |
-   | Degrees of freedom             | 72                  |
-   | Number of data points          | 82                  |
-   | Number of function evaluations | 209                 |
-   | Method                         | least_squares       |
-   | Weight                         | boukamp             |
-
-
-However, we can use constraints to enforce the following orders: :math:`R2 \le R4 \le R3` and :math:`Q1 \le Q2 \le Q3`. To accomplish this, we need to provide the |fit_circuit| function with two additional arguments: ``constraint_expressions`` and ``constraint_variables``.
+We could set the initial values to coax the ``(RC)`` units into the desired order.
+Or we could programmatically rearrange and label the ``(RC)`` units ourselves after the fit.
+Alternatively, we could use constraints.
+In the following example, we express the mid-frequency resistance as :math:`R_{\rm mf} = 10^\alpha \times R_{\rm hf} C_{\rm hf} / C_{\rm mf}` where :math:`\alpha \geq 0`.
+Similarly, the low-frequency resistance is expressed as :math:`R_{\rm lf} = 10^\beta \times R_{\rm mf} C_{\rm mf} / C_{\rm lf}` where :math:`\beta \geq 0`.
+To accomplish this, we need to provide the |fit_circuit| function with two additional arguments: ``constraint_expressions`` and ``constraint_variables``.
 
 The ``constraint_expressions`` argument maps the names/identifiers, which are provided to `lmfit`_ during the fitting process, of the constrained parameters to strings that contain the expressions that define the constraints.
 The |generate_fit_identifiers| function can be used to obtain the names/identifiers of an element's parameters that will be available within the context where the constraint expressions are parsed and evaluated by `lmfit`_.
+See `lmfit's documentation about constraints <https://lmfit.github.io/lmfit-py/constraints.html>`_ for information about operators, functions, and constants that are available for use in expressions.
 
 The ``constraint_variables`` argument can be used to define any additional variables that would be used by the constraint expressions.
 See `lmfit's documentation about Parameters <https://lmfit.github.io/lmfit-py/parameters.html#lmfit.parameter.Parameter>`_ for information about valid keyword arguments.
 
-.. doctest::
 
-   >>> from pyimpspec import (
-   ...   Circuit,
-   ...   DataSet,
-   ...   Element,
-   ...   FitIdentifiers,
-   ...   FitResult,
-   ...   fit_circuit,
-   ...   generate_fit_identifiers,
-   ...   generate_mock_data,
-   ...   parse_cdc,
-   ... )
-   >>> from typing import (
-   ...   Dict,
-   ...   List,
-   ... )
-   >>> 
-   >>> data: DataSet = generate_mock_data("CIRCUIT_5", noise=5e-2, seed=42)[0]
-   >>>
-   >>> circuit: Circuit = parse_cdc("R(RQ)(RQ)(RQ)")
-   >>> identifiers: Dict[Element, FitIdentifiers] = generate_fit_identifiers(circuit)
-   >>> elements: List[Element] = circuit.get_elements()
-   >>> R1, R2, Q1, R3, Q2, R4, Q3 = elements
-   >>> 
-   >>> fit: FitResult = fit_circuit(
-   ...   circuit,
-   ...   data,
-   ...   method="least_squares",
-   ...   weight="boukamp",
-   ...   constraint_expressions={
-   ...     identifiers[R3].R: f"{identifiers[R2].R} + alpha",
-   ...     identifiers[R4].R: f"{identifiers[R3].R} - beta",
-   ...     identifiers[Q2].Y: f"{identifiers[Q1].Y} + gamma",
-   ...     identifiers[Q3].Y: f"{identifiers[Q2].Y} + delta",
-   ...   },
-   ...   constraint_variables=dict(
-   ...     alpha=dict(
-   ...       value=500,
-   ...       min=0,
-   ...     ),
-   ...     beta=dict(
-   ...       value=300,
-   ...       min=0,
-   ...     ),
-   ...     gamma=dict(
-   ...       value=1e-8,
-   ...       min=0,
-   ...     ),
-   ...     delta=dict(
-   ...       value=2e-7,
-   ...       min=0,
-   ...     ),
-   ...   ),
-   ... )
-   >>>
-   >>> R1, R2, Q1, R3, Q2, R4, Q3 = fit.circuit.get_elements()
-   >>> (
-   ...   (R2.get_value("R") < R4.get_value("R") < R3.get_value("R"))
-   ...   and (Q1.get_value("Y") < Q2.get_value("Y") < Q3.get_value("Y"))
-   ... )
-   True
+.. plot:: example_fitting_constraints_1.py
+   :caption: Example data based on a ``R(RC)(RC)(RC)`` circuit (:math:`R_{\rm ser} = 120\ \Omega`, :math:`R_1 = 120\ \Omega`, :math:`R_2 = 840\ \Omega`, :math:`R_3 = 470\ \Omega`, :math:`C_1 = 10^{-7}\ {\rm F}`, :math:`C_2 = 10^{-6}\ {\rm F}`, and :math:`C_3 = 2 \times 10^{-5}\ {\rm F}`).
 
 
-Now we can obtain a better fit and also have all of the elements in an order that matches what we can observe in the Nyquist plot from left to right.
-
-.. note::
-
-   Your results may vary depending on the platform and/or BLAS and LAPACK libraries.
+.. literalinclude:: example_fitting_constraints_1.txt
 
 
-.. plot::
-
-   from pyimpspec import (
-     Circuit,
-     DataSet,
-     Element,
-     FitIdentifiers,
-     FitResult,
-     fit_circuit,
-     generate_fit_identifiers,
-     generate_mock_data,
-     mpl,
-     parse_cdc,
-   )
-   from typing import (
-     Dict,
-     List,
-   )
-   
-   data: DataSet = generate_mock_data("CIRCUIT_5", noise=5e-2, seed=42)[0]
-
-   circuit: Circuit = parse_cdc("R(RQ)(RQ)(RQ)")
-   identifiers: Dict[Element, FitIdentifiers] = generate_fit_identifiers(circuit)
-   elements: List[Element] = circuit.get_elements()
-   R1, R2, Q1, R3, Q2, R4, Q3 = elements
-   
-   fit: FitResult = fit_circuit(
-     circuit,
-     data,
-     method="least_squares",
-     weight="boukamp",
-     constraint_expressions={
-       identifiers[R3].R: f"{identifiers[R2].R} + alpha",
-       identifiers[R4].R: f"{identifiers[R3].R} - beta",
-       identifiers[Q2].Y: f"{identifiers[Q1].Y} + gamma",
-       identifiers[Q3].Y: f"{identifiers[Q2].Y} + delta",
-     },
-     constraint_variables=dict(
-       alpha=dict(
-         value=500,
-         min=0,
-       ),
-       beta=dict(
-         value=300,
-         min=0,
-       ),
-       gamma=dict(
-         value=1e-8,
-         min=0,
-       ),
-       delta=dict(
-         value=2e-7,
-         min=0,
-       ),
-     ),
-   )
-   print(fit.to_parameters_dataframe().to_markdown(index=False))
-   print(fit.to_statistics_dataframe().to_markdown(index=False))
-   
-   R1, R2, Q1, R3, Q2, R4, Q3 = fit.circuit.get_elements()
-   assert R2.get_value("R") < R4.get_value("R") < R3.get_value("R")
-   assert Q1.get_value("Y") < Q2.get_value("Y") < Q3.get_value("Y")
-
-   refined_fit: FitResult = fit_circuit(
-     fit.circuit,
-     data,
-     method="least_squares",
-     weight="boukamp",
-   )
-
-   print(refined_fit.to_parameters_dataframe().to_markdown(index=False))
-   print(refined_fit.to_statistics_dataframe().to_markdown(index=False))
-
-   figure, axes = mpl.plot_fit(
-     fit,
-     data=data,
-     colored_axes=True,
-     legend=False,
-     title="With constraints",
-   )
-   figure.tight_layout()
+As shown in the next two examples, the use of constraints can also help to achieve a good fit without first setting the initial values of the circuit elements themselves.
+Letting |fit_circuit| try different combinations of fitting methods and weights can also achieve a good fit without adjusting the initial values since another combination of method and weight may be able to converge on a solution despite the suboptimal starting conditions.
 
 
-.. code::
+.. plot:: example_fitting_constraints_2.py
+   :caption: Example data based on a ``R(RC)(RC)(RC)`` circuit (:math:`R_{\rm ser} = 120\ \Omega`, :math:`R_1 = 630\ \Omega`, :math:`R_2 = 210\ \Omega`, :math:`R_3 = 1230\ \Omega`, :math:`C_1 = 2 \times 10^{-7}\ {\rm F}`, :math:`C_2 = 3 \times 10^{-6}\ {\rm F}`, and :math:`C_3 = 3 \times 10^{-5}\ {\rm F}`).
 
-   | Element   | Parameter   |         Value |   Std. err. (%) | Unit   | Fixed   |
-   |:----------|:------------|--------------:|----------------:|:-------|:--------|
-   | R_1       | R           | 143.461       |      0.0917482  | ohm    | No      |
-   | R_2       | R           | 229.453       |      0.288944   | ohm    | No      |
-   | Q_1       | Y           |   1.78147e-07 |      0.00643312 | S*s^n  | No      |
-   | Q_1       | n           |   0.912666    |      0.0138234  |        | No      |
-   | R_3       | R           | 854.409       |    nan          | ohm    | Yes     |
-   | Q_2       | Y           |   7.82691e-07 |    nan          | S*s^n  | Yes     |
-   | Q_2       | n           |   0.856438    |      0.0285731  |        | No      |
-   | R_4       | R           | 475.654       |    nan          | ohm    | Yes     |
-   | Q_3       | Y           |   1.60541e-05 |    nan          | S*s^n  | Yes     |
-   | Q_3       | n           |   0.952466    |      0.19436    |        | No      |
-   
-   | Label                          | Value               |
-   |:-------------------------------|:--------------------|
-   | Log pseudo chi-squared         | -4.2481804461232695 |
-   | Log chi-squared                | -10.082848279294568 |
-   | Log chi-squared (reduced)      | -11.940180775725837 |
-   | Akaike info. criterion         | -2245.113501987264  |
-   | Bayesian info. criterion       | -2221.0463095146215 |
-   | Degrees of freedom             | 72                  |
-   | Number of data points          | 82                  |
-   | Number of function evaluations | 569                 |
-   | Method                         | least_squares       |
-   | Weight                         | boukamp             |
+
+.. literalinclude:: example_fitting_constraints_2.txt
+
+
+.. plot:: example_fitting_constraints_3.py
+   :caption: Example data based on a ``R(RC)(RC)(RC)`` circuit (:math:`R_{\rm ser} = 120\ \Omega`, :math:`R_1 = 350\ \Omega`, :math:`R_2 = 30\ \Omega`, :math:`R_3 = 5000\ \Omega`, :math:`C_1 = 10^{-7}\ {\rm F}`, :math:`C_2 = 4 \times 10^{-5}\ {\rm F}`, and :math:`C_3 = 5 \times 10^{-6}\ {\rm F}`).
+
+
+.. literalinclude:: example_fitting_constraints_3a.txt
 
 
 .. note::
 
-   Keep in mind that an estimate for the error of a constrained parameter's value will not be available. However, this can be remedied by using the obtained fitted circuit to perform yet another fit without any constraints.
+   Keep in mind that an estimate for the error of a constrained parameter's value will not be available as indicated by the ``nan`` values. However, this can be remedied by using the obtained fitted circuit to perform yet another fit without any constraints.
 
 
-.. code::
-
-   | Element   | Parameter   |         Value |   Std. err. (%) | Unit   | Fixed   |
-   |:----------|:------------|--------------:|----------------:|:-------|:--------|
-   | R_1       | R           | 143.48        |      0.0892796  | ohm    | No      |
-   | R_2       | R           | 229.69        |      0.283135   | ohm    | No      |
-   | Q_1       | Y           |   1.78048e-07 |      0.00759739 | S*s^n  | No      |
-   | Q_1       | n           |   0.912652    |      0.013558   |        | No      |
-   | R_3       | R           | 853.869       |      0.0916479  | ohm    | No      |
-   | Q_2       | Y           |   7.80619e-07 |      0.0126453  | S*s^n  | No      |
-   | Q_2       | n           |   0.856809    |      0.0280145  |        | No      |
-   | R_4       | R           | 475.967       |      0.230118   | ohm    | No      |
-   | Q_3       | Y           |   1.60529e-05 |      0.697925   | S*s^n  | No      |
-   | Q_3       | n           |   0.952274    |      0.190482   |        | No      |
-
-   | Label                          | Value               |
-   |:-------------------------------|:--------------------|
-   | Log pseudo chi-squared         | -4.262336239351527  |
-   | Log chi-squared                | -10.111392253122428 |
-   | Log chi-squared (reduced)      | -11.968724749553697 |
-   | Akaike info. criterion         | -2250.5029461349936 |
-   | Bayesian info. criterion       | -2226.435753662351  |
-   | Degrees of freedom             | 72                  |
-   | Number of data points          | 82                  |
-   | Number of function evaluations | 79                  |
-   | Method                         | least_squares       |
-   | Weight                         | boukamp             |
+.. literalinclude:: example_fitting_constraints_3b.txt
 
 
 .. raw:: latex
