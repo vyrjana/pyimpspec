@@ -132,6 +132,9 @@ dmypy.json
 docs/API*.md
 docs/API*.pdf
 docs/documentation
+docs/source/example_fitting_constraints_*.txt
+docs/source/example_drt_lm_analysis_*.txt
+docs/source/example_drt_peak_analysis_*.txt
 src/pyimpspec/CHANGELOG.md
 src/pyimpspec/CONTRIBUTORS
 src/pyimpspec/COPYRIGHT
