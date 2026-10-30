@@ -518,41 +518,117 @@ class Fitting(TestCase):
         with self.assertRaises(AttributeError):
             identifiers[Q1]["R"]
 
-        fit: FitResult = fit_circuit(
-          circuit,
-          data,
-          method="least_squares",
-          weight="boukamp",
-          constraint_expressions={
-            identifiers[R3].R: f"{identifiers[R2].R} + alpha",
-            identifiers[R4].R: f"{identifiers[R3].R} - beta",
-            identifiers[Q2].Y: f"{identifiers[Q1].Y} + gamma",
-            identifiers[Q3].Y: f"{identifiers[Q2].Y} + delta",
-          },
-          constraint_variables=dict(
-            alpha=dict(
-              value=500,
-              min=1,
+    def test_constrained_fit(self):
+        data: DataSet = generate_mock_data("R{R=120}(R{R=330}C{C=1e-7})(R{R=840}C{C=1e-6})(R{R=470}C{C=2e-5})", noise=0.1, seed=42)[0]
+
+        circuit: Circuit = parse_cdc("R{:ser}(R{:hf}C{:hf})(R{:mf}C{:mf})(R{:lf}C{:lf})")
+
+        identifiers: Dict[Element, FitIdentifiers] = generate_fit_identifiers(circuit)
+        R_ser, R_hf, C_hf, R_mf, C_mf, R_lf, C_lf = circuit.get_elements()
+
+        constrained_fit: FitResult = fit_circuit(
+            circuit,
+            data,
+            method="least_squares",
+            weight="boukamp",
+            constraint_expressions={
+                identifiers[R_mf].R: f"{identifiers[R_hf].R} * {identifiers[C_hf].C} / {identifiers[C_mf].C} * 10**alpha",
+                identifiers[R_lf].R: f"{identifiers[R_mf].R} * {identifiers[C_mf].C} / {identifiers[C_lf].C} * 10**beta",
+            },
+            constraint_variables=dict(
+                alpha=dict(
+                    value=0.3,
+                    min=0.0,
+                    max=6.0,
+                ),
+                beta=dict(
+                    value=0.8,
+                    min=0.0,
+                    max=6.0,
+                ),
             ),
-            beta=dict(
-              value=300,
-              min=1,
-            ),
-            gamma=dict(
-              value=1e-8,
-              min=1e-12,
-            ),
-            delta=dict(
-              value=2e-7,
-              min=1e-12,
-            ),
-          ),
         )
 
-        R1, R2, Q1, R3, Q2, R4, Q3 = fit.circuit.get_elements()
+        # The constrained fit should provide a good fit with the (RC) units in
+        # increasing order of time constant
+        R_ser, R_hf, C_hf, R_mf, C_mf, R_lf, C_lf = constrained_fit.circuit.get_elements()
+        self.assertAlmostEqual(
+            R_ser.get_value("R"),
+            120.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            R_hf.get_value("R"),
+            330.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_hf.get_value("C"),
+            1e-7,
+            delta=0.1e-7,
+        )
+        self.assertAlmostEqual(
+            R_mf.get_value("R"),
+            840.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_mf.get_value("C"),
+            1e-6,
+            delta=0.1e-6,
+        )
+        self.assertAlmostEqual(
+            R_lf.get_value("R"),
+            470.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_lf.get_value("C"),
+            2e-5,
+            delta=0.1e-5
+        )
 
-        # Make sure the values are in the expected order
-        self.assertLess(R2.get_value("R"), R4.get_value("R"))
-        self.assertLess(R4.get_value("R"), R3.get_value("R"))
-        self.assertLess(Q1.get_value("Y"), Q2.get_value("Y"))
-        self.assertLess(Q2.get_value("Y"), Q3.get_value("Y"))
+        unconstrained_fit: FitResult = fit_circuit(
+            circuit,
+            data,
+            method="least_squares",
+            weight="boukamp",
+        )
+
+        # The unconstrained fit should provide a good fit, but the order is different
+        R_ser, R_hf, C_hf, R_mf, C_mf, R_lf, C_lf = unconstrained_fit.circuit.get_elements()
+        self.assertAlmostEqual(
+            R_ser.get_value("R"),
+            120.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            R_hf.get_value("R"),
+            840.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_hf.get_value("C"),
+            1e-6,
+            delta=0.1e-6,
+        )
+        self.assertAlmostEqual(
+            R_mf.get_value("R"),
+            330.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_mf.get_value("C"),
+            1e-7,
+            delta=0.1e-7,
+        )
+        self.assertAlmostEqual(
+            R_lf.get_value("R"),
+            470.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_lf.get_value("C"),
+            2e-5,
+            delta=0.1e-5
+        )
