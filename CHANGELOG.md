@@ -1,3 +1,12 @@
+# 5.x.x (YYYY/MM/DD)
+
+- Fixed bugs in how the objective function was implemented when fitting equivalent circuit models. Fitting should now converge on a solution more quickly.
+- Added residual sum of squares (accessible via the `FitResult.rss` property) to `FitResult` objects. This value has also been added to the output of `FitResult.to_statistics_dataframe()`.
+- Added a separately calculated Akaike information criterion (accessible via the `FitResult.aic` property) based on `FitResult.rss`.
+- Added a separately calculated Bayesian information criterion (accessible via the `FitResult.aic` property) based on `FitResult.rss`.
+- Removed the chi-squared and reduced chi-squared statistics from the output of `FitResult.to_statistics_dataframe()`. The values are still accessible under `FitResult.minimizer_result.chisqr` and `FitResult.minimizer_result.redchi` as earlier.
+
+
 # 5.2.0 (2026/09/24)
 
 - Added support for `.crv` files from OrigaLys.
