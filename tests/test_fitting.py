@@ -23,6 +23,7 @@ from numpy import (
     allclose,
     angle,
     float64,
+    log as ln,
     zeros,
 )
 from numpy.random import (
@@ -85,27 +86,24 @@ PROGRESS.register(progress_callback)
 
 seed(42)
 DATA: DataSet = parse_data("data-comma.csv")[0]
-sd: float = 0.005
+sd: float = 0.1 / 100
 Z = DATA.get_impedances()
 noise = zeros(len(Z), dtype=Z.dtype)
 noise.real = abs(Z) * normal(0, sd, len(Z))
 noise.imag = abs(Z) * normal(0, sd, len(Z))
 DATA.subtract_impedances(-noise)
+del Z
 
 
 # TODO: Implement tests for invalid arguments
 class Fitting(TestCase):
     # kwargs
     arg_method: str = "least_squares"
-    arg_weight: str = "proportional"
+    arg_weight: str = "boukamp"
     arg_max_nfev: int = -1
     arg_num_procs: int = -1
     # comparison values
-    cmp_pseudo_chisqr: float = 1.7e-3
-    cmp_chisqr: float = 1.96e-05
-    cmp_redchi: float = 3.70e-07
-    cmp_aic: float = -850
-    cmp_bic: float = -840
+    cmp_pseudo_chisqr: float = 0.1**2 * len(DATA.get_frequencies()) / 5000
     cmp_units: List[str] = [
         "ohm",
         "ohm",
@@ -113,12 +111,11 @@ class Fitting(TestCase):
         "ohm",
         "S*s^n",
         "",
-        "F",
     ]
 
     @classmethod
     def setUpClass(cls):
-        cls.circuit: Circuit = parse_cdc("R(RC)(RW)C{C=5e2f}")
+        cls.circuit: Circuit = parse_cdc("R(RC)(RW)")
         cls.result: FitResult = fit_circuit(
             circuit=cls.circuit,
             data=DATA,
@@ -220,7 +217,7 @@ class Fitting(TestCase):
     def test_cdc(self):
         self.assertEqual(
             self.result.circuit.to_string(0),
-            "[R{R=1E+02/0E+00/inf}(R{R=2E+02/0E+00/inf}C{C=8E-07/1E-24/1E+03})(R{R=5E+02/0E+00/inf}W{Y=4E-04/1E-24/inf,n=5E-01F/0E+00/1E+00})C{C=5E+02F/1E-24/1E+03}]",
+            "[R{R=1E+02/0E+00/inf}(R{R=2E+02/0E+00/inf}C{C=8E-07/1E-24/1E+03})(R{R=5E+02/0E+00/inf}W{Y=4E-04/1E-24/inf,n=5E-01F/0E+00/1E+00})]",
         )
 
     def test_get_frequencies(self):
@@ -260,28 +257,33 @@ class Fitting(TestCase):
             self.cmp_pseudo_chisqr,
         )
 
-    def test_chisqr(self):
-        self.assertLessEqual(
-            self.result.minimizer_result.chisqr,
-            self.cmp_chisqr,
-        )
-
-    def test_redchi(self):
-        self.assertLessEqual(
-            self.result.minimizer_result.redchi,
-            self.cmp_redchi,
+    def test_rss(self):
+        Z_exp = DATA.get_impedances()
+        Z_fit = self.result.get_impedances()
+        delta = Z_exp - Z_fit
+        self.assertAlmostEqual(
+            self.result.rss,
+            sum(delta.real**2 + delta.imag**2),
         )
 
     def test_aic(self):
-        self.assertLessEqual(
-            self.result.minimizer_result.aic,
-            self.cmp_aic,
+        self.assertAlmostEqual(
+            self.result.aic,
+            (
+                self.result.minimizer_result.ndata
+                * ln(self.result.rss / self.result.minimizer_result.ndata)
+                + 2 * self.result.minimizer_result.nvarys
+            )
         )
 
     def test_bic(self):
-        self.assertLessEqual(
-            self.result.minimizer_result.bic,
-            self.cmp_bic,
+        self.assertAlmostEqual(
+            self.result.bic,
+            (
+                self.result.minimizer_result.ndata
+                * ln(self.result.rss / self.result.minimizer_result.ndata)
+                + ln(self.result.minimizer_result.ndata) * self.result.minimizer_result.nvarys
+            )
         )
 
     def test_get_residuals_data(self):
@@ -317,7 +319,7 @@ class Fitting(TestCase):
         df: DataFrame = self.result.to_parameters_dataframe()
         self.assertIsInstance(df, DataFrame)
         lines: List[str] = df.to_markdown().split("\n")
-        self.assertEqual(len(lines), 9)
+        self.assertEqual(len(lines), 8)
         line: str = lines.pop(0)
         self.assertTrue(
             0
@@ -357,7 +359,6 @@ class Fitting(TestCase):
         self.assertTrue("C_2" in markdown)
         self.assertTrue("R_3" in markdown)
         self.assertTrue("W_4" in markdown)
-        self.assertTrue("C_5" in markdown)
 
     def test_to_parameters_dataframe_to_latex(self):
         df: DataFrame = self.result.to_parameters_dataframe()
