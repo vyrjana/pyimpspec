@@ -70,55 +70,30 @@ Each method has its own function that can be used but there is also a wrapper fu
 
 Below are some figures demonstrating the results of the methods listed above when applied to the example data.
 
-.. plot::
 
-   from pyimpspec import (
-     fit_circuit,
-     parse_cdc,
-     generate_mock_data,
-   )
-   from pyimpspec.analysis.drt import (
-     calculate_drt_bht,
-     calculate_drt_lm,
-     calculate_drt_mrq_fit,
-     calculate_drt_tr_nnls,
-     calculate_drt_tr_rbf,
-   )
-   from pyimpspec import mpl
+.. plot:: example_drt_data.py
+   :caption: An impedance spectrum corresponding to a ``R(RQ)(RQ)(RQ)`` circuit.
 
-   def adjust_limits(ax):
-     ax.set_xlim(1e-5, 1e1)
-     ax.set_ylim(-100, 900)
-   
-   data = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
-   figure, axes = mpl.plot_nyquist(data, colors=dict(impedance="black"), markers=dict(impedance="o"))
-   figure.tight_layout()
 
-   drt = calculate_drt_bht(data)
-   figure, axes = mpl.plot_gamma(drt)
-   adjust_limits(axes[0])
-   figure.tight_layout()
+.. plot:: example_drt_bht.py
+   :caption: The distribution of relaxation times obtained with the Bayesian Hilbert transform method.
 
-   drt = calculate_drt_lm(data)
-   figure, axes = mpl.plot_gamma(drt)
-   figure.tight_layout()
 
-   circuit = parse_cdc("R(RQ)(RQ)")
-   fit = fit_circuit(circuit, data)
-   drt = calculate_drt_mrq_fit(data, fit.circuit, fit=fit)
-   figure, axes = mpl.plot_gamma(drt)
-   adjust_limits(axes[0])
-   figure.tight_layout()
+.. plot:: example_drt_lm.py
+   :caption: The distribution of relaxation times obtained with the Loewner method.
 
-   drt = calculate_drt_tr_nnls(data)
-   figure, axes = mpl.plot_gamma(drt)
-   adjust_limits(axes[0])
-   figure.tight_layout()
 
-   drt = calculate_drt_tr_rbf(data)
-   figure, axes = mpl.plot_gamma(drt)
-   adjust_limits(axes[0])
-   figure.tight_layout()
+.. plot:: example_drt_mRQfit.py
+   :caption: The distribution of relaxation times obtained with the m(RQ)-fit method.
+
+
+.. plot:: example_drt_tr_nnls.py
+   :caption: The distribution of relaxation times obtained with the Tikhonov-regularized non-negative least squares method.
+
+
+.. plot:: example_drt_tr_rbf.py
+   :caption: The distribution of relaxation times obtained with the Tikhonov-regularized radial basis function discretization method.
+
 
 
 .. raw:: latex
@@ -127,38 +102,20 @@ Below are some figures demonstrating the results of the methods listed above whe
 
 
 
-.. plot::
-
-   from pyimpspec import (
-     generate_mock_data,
-     parse_cdc,
-   )
-   from pyimpspec.analysis.drt import calculate_drt_lm
-   from pyimpspec import mpl
-
-   cdc = "R{R=140}(R{R=230}C{C=1e-6})(R{R=576}C{C=1e-4})(R{R=150}L{L=4e1})"
-   circuit = parse_cdc(cdc)
-   drawing = circuit.to_drawing()
-   drawing.draw()
-
-   data = generate_mock_data(cdc, noise=0)[0]
-   drt = calculate_drt_lm(data)
-
-   figure, axes = mpl.plot_nyquist(data, colors=dict(impedance="black"), markers=dict(impedance="o"))
-   mpl.plot_nyquist(drt, colors=dict(impedance="red"), markers=dict(impedance="+"), figure=figure, axes=axes)
-   figure.tight_layout()
-
-   figure, axes = mpl.plot_gamma(drt)
-   figure.tight_layout()
+.. plot:: example_drt_lm_analysis_a.py
+   :caption: The equivalent circuit model used to simulate the example data (:math:`R_1 = 140\ \Omega`, :math:`R_2 = 230\ \Omega`, :math:`R_3 = 576\ \Omega`, :math:`R_4 = 150\ \Omega`, :math:`C_1 = 10^{-6}\ {\rm F}`, :math:`C_2 = 10^{-4}\ {\rm F}`, and :math:`L_1 = 40\ {\rm H}`).
 
 
-.. code::
+.. plot:: example_drt_lm_analysis_b.py
+   :caption: Nyquist plot of the example data and the impedance reconstructed based on the Loewner method's result.
 
-   |   tau, RC (s) |   gamma, RC (ohm) |   tau, RL (s) |   gamma, RL (ohm) |
-   |--------------:|------------------:|--------------:|------------------:|
-   |   8.00717e-12 |           289.999 |      0.266667 |           150.012 |
-   |   0.00023     |           230     |    nan        |           nan     |
-   |   0.0576      |           576.007 |    nan        |           nan     |
+
+
+.. plot:: example_drt_lm_analysis_c.py
+   :caption: The distribution of relaxation times obtained with the Loewner method without any noise added to the example data.
+
+
+.. literalinclude:: example_drt_lm_analysis_c.txt
 
 
 This example shows that some additional processing of the obtained values may be necessary.
@@ -178,65 +135,11 @@ The above is a best-case scenario, but even with a bit of added noise (:math:`\s
 - :math:`R_4 \approx 149\ \Omega` and :math:`L_2 \approx 0.271608\ {\rm s} \times 149.085\ \Omega \approx 40\ {\rm H}`
 
 
-.. plot::
-
-   from pyimpspec import (
-     generate_mock_data,
-     parse_cdc,
-   )
-   from pyimpspec.analysis.drt import calculate_drt_lm
-   from pyimpspec import mpl
-
-   cdc = "R{R=140}(R{R=230}C{C=1e-6})(R{R=576}C{C=1e-4})(R{R=150}L{L=4e1})"
-   data = generate_mock_data(cdc, noise=5e-2, seed=42)[0]
-   drt = calculate_drt_lm(data)
-
-   figure, axes = mpl.plot_gamma(drt)
-   figure.tight_layout()
+.. plot:: example_drt_lm_analysis_d.py
+   :caption: The distribution of relaxation times obtained with the Loewner method when noise has been added to the example data.
 
 
-.. code::
-
-   |   tau, RC (s) |   gamma, RC (ohm) |   tau, RL (s) |   gamma, RL (ohm) |
-   |--------------:|------------------:|--------------:|------------------:|
-   |   4.60645e-10 |      289.925      |   3.05543e-06 |        0.00891355 |
-   |   5.28003e-06 |        0.0198689  |   3.05543e-06 |        0.00891355 |
-   |   5.28003e-06 |        0.0198689  |   1.63833e-05 |        0.0126733  |
-   |   5.92308e-06 |        0.0270496  |   1.63833e-05 |        0.0126733  |
-   |   5.92308e-06 |        0.0270496  |   2.75326e-05 |        0.0099311  |
-   |   1.01729e-05 |        0.00475814 |   2.75326e-05 |        0.0099311  |
-   |   1.01729e-05 |        0.00475814 |   0.000109749 |        0.0314605  |
-   |   3.70669e-05 |        0.0147584  |   0.000109749 |        0.0314605  |
-   |   3.70669e-05 |        0.0147584  |   0.000166522 |        0.0195471  |
-   |   7.28352e-05 |        0.0196474  |   0.000166522 |        0.0195471  |
-   |   7.28352e-05 |        0.0196474  |   0.000272624 |        0.0393392  |
-   |   0.000230559 |      230.233      |   0.000272624 |        0.0393392  |
-   |   0.000771132 |        0.00893735 |   0.000512795 |        0.0399306  |
-   |   0.000771132 |        0.00893735 |   0.000512795 |        0.0399306  |
-   |   0.00105728  |        0.00459818 |   0.00789638  |        0.0116901  |
-   |   0.00105728  |        0.00459818 |   0.00789638  |        0.0116901  |
-   |   0.00185517  |        0.0331227  |   0.00956206  |        1.02824    |
-   |   0.00185517  |        0.0331227  |   0.271608    |      149.085      |
-   |   0.00370024  |        0.0500698  |   0.658958    |        0.0536769  |
-   |   0.00370024  |        0.0500698  |   0.658958    |        0.0536769  |
-   |   0.00546967  |        0.044606   |   1.45096     |        0.0433677  |
-   |   0.00546967  |        0.044606   |   1.45096     |        0.0433677  |
-   |   0.0126403   |        0.150534   | nan           |      nan          |
-   |   0.0126403   |        0.150534   | nan           |      nan          |
-   |   0.0285097   |        0.00708604 | nan           |      nan          |
-   |   0.0285097   |        0.00708604 | nan           |      nan          |
-   |   0.0455447   |        0.116258   | nan           |      nan          |
-   |   0.0455447   |        0.116258   | nan           |      nan          |
-   |   0.0574022   |      574.438      | nan           |      nan          |
-   |   0.0675327   |        0.0681987  | nan           |      nan          |
-   |   0.0675327   |        0.0681987  | nan           |      nan          |
-   |   0.131324    |        0.0287684  | nan           |      nan          |
-   |   0.131324    |        0.0287684  | nan           |      nan          |
-   |   0.228107    |        0.0382958  | nan           |      nan          |
-   |   0.228107    |        0.0382958  | nan           |      nan          |
-   |   0.276414    |        0.0018757  | nan           |      nan          |
-   |   0.276414    |        0.0018757  | nan           |      nan          |
-   |   1.00071     |        1.19876    | nan           |      nan          |
+.. literalinclude:: example_drt_lm_analysis_d.txt
 
 
 .. raw:: latex
@@ -250,65 +153,25 @@ Peak analysis
 DRT results (aside from those obtained using the Loewner method) can be analyzed using skew normal distributions (see `Danzer (2019) <https://doi.org/10.3390/batteries5030053>`_ and `Plank et al. (2024) <https://doi.org/10.1016/j.jpowsour.2023.233845>`_).
 This facilitates the estimation of the polarization contribution of each peak based on the area of that peak.
 
-.. plot::
 
-   from pyimpspec import (
-     generate_mock_data,
-     parse_cdc,
-   )
-   from pyimpspec.analysis.drt import calculate_drt_tr_rbf
-   from pyimpspec import mpl
-
-   cdc = "R{R=100}(R{R=300}C{C=5e-6})(R{R=450}C{C=1e-5})"
-   circuit = parse_cdc(cdc)
-   drawing = circuit.to_drawing()
-   drawing.draw()
-
-   data = generate_mock_data(cdc, noise=5e-2, seed=42)[0]
-   drt = calculate_drt_tr_rbf(data)
-
-   figure, axes = mpl.plot_nyquist(data, colors=dict(impedance="black"), markers=dict(impedance="o"))
-   mpl.plot_nyquist(drt, colors=dict(impedance="red"), markers=dict(impedance="+"), figure=figure, axes=axes)
-   figure.tight_layout()
-
-   figure, axes = mpl.plot_gamma(drt)
-   figure.tight_layout()
-
-   peaks = drt.analyze_peaks()
-   figure, axes = mpl.plot_gamma(drt)
-   figure.tight_layout()
-
-   peaks.to_peaks_dataframe().to_markdown(index=False)
+.. plot:: example_drt_peak_analysis_a.py
+   :caption: The equivalent circuit model used to simulate the example data (:math:`R_1 = 100\ \Omega`, :math:`R_2 = 300\ \Omega`, :math:`R_3 = 450\ \Omega`, :math:`C_1 = 5 \times 10^{-6}\ {\rm F}`, and :math:`C_2 = 10^{-5}\ {\rm F}`).
 
 
-.. code::
-
-   |     tau (s) |   gamma (ohm) |   R_peak (ohm) |
-   |------------:|--------------:|---------------:|
-   | 1.24844e-05 |   2.68972e-08 |    4.33529e-07 |
-   | 0.00155063  | 520.733       |  280.396       |
-   | 0.00419888  | 831.637       |  470.508       |
-   | 9.76195     |   0.364749    |    0.552689    |
+.. plot:: example_drt_peak_analysis_b.py
+   :caption: The example data a small amount of added noise and the impedance reconstructed from the TR-RBF method result.
 
 
-.. list-table:: True and estimated values of parallel RC elements.
-   :header-rows: 1
+.. plot:: example_drt_peak_analysis_c.py
+   :caption: The distribution of relaxation times obtained with the TR-RBF method.
 
-   * - Component
-     - True value
-     - Estimated value
-   * - :math:`R_2`
-     - :math:`300\ \Omega`
-     - :math:`280\ \Omega`
-   * - :math:`C_1`
-     - :math:`5.0 \times 10^{-6}\ {\rm F}`
-     - :math:`5.5 \times 10^{-6}\ {\rm F}`
-   * - :math:`R_3`
-     - :math:`450\ \Omega`
-     - :math:`471\ \Omega`
-   * - :math:`C_2`
-     - :math:`1.0 \times 10^{-5}\ {\rm F}`
-     - :math:`8.9 \times 10^{-6}\ {\rm F}`
+
+
+.. plot:: example_drt_peak_analysis_d.py
+   :caption: The results of the peak analysis applied to the distribution of relaxation times obtained with the TR-RBF method.
+
+
+.. literalinclude:: example_drt_peak_analysis_d.txt
 
 
 .. raw:: latex
