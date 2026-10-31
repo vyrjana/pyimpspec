@@ -1,4 +1,4 @@
-# 5.x.x (YYYY/MM/DD)
+# 5.3.0 (2026/MM/DD)
 
 - Fixed bugs in how the objective function was implemented when fitting equivalent circuit models. Fitting should now converge on a solution more quickly.
 - Added residual sum of squares (accessible via the `FitResult.rss` property) to `FitResult` objects. This value has also been added to the output of `FitResult.to_statistics_dataframe()`.
