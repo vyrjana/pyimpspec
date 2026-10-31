@@ -5,7 +5,7 @@ requires = [
     "setuptools==84.2.1",
     "build==1.6.1",
     "flake8==7.4.1",
-    "sphinx==9.1.1",
+    "sphinx==9.1.0",
     "sphinx-rtd-theme==3.1.0",
 ]
 
@@ -81,7 +81,7 @@ dev = [
     "setuptools==84.2.1",
     "build==1.6.1",
     "flake8==7.4.1",
-    "sphinx==9.1.1",
+    "sphinx==9.1.0",
     "sphinx-rtd-theme==3.1.0",
 ]
 
