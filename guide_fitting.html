@@ -1,0 +1,550 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Circuit fitting &mdash; pyimpspec 5.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="_static/plot_directive.css" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5c0b1849"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Command-line interface (CLI)" href="guide_cli.html" />
+    <link rel="prev" title="Equivalent circuits" href="guide_circuit.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            pyimpspec
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="guide.html">Getting started</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="guide_installing.html">Installing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_data.html">Data parsing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_kramers_kronig.html">Kramers-Kronig testing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_zhit.html">Z-HIT analysis</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_drt.html">Distribution of relaxation times</a></li>
+<li class="toctree-l2"><a class="reference internal" href="guide_circuit.html">Equivalent circuits</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Circuit fitting</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#performing-a-fit">Performing a fit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#generating-tables-and-diagrams">Generating tables and diagrams</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#using-mathematical-constraints">Using mathematical constraints</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="guide_cli.html">Command-line interface (CLI)</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="apidocs.html">API Documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyimpspec</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="guide.html">Getting started</a></li>
+      <li class="breadcrumb-item active">Circuit fitting</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/guide_fitting.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="circuit-fitting">
+<h1>Circuit fitting<a class="headerlink" href="#circuit-fitting" title="Link to this heading"></a></h1>
+<p>Equivalent circuit fitting is a very common way of analyzing impedance spectra.
+The aim is to extract quantitative information regarding physical characteristics by modeling a system using an equivalent circuit where each element corresponds to some aspect of the system that is being investigated (solution resistance, double-layer capacitance, cable inductance, etc.).
+Each element in the circuit has a known expression for its impedance and so does the resulting circuit.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Impedance spectra should be validated using, e.g., Kramers-Kronig tests prior to proceeding with circuit fitting.
+The instrument control software for your potentiostat/galvanostat may include tools for analyzing the excitation and response signals for indications of non-linear behavior.</p>
+</div>
+<section id="performing-a-fit">
+<h2>Performing a fit<a class="headerlink" href="#performing-a-fit" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="apidocs_fitting.html#pyimpspec.fit_circuit" title="pyimpspec.fit_circuit"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_circuit()</span></code></a> function performs the fitting and returns a <a class="reference internal" href="apidocs_fitting.html#pyimpspec.FitResult" title="pyimpspec.FitResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">FitResult</span></code></a> object.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">Circuit</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">DataSet</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">FitResult</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">fit_circuit</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">parse_cdc</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">generate_mock_data</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span><span class="s2">"CIRCUIT_1"</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">"R(RC)(RW)"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span><span class="p">:</span> <span class="n">FitResult</span> <span class="o">=</span> <span class="n">fit_circuit</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="apidocs_fitting.html#pyimpspec.fit_circuit" title="pyimpspec.fit_circuit"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_circuit()</span></code></a> tries various combinations of iteration methods and weights by default to achieve the best fit.
+It may still be necessary to adjust the initial values and/or the limits of the various parameters of the circuit elements.
+The <a class="reference internal" href="apidocs_fitting.html#pyimpspec.FitResult" title="pyimpspec.FitResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">FitResult</span></code></a> object contains, e.g., the fitted <a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a> object and the <a class="reference external" href="https://lmfit.github.io/lmfit-py/fitting.html#lmfit.minimizer.MinimizerResult">lmfit.MinimizerResult</a>.</p>
+<p>The two figures below show the impedance spectrum and the fitted circuit as a Nyquist plot, and the residuals of the fit, respectively.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/0eab351eb47e40751464aed2adc598bc/guide_fitting-1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_fitting-1_00.svg" class="plot-directive" src="_images/guide_fitting-1_00.svg" />
+</figure>
+<figure class="align-default">
+<img alt="_images/guide_fitting-1_01.svg" class="plot-directive" src="_images/guide_fitting-1_01.svg" />
+</figure>
+</section>
+<section id="generating-tables-and-diagrams">
+<h2>Generating tables and diagrams<a class="headerlink" href="#generating-tables-and-diagrams" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="apidocs_fitting.html#pyimpspec.FitResult" title="pyimpspec.FitResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">FitResult</span></code></a> objects have methods that generate <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.html#pandas.DataFrame">pandas.DataFrame</a> objects, which can in turn be used to generate, e.g., Markdown or LaTeX tables (<a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_markdown.html#pandas.DataFrame.to_markdown">pandas.DataFrame.to_markdown</a> or <a class="reference external" href="https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.to_latex.html#pandas.DataFrame.to_latex">pandas.DataFrame.to_latex</a>, respectively).
+Thus, it is quite easy to generate a table containing the fitted parameter values or the statistics related to the fit.
+<a class="reference internal" href="apidocs_circuit.html#pyimpspec.Circuit" title="pyimpspec.Circuit"><code class="xref py py-class docutils literal notranslate"><span class="pre">Circuit</span></code></a> objects have methods for generating circuit diagrams either in the form of a string containing <a class="reference external" href="https://github.com/circuitikz/circuitikz">CircuiTikZ</a>-compatible commands or as a <a class="reference external" href="https://schemdraw.readthedocs.io/en/latest/classes/drawing.html#schemdraw.Drawing">schemdraw.Drawing</a> object.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">schemdraw</span><span class="w"> </span><span class="kn">import</span> <span class="n">Drawing</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFrame</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">Circuit</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">DataSet</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">FitResult</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">fit_circuit</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">generate_mock_data</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span><span class="s2">"CIRCUIT_1"</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">"R(RC)(RW)"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span><span class="p">:</span> <span class="n">FitResult</span> <span class="o">=</span> <span class="n">fit_circuit</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">to_sympy</span><span class="p">()</span>
+<span class="go">R_0 + 1/(2*I*pi*C_2*f + 1/R_1) + 1/(Y_4*(2*I*pi*f)**n_4 + 1/R_3)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">drawing</span><span class="p">:</span> <span class="n">Drawing</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">to_drawing</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">to_parameters_dataframe</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parameters</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">to_statistics_dataframe</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">statistics</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The circuit diagram would look like this:</p>
+<p>(<a class="reference download internal" download="" href="_downloads/bacbdaadeb9ebe1ec3d97f0b284c1eae/guide_fitting-2.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_fitting-2.svg" class="plot-directive" src="_images/guide_fitting-2.svg" />
+</figure>
+<p>The contents of <code class="docutils literal notranslate"><span class="pre">parameters</span></code> and <code class="docutils literal notranslate"><span class="pre">statistics</span></code> in the example above would be along the lines of:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>         <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|--------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_1</span>       <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">100.019</span>       <span class="o">|</span>       <span class="mf">0.0510552</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_2</span>       <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">199.805</span>       <span class="o">|</span>       <span class="mf">0.0792938</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_1</span>       <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">7.99849e-07</span> <span class="o">|</span>       <span class="mf">0.0882405</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_3</span>       <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">500.029</span>       <span class="o">|</span>       <span class="mf">0.117923</span>  <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">W_1</span>       <span class="o">|</span> <span class="n">Y</span>           <span class="o">|</span>   <span class="mf">0.00039991</span>  <span class="o">|</span>       <span class="mf">0.198213</span>  <span class="o">|</span> <span class="n">S</span><span class="o">*</span><span class="n">s</span><span class="o">^</span><span class="n">n</span>  <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">W_1</span>       <span class="o">|</span> <span class="n">n</span>           <span class="o">|</span>   <span class="mf">0.5</span>         <span class="o">|</span>     <span class="n">nan</span>         <span class="o">|</span>        <span class="o">|</span> <span class="n">Yes</span>     <span class="o">|</span>
+
+<span class="o">|</span> <span class="n">Label</span>                          <span class="o">|</span> <span class="n">Value</span>               <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">-------------------------------|</span><span class="p">:</span><span class="o">--------------------|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>         <span class="o">|</span> <span class="o">-</span><span class="mf">4.160334813189715</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">residual</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">squares</span>    <span class="o">|</span> <span class="mf">1.122377404804515</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">Akaike</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>         <span class="o">|</span> <span class="o">-</span><span class="mf">139.43268083233875</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Bayesian</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>       <span class="o">|</span> <span class="o">-</span><span class="mf">127.39908459601747</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Degrees</span> <span class="n">of</span> <span class="n">freedom</span>             <span class="o">|</span> <span class="mi">77</span>                  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">data</span> <span class="n">points</span>          <span class="o">|</span> <span class="mi">82</span>                  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">function</span> <span class="n">evaluations</span> <span class="o">|</span> <span class="mi">204</span>                 <span class="o">|</span>
+<span class="o">|</span> <span class="n">Method</span>                         <span class="o">|</span> <span class="n">least_squares</span>       <span class="o">|</span>
+<span class="o">|</span> <span class="n">Weight</span>                         <span class="o">|</span> <span class="n">boukamp</span>             <span class="o">|</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>It may not always be possible to estimate errors for fitted parameters.
+Common causes include:</p>
+<ul class="simple">
+<li><p>A parameter’s fitted value is close to the parameter’s lower or upper limit.</p></li>
+<li><p>An inappropriate equivalent circuit has been chosen.</p></li>
+<li><p>The maximum number of function evaluations is set too low.</p></li>
+<li><p>The data contains no noise and the equivalent circuit is very good at reproducing the data.</p></li>
+</ul>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As was mentioned in <a class="reference internal" href="guide_circuit.html"><span class="doc">Equivalent circuits</span></a>, circuit elements and their variables are by default represented in different ways in <a class="reference external" href="https://www.sympy.org/en/index.html">SymPy</a> expressions compared to circuit drawings and in this case also tables of fitted parameters.
+Calling <code class="docutils literal notranslate"><span class="pre">fit.to_parameters_dataframe</span></code> with <code class="docutils literal notranslate"><span class="pre">running=True</span></code> can be done to have the same running count as in the SymPy expression of the fitted circuit.</p>
+</div>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">schemdraw</span><span class="w"> </span><span class="kn">import</span> <span class="n">Drawing</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataFrame</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">Circuit</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">DataSet</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">FitResult</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">fit_circuit</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">generate_mock_data</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span><span class="s2">"CIRCUIT_1"</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="mf">5e-2</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">"R(RC)(RW)"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span><span class="p">:</span> <span class="n">FitResult</span> <span class="o">=</span> <span class="n">fit_circuit</span><span class="p">(</span><span class="n">circuit</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fit</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">to_sympy</span><span class="p">()</span>
+<span class="go">R_0 + 1/(2*I*pi*C_2*f + 1/R_1) + 1/(Y_4*(2*I*pi*f)**n_4 + 1/R_3)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">drawing</span><span class="p">:</span> <span class="n">Drawing</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">circuit</span><span class="o">.</span><span class="n">to_drawing</span><span class="p">(</span><span class="n">running</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">df</span><span class="p">:</span> <span class="n">DataFrame</span> <span class="o">=</span> <span class="n">fit</span><span class="o">.</span><span class="n">to_parameters_dataframe</span><span class="p">(</span><span class="n">running</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">parameters</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">df</span><span class="o">.</span><span class="n">to_markdown</span><span class="p">(</span><span class="n">index</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="_downloads/2fffbf003199f84e2a1689a55ecf82e6/guide_fitting-3.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/guide_fitting-3.svg" class="plot-directive" src="_images/guide_fitting-3.svg" />
+</figure>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>         <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|--------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_0</span>       <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">100.009</span>       <span class="o">|</span>       <span class="mf">0.0272264</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_1</span>       <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">199.904</span>       <span class="o">|</span>       <span class="mf">0.0760636</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_2</span>       <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">7.99918e-07</span> <span class="o">|</span>       <span class="mf">0.453359</span>  <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_3</span>       <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">500.016</span>       <span class="o">|</span>       <span class="mf">0.0796571</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">W_4</span>       <span class="o">|</span> <span class="n">Y</span>           <span class="o">|</span>   <span class="mf">0.000399959</span> <span class="o">|</span>       <span class="mf">0.187019</span>  <span class="o">|</span> <span class="n">S</span><span class="o">*</span><span class="n">s</span><span class="o">^</span><span class="n">n</span>  <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">W_4</span>       <span class="o">|</span> <span class="n">n</span>           <span class="o">|</span>   <span class="mf">0.5</span>         <span class="o">|</span>     <span class="n">nan</span>         <span class="o">|</span>        <span class="o">|</span> <span class="n">Yes</span>     <span class="o">|</span>
+</pre></div>
+</div>
+</section>
+<section id="using-mathematical-constraints">
+<h2>Using mathematical constraints<a class="headerlink" href="#using-mathematical-constraints" title="Link to this heading"></a></h2>
+<p>It is possible to make use of <a class="reference external" href="https://lmfit.github.io/lmfit-py/index.html">lmfit</a>’s support for <a class="reference external" href="https://lmfit.github.io/lmfit-py/constraints.html">mathemical constraints</a>.
+For example, let’s say that we have a series of impedance spectra that we wish to analyze using the same equivalent circuit model where there are three repeating <code class="docutils literal notranslate"><span class="pre">(RC)</span></code> units that should correspond to the high-, mid-, and low-frequency ranges.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/6fb0fd9096bca0099d1e44e89ccc0898/example_fitting_constraints_circuit.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default">
+<img alt="_images/example_fitting_constraints_circuit.svg" class="plot-directive" src="_images/example_fitting_constraints_circuit.svg" />
+</figure>
+<p>Fitting this circuit to the first impedance spectrum yields a good fit but the fitted parameters of the <code class="docutils literal notranslate"><span class="pre">(RC)</span></code> units do not correspond to the expected order.
+The time constants of the high-, mid-, and low-frequency <code class="docutils literal notranslate"><span class="pre">(RC)</span></code> units should have the following trend: <span class="math notranslate nohighlight">\(\tau_{\rm hf} &lt; \tau_{\rm mf} &lt; \tau_{\rm lf}\)</span>.
+However, this is not the case since <span class="math notranslate nohighlight">\(\tau_{\rm hf} \approx 10^{-3.1}\ {\rm s}\)</span>, <span class="math notranslate nohighlight">\(\tau_{\rm mf} \approx 10^{-4.5}\ {\rm s}\)</span>, and <span class="math notranslate nohighlight">\(\tau_{\rm lf} \approx 10^{-2.0}\ {\rm s}\)</span>.</p>
+<p>We could set the initial values to coax the <code class="docutils literal notranslate"><span class="pre">(RC)</span></code> units into the desired order.
+Or we could programmatically rearrange and label the <code class="docutils literal notranslate"><span class="pre">(RC)</span></code> units ourselves after the fit.
+Alternatively, we could use constraints.
+In the following example, we express the mid-frequency resistance as <span class="math notranslate nohighlight">\(R_{\rm mf} = 10^\alpha \times R_{\rm hf} C_{\rm hf} / C_{\rm mf}\)</span> where <span class="math notranslate nohighlight">\(\alpha \geq 0\)</span>.
+Similarly, the low-frequency resistance is expressed as <span class="math notranslate nohighlight">\(R_{\rm lf} = 10^\beta \times R_{\rm mf} C_{\rm mf} / C_{\rm lf}\)</span> where <span class="math notranslate nohighlight">\(\beta \geq 0\)</span>.
+To accomplish this, we need to provide the <a class="reference internal" href="apidocs_fitting.html#pyimpspec.fit_circuit" title="pyimpspec.fit_circuit"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_circuit()</span></code></a> function with two additional arguments: <code class="docutils literal notranslate"><span class="pre">constraint_expressions</span></code> and <code class="docutils literal notranslate"><span class="pre">constraint_variables</span></code>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">constraint_expressions</span></code> argument maps the names/identifiers, which are provided to <a class="reference external" href="https://lmfit.github.io/lmfit-py/index.html">lmfit</a> during the fitting process, of the constrained parameters to strings that contain the expressions that define the constraints.
+The <a class="reference internal" href="apidocs_fitting.html#pyimpspec.generate_fit_identifiers" title="pyimpspec.generate_fit_identifiers"><code class="xref py py-func docutils literal notranslate"><span class="pre">generate_fit_identifiers()</span></code></a> function can be used to obtain the names/identifiers of an element’s parameters that will be available within the context where the constraint expressions are parsed and evaluated by <a class="reference external" href="https://lmfit.github.io/lmfit-py/index.html">lmfit</a>.
+See <a class="reference external" href="https://lmfit.github.io/lmfit-py/constraints.html">lmfit’s documentation about constraints</a> for information about operators, functions, and constants that are available for use in expressions.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Dict</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">pyimpspec</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<span class="gp">... </span>  <span class="n">Circuit</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">DataSet</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">Element</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">FitIdentifiers</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">FitResult</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">fit_circuit</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">generate_fit_identifiers</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">generate_mock_data</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">parse_cdc</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">data</span><span class="p">:</span> <span class="n">DataSet</span> <span class="o">=</span> <span class="n">generate_mock_data</span><span class="p">(</span>
+<span class="gp">... </span>  <span class="s2">"R{R=120}(R{R=330}C{C=1e-7})(R{R=840}C{C=1e-6})(R{R=470}C{C=2e-5})"</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">noise</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>
+<span class="gp">... </span>  <span class="n">seed</span><span class="o">=</span><span class="mi">42</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">circuit</span><span class="p">:</span> <span class="n">Circuit</span> <span class="o">=</span> <span class="n">parse_cdc</span><span class="p">(</span><span class="s2">"R{:ser}(R{:hf}C{:hf})(R{:mf}C{:mf})(R{:lf}C{:lf})"</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">identifiers</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Element</span><span class="p">,</span> <span class="n">FitIdentifiers</span><span class="p">]</span> <span class="o">=</span> <span class="n">generate_fit_identifiers</span><span class="p">(</span><span class="n">circuit</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">elements</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Element</span><span class="p">]</span> <span class="o">=</span> <span class="n">circuit</span><span class="o">.</span><span class="n">get_elements</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">R_ser</span><span class="p">,</span> <span class="n">R_hf</span><span class="p">,</span> <span class="n">C_hf</span><span class="p">,</span> <span class="n">R_mf</span><span class="p">,</span> <span class="n">C_mf</span><span class="p">,</span> <span class="n">R_lf</span><span class="p">,</span> <span class="n">C_lf</span> <span class="o">=</span> <span class="n">elements</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">constraint_expressions</span> <span class="o">=</span> <span class="p">{</span>
+<span class="gp">... </span>    <span class="n">identifiers</span><span class="p">[</span><span class="n">R_mf</span><span class="p">]</span><span class="o">.</span><span class="n">R</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">identifiers</span><span class="p">[</span><span class="n">R_hf</span><span class="p">]</span><span class="o">.</span><span class="n">R</span><span class="si">}</span><span class="s2"> * </span><span class="si">{</span><span class="n">identifiers</span><span class="p">[</span><span class="n">C_hf</span><span class="p">]</span><span class="o">.</span><span class="n">C</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">identifiers</span><span class="p">[</span><span class="n">C_mf</span><span class="p">]</span><span class="o">.</span><span class="n">C</span><span class="si">}</span><span class="s2"> * 10**alpha"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">identifiers</span><span class="p">[</span><span class="n">R_lf</span><span class="p">]</span><span class="o">.</span><span class="n">R</span><span class="p">:</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">identifiers</span><span class="p">[</span><span class="n">R_mf</span><span class="p">]</span><span class="o">.</span><span class="n">R</span><span class="si">}</span><span class="s2"> * </span><span class="si">{</span><span class="n">identifiers</span><span class="p">[</span><span class="n">C_mf</span><span class="p">]</span><span class="o">.</span><span class="n">C</span><span class="si">}</span><span class="s2"> / </span><span class="si">{</span><span class="n">identifiers</span><span class="p">[</span><span class="n">C_lf</span><span class="p">]</span><span class="o">.</span><span class="n">C</span><span class="si">}</span><span class="s2"> * 10**beta"</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">constraint_variables</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">alpha</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">value</span><span class="o">=</span><span class="mf">0.3</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="nb">max</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span>    <span class="n">beta</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+<span class="gp">... </span>        <span class="n">value</span><span class="o">=</span><span class="mf">0.8</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="nb">min</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span>
+<span class="gp">... </span>        <span class="nb">max</span><span class="o">=</span><span class="mf">6.0</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="p">),</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">constrained_fit</span><span class="p">:</span> <span class="n">FitResult</span> <span class="o">=</span> <span class="n">fit_circuit</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="n">circuit</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">data</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">method</span><span class="o">=</span><span class="s2">"least_squares"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">weight</span><span class="o">=</span><span class="s2">"boukamp"</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">constraint_expressions</span><span class="o">=</span><span class="n">constraint_expressions</span><span class="p">,</span>
+<span class="gp">... </span>    <span class="n">constraint_variables</span><span class="o">=</span><span class="n">constraint_variables</span><span class="p">,</span>
+<span class="gp">... </span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">constraint_variables</span></code> argument can be used to define any additional variables that would be used by the constraint expressions.
+See <a class="reference external" href="https://lmfit.github.io/lmfit-py/parameters.html#lmfit.parameter.Parameter">lmfit’s documentation about Parameters</a> for information about valid keyword arguments.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/5d3d1a9d04b588e486ed84c719ba48a5/example_fitting_constraints_1.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default" id="id3">
+<img alt="_images/example_fitting_constraints_1.svg" class="plot-directive" src="_images/example_fitting_constraints_1.svg" />
+<figcaption>
+<p><span class="caption-text">Example data based on a <code class="docutils literal notranslate"><span class="pre">R(RC)(RC)(RC)</span></code> circuit (<span class="math notranslate nohighlight">\(R_{\rm ser} = 120\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_1 = 120\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_2 = 840\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_3 = 470\ \Omega\)</span>, <span class="math notranslate nohighlight">\(C_1 = 10^{-7}\ {\rm F}\)</span>, <span class="math notranslate nohighlight">\(C_2 = 10^{-6}\ {\rm F}\)</span>, and <span class="math notranslate nohighlight">\(C_3 = 2 \times 10^{-5}\ {\rm F}\)</span>).</span><a class="headerlink" href="#id3" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Unconstrained fit</span>
+
+<span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>         <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|--------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_ser</span>     <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">120.068</span>       <span class="o">|</span>       <span class="mf">0.0341837</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_hf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">839.927</span>       <span class="o">|</span>       <span class="mf">0.0858873</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_hf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">1.00036e-06</span> <span class="o">|</span>       <span class="mf">0.0902275</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_mf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">329.879</span>       <span class="o">|</span>       <span class="mf">0.0573161</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_mf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">1.0016e-07</span>  <span class="o">|</span>       <span class="mf">0.0643597</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_lf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">470.144</span>       <span class="o">|</span>       <span class="mf">0.165151</span>  <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_lf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">2.00307e-05</span> <span class="o">|</span>       <span class="mf">0.421995</span>  <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+
+<span class="o">|</span> <span class="n">Label</span>                          <span class="o">|</span> <span class="n">Value</span>               <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">-------------------------------|</span><span class="p">:</span><span class="o">--------------------|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>         <span class="o">|</span> <span class="o">-</span><span class="mf">4.0181241766056175</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">residual</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">squares</span>    <span class="o">|</span> <span class="mf">2.1542156188278123</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Akaike</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>         <span class="o">|</span> <span class="mf">33.06173460550208</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">Bayesian</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>       <span class="o">|</span> <span class="mf">52.68988191863488</span>   <span class="o">|</span>
+<span class="o">|</span> <span class="n">Degrees</span> <span class="n">of</span> <span class="n">freedom</span>             <span class="o">|</span> <span class="mi">115</span>                 <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">data</span> <span class="n">points</span>          <span class="o">|</span> <span class="mi">122</span>                 <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">function</span> <span class="n">evaluations</span> <span class="o">|</span> <span class="mi">121</span>                 <span class="o">|</span>
+<span class="o">|</span> <span class="n">Method</span>                         <span class="o">|</span> <span class="n">least_squares</span>       <span class="o">|</span>
+<span class="o">|</span> <span class="n">Weight</span>                         <span class="o">|</span> <span class="n">boukamp</span>             <span class="o">|</span>
+
+
+<span class="c1"># Constrained fit</span>
+
+<span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>         <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|--------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_ser</span>     <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">120.067</span>       <span class="o">|</span>       <span class="mf">0.0341366</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_hf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">329.879</span>       <span class="o">|</span>       <span class="mf">0.0573944</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_hf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">1.00159e-07</span> <span class="o">|</span>       <span class="mf">0.0642868</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_mf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">839.928</span>       <span class="o">|</span>     <span class="n">nan</span>         <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">Yes</span>     <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_mf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">1.00035e-06</span> <span class="o">|</span>       <span class="mf">0.0906081</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_lf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">470.143</span>       <span class="o">|</span>     <span class="n">nan</span>         <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">Yes</span>     <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_lf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">2.00307e-05</span> <span class="o">|</span>       <span class="mf">0.422141</span>  <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+
+<span class="o">|</span> <span class="n">Label</span>                          <span class="o">|</span> <span class="n">Value</span>              <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">-------------------------------|</span><span class="p">:</span><span class="o">-------------------|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>         <span class="o">|</span> <span class="o">-</span><span class="mf">4.018130204098158</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">residual</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">squares</span>    <span class="o">|</span> <span class="mf">2.1542242418625523</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Akaike</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>         <span class="o">|</span> <span class="mf">33.064156948594444</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Bayesian</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>       <span class="o">|</span> <span class="mf">52.692304261727244</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Degrees</span> <span class="n">of</span> <span class="n">freedom</span>             <span class="o">|</span> <span class="mi">115</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">data</span> <span class="n">points</span>          <span class="o">|</span> <span class="mi">122</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">function</span> <span class="n">evaluations</span> <span class="o">|</span> <span class="mi">268</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Method</span>                         <span class="o">|</span> <span class="n">least_squares</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">Weight</span>                         <span class="o">|</span> <span class="n">boukamp</span>            <span class="o">|</span>
+</pre></div>
+</div>
+<p>As shown in the next two examples, the use of constraints can also help to achieve a good fit without first setting the initial values of the circuit elements themselves.
+Letting <a class="reference internal" href="apidocs_fitting.html#pyimpspec.fit_circuit" title="pyimpspec.fit_circuit"><code class="xref py py-func docutils literal notranslate"><span class="pre">fit_circuit()</span></code></a> try different combinations of fitting methods and weights can also achieve a good fit without adjusting the initial values since another combination of method and weight may be able to converge on a solution despite the suboptimal starting conditions.</p>
+<p>(<a class="reference download internal" download="" href="_downloads/f9ef7681df14590e1f4e74d1b560adb0/example_fitting_constraints_2.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default" id="id5">
+<img alt="_images/example_fitting_constraints_2.svg" class="plot-directive" src="_images/example_fitting_constraints_2.svg" />
+<figcaption>
+<p><span class="caption-text">Example data based on a <code class="docutils literal notranslate"><span class="pre">R(RC)(RC)(RC)</span></code> circuit (<span class="math notranslate nohighlight">\(R_{\rm ser} = 120\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_1 = 630\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_2 = 210\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_3 = 1230\ \Omega\)</span>, <span class="math notranslate nohighlight">\(C_1 = 2 \times 10^{-7}\ {\rm F}\)</span>, <span class="math notranslate nohighlight">\(C_2 = 3 \times 10^{-6}\ {\rm F}\)</span>, and <span class="math notranslate nohighlight">\(C_3 = 3 \times 10^{-5}\ {\rm F}\)</span>).</span><a class="headerlink" href="#id5" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Unconstrained fit</span>
+
+<span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>         <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|--------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_ser</span>     <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">542.645</span>       <span class="o">|</span>     <span class="mf">7.95262</span>     <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_hf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">605.744</span>       <span class="o">|</span>     <span class="mf">9.41072e+08</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_hf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">2.40542e-06</span> <span class="o">|</span>   <span class="n">nan</span>           <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_mf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">605.744</span>       <span class="o">|</span>     <span class="mf">9.69958e+08</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_mf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">2.40542e-06</span> <span class="o">|</span>   <span class="n">nan</span>           <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_lf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">605.744</span>       <span class="o">|</span>     <span class="mf">9.91535e+08</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_lf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">2.40542e-06</span> <span class="o">|</span>     <span class="mf">9.96185e+08</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+
+<span class="o">|</span> <span class="n">Label</span>                          <span class="o">|</span> <span class="n">Value</span>              <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">-------------------------------|</span><span class="p">:</span><span class="o">-------------------|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>         <span class="o">|</span> <span class="mf">2.1999945597205186</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">residual</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">squares</span>    <span class="o">|</span> <span class="mf">7.444795175556683</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Akaike</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>         <span class="o">|</span> <span class="mf">1519.2669083215012</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Bayesian</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>       <span class="o">|</span> <span class="mf">1538.895055634634</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Degrees</span> <span class="n">of</span> <span class="n">freedom</span>             <span class="o">|</span> <span class="mi">115</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">data</span> <span class="n">points</span>          <span class="o">|</span> <span class="mi">122</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">function</span> <span class="n">evaluations</span> <span class="o">|</span> <span class="mi">24</span>                 <span class="o">|</span>
+<span class="o">|</span> <span class="n">Method</span>                         <span class="o">|</span> <span class="n">least_squares</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">Weight</span>                         <span class="o">|</span> <span class="n">boukamp</span>            <span class="o">|</span>
+
+
+<span class="c1"># Constrained fit</span>
+
+<span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>          <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|---------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_ser</span>     <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>  <span class="mf">120.027</span>       <span class="o">|</span>       <span class="mf">0.0282415</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_hf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>  <span class="mf">631.1</span>         <span class="o">|</span>       <span class="mf">0.159964</span>  <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_hf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">2.0004e-07</span>  <span class="o">|</span>       <span class="mf">0.0705913</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_mf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>  <span class="mf">208.633</span>       <span class="o">|</span>     <span class="n">nan</span>         <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">Yes</span>     <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_mf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">3.03483e-06</span> <span class="o">|</span>       <span class="mf">1.02436</span>   <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_lf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">1230.15</span>        <span class="o">|</span>     <span class="n">nan</span>         <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">Yes</span>     <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_lf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">2.99872e-05</span> <span class="o">|</span>       <span class="mf">0.100163</span>  <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+
+<span class="o">|</span> <span class="n">Label</span>                          <span class="o">|</span> <span class="n">Value</span>              <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">-------------------------------|</span><span class="p">:</span><span class="o">-------------------|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>         <span class="o">|</span> <span class="o">-</span><span class="mf">4.004243214793252</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">residual</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">squares</span>    <span class="o">|</span> <span class="mf">2.2191542591185973</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Akaike</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>         <span class="o">|</span> <span class="mf">51.30399750683148</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Bayesian</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>       <span class="o">|</span> <span class="mf">70.93214481996428</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Degrees</span> <span class="n">of</span> <span class="n">freedom</span>             <span class="o">|</span> <span class="mi">115</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">data</span> <span class="n">points</span>          <span class="o">|</span> <span class="mi">122</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">function</span> <span class="n">evaluations</span> <span class="o">|</span> <span class="mi">238</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Method</span>                         <span class="o">|</span> <span class="n">least_squares</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">Weight</span>                         <span class="o">|</span> <span class="n">boukamp</span>            <span class="o">|</span>
+</pre></div>
+</div>
+<p>(<a class="reference download internal" download="" href="_downloads/5138e71cb14e1c8f81c852467d37df5f/example_fitting_constraints_3.py"><code class="xref download docutils literal notranslate"><span class="pre">Source</span> <span class="pre">code</span></code></a>)</p>
+<figure class="align-default" id="id7">
+<img alt="_images/example_fitting_constraints_3.svg" class="plot-directive" src="_images/example_fitting_constraints_3.svg" />
+<figcaption>
+<p><span class="caption-text">Example data based on a <code class="docutils literal notranslate"><span class="pre">R(RC)(RC)(RC)</span></code> circuit (<span class="math notranslate nohighlight">\(R_{\rm ser} = 120\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_1 = 350\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_2 = 30\ \Omega\)</span>, <span class="math notranslate nohighlight">\(R_3 = 5000\ \Omega\)</span>, <span class="math notranslate nohighlight">\(C_1 = 10^{-7}\ {\rm F}\)</span>, <span class="math notranslate nohighlight">\(C_2 = 4 \times 10^{-5}\ {\rm F}\)</span>, and <span class="math notranslate nohighlight">\(C_3 = 5 \times 10^{-6}\ {\rm F}\)</span>).</span><a class="headerlink" href="#id7" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Unconstrained fit</span>
+
+<span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>         <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|--------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_ser</span>     <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">170.914</span>       <span class="o">|</span>     <span class="mf">8.43466</span>     <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_hf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">773.564</span>       <span class="o">|</span>     <span class="mf">3.63815e+07</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_hf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">2.53744e-05</span> <span class="o">|</span>     <span class="mf">3.60979e+07</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_mf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">856.444</span>       <span class="o">|</span>     <span class="mf">3.28609e+07</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_mf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">2.31367e-05</span> <span class="o">|</span>     <span class="mf">3.29168e+07</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_lf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">904.411</span>       <span class="o">|</span>   <span class="mf">126.29</span>        <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_lf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>   <span class="mf">2.78425e-06</span> <span class="o">|</span>    <span class="mf">56.9609</span>      <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+
+<span class="o">|</span> <span class="n">Label</span>                          <span class="o">|</span> <span class="n">Value</span>              <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">-------------------------------|</span><span class="p">:</span><span class="o">-------------------|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>         <span class="o">|</span> <span class="mf">1.1844165662788608</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">residual</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">squares</span>    <span class="o">|</span> <span class="mf">8.151740593130445</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Akaike</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>         <span class="o">|</span> <span class="mf">1717.8587498895283</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Bayesian</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>       <span class="o">|</span> <span class="mf">1737.486897202661</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Degrees</span> <span class="n">of</span> <span class="n">freedom</span>             <span class="o">|</span> <span class="mi">115</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">data</span> <span class="n">points</span>          <span class="o">|</span> <span class="mi">122</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">function</span> <span class="n">evaluations</span> <span class="o">|</span> <span class="mi">119</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Method</span>                         <span class="o">|</span> <span class="n">least_squares</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">Weight</span>                         <span class="o">|</span> <span class="n">boukamp</span>            <span class="o">|</span>
+
+
+<span class="c1"># Constrained fit</span>
+
+<span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>          <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|---------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_ser</span>     <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>  <span class="mf">120.065</span>       <span class="o">|</span>       <span class="mf">0.0334348</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_hf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>  <span class="mf">349.867</span>       <span class="o">|</span>       <span class="mf">0.0431667</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_hf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">1.0015e-07</span>  <span class="o">|</span>       <span class="mf">0.0599234</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_mf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>   <span class="mf">29.7904</span>      <span class="o">|</span>     <span class="n">nan</span>         <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">Yes</span>     <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_mf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">4.02098e-05</span> <span class="o">|</span>       <span class="mf">1.7329</span>    <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_lf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">5000.27</span>        <span class="o">|</span>     <span class="n">nan</span>         <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">Yes</span>     <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_lf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">4.99899e-06</span> <span class="o">|</span>       <span class="mf">0.0471055</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+
+<span class="o">|</span> <span class="n">Label</span>                          <span class="o">|</span> <span class="n">Value</span>              <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">-------------------------------|</span><span class="p">:</span><span class="o">-------------------|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>         <span class="o">|</span> <span class="o">-</span><span class="mf">4.016222274015865</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">residual</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">squares</span>    <span class="o">|</span> <span class="mf">2.972257409924966</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Akaike</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>         <span class="o">|</span> <span class="mf">262.86225630792967</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Bayesian</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>       <span class="o">|</span> <span class="mf">282.49040362106246</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Degrees</span> <span class="n">of</span> <span class="n">freedom</span>             <span class="o">|</span> <span class="mi">115</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">data</span> <span class="n">points</span>          <span class="o">|</span> <span class="mi">122</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">function</span> <span class="n">evaluations</span> <span class="o">|</span> <span class="mi">322</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Method</span>                         <span class="o">|</span> <span class="n">least_squares</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">Weight</span>                         <span class="o">|</span> <span class="n">boukamp</span>            <span class="o">|</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Keep in mind that an estimate for the error of a constrained parameter’s value will not be available as indicated by the <code class="docutils literal notranslate"><span class="pre">nan</span></code> values. However, this can be remedied by using the obtained fitted circuit to perform yet another fit without any constraints.</p>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Refined fit</span>
+
+<span class="o">|</span> <span class="n">Element</span>   <span class="o">|</span> <span class="n">Parameter</span>   <span class="o">|</span>          <span class="n">Value</span> <span class="o">|</span>   <span class="n">Std</span><span class="o">.</span> <span class="n">err</span><span class="o">.</span> <span class="p">(</span><span class="o">%</span><span class="p">)</span> <span class="o">|</span> <span class="n">Unit</span>   <span class="o">|</span> <span class="n">Fixed</span>   <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">----------|</span><span class="p">:</span><span class="o">------------|---------------</span><span class="p">:</span><span class="o">|----------------</span><span class="p">:</span><span class="o">|</span><span class="p">:</span><span class="o">-------|</span><span class="p">:</span><span class="o">--------|</span>
+<span class="o">|</span> <span class="n">R_ser</span>     <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>  <span class="mf">120.065</span>       <span class="o">|</span>       <span class="mf">0.0334741</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_hf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>  <span class="mf">349.867</span>       <span class="o">|</span>       <span class="mf">0.0431766</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_hf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">1.0015e-07</span>  <span class="o">|</span>       <span class="mf">0.0602028</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_mf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span>   <span class="mf">29.7904</span>      <span class="o">|</span>       <span class="mf">1.45439</span>   <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_mf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">4.02098e-05</span> <span class="o">|</span>       <span class="mf">1.73348</span>   <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">R_lf</span>      <span class="o">|</span> <span class="n">R</span>           <span class="o">|</span> <span class="mf">5000.27</span>        <span class="o">|</span>       <span class="mf">0.0241836</span> <span class="o">|</span> <span class="n">ohm</span>    <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">C_lf</span>      <span class="o">|</span> <span class="n">C</span>           <span class="o">|</span>    <span class="mf">4.99899e-06</span> <span class="o">|</span>       <span class="mf">0.0469906</span> <span class="o">|</span> <span class="n">F</span>      <span class="o">|</span> <span class="n">No</span>      <span class="o">|</span>
+
+<span class="o">|</span> <span class="n">Label</span>                          <span class="o">|</span> <span class="n">Value</span>              <span class="o">|</span>
+<span class="o">|</span><span class="p">:</span><span class="o">-------------------------------|</span><span class="p">:</span><span class="o">-------------------|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">pseudo</span> <span class="n">chi</span><span class="o">-</span><span class="n">squared</span>         <span class="o">|</span> <span class="o">-</span><span class="mf">4.016222274015865</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Log</span> <span class="n">residual</span> <span class="nb">sum</span> <span class="n">of</span> <span class="n">squares</span>    <span class="o">|</span> <span class="mf">2.972257409924966</span>  <span class="o">|</span>
+<span class="o">|</span> <span class="n">Akaike</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>         <span class="o">|</span> <span class="mf">262.86225630792967</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Bayesian</span> <span class="n">info</span><span class="o">.</span> <span class="n">criterion</span>       <span class="o">|</span> <span class="mf">282.49040362106246</span> <span class="o">|</span>
+<span class="o">|</span> <span class="n">Degrees</span> <span class="n">of</span> <span class="n">freedom</span>             <span class="o">|</span> <span class="mi">115</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">data</span> <span class="n">points</span>          <span class="o">|</span> <span class="mi">122</span>                <span class="o">|</span>
+<span class="o">|</span> <span class="n">Number</span> <span class="n">of</span> <span class="n">function</span> <span class="n">evaluations</span> <span class="o">|</span> <span class="mi">13</span>                 <span class="o">|</span>
+<span class="o">|</span> <span class="n">Method</span>                         <span class="o">|</span> <span class="n">least_squares</span>      <span class="o">|</span>
+<span class="o">|</span> <span class="n">Weight</span>                         <span class="o">|</span> <span class="n">boukamp</span>            <span class="o">|</span>
+</pre></div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="guide_circuit.html" class="btn btn-neutral float-left" title="Equivalent circuits" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="guide_cli.html" class="btn btn-neutral float-right" title="Command-line interface (CLI)" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2026, pyimpspec developers.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+from pyimpspec import (
+    fit_circuit,
+    parse_cdc,
+    generate_mock_data,
+)
+from pyimpspec import mpl
+
+data = generate_mock_data(
+    "CIRCUIT_5",
+    noise=5e-2,
+    seed=42,
+)[0]
+figure, axes = mpl.plot_nyquist(
+    data,
+    colors=dict(impedance="black"),
+    markers=dict(impedance="o"),
+)
+figure.tight_layout()
