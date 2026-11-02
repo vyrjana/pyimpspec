@@ -10,7 +10,7 @@ from inspect import getmodule
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "pyimpspec"
-copyright = "2025, pyimpspec developers"
+copyright = "2026, pyimpspec developers"
 author = "pyimpspec developers"
 release = "X.Y.Z"
 version_path = join(dirname(dirname(dirname(abspath(__file__)))), "version.txt")
@@ -29,7 +29,7 @@ extensions = [
     "matplotlib.sphinxext.plot_directive",
 ]
 
-numfig = True
+numfig = False
 templates_path = ["_templates"]
 exclude_patterns = []
 

@@ -14,44 +14,21 @@ These ECMs are KK transformable, which means that if they can be fitted to the d
 The ECM that is used for the impedance representation of the immittance data is shown below and it can contain many parallel RC elements connected in series.
 The capacitor and inductor connected in series may be necessary for impedance spectra where the imaginary parts do not approach zero at the low- and high-frequency limits, respectively.
 
-.. plot::
-   :alt: The type of circuit that is used to check impedance data for Kramers-Kronig compliance: a resistance, capacitance, and inductor connected in series to an arbitrary number of parallel RC elements that are connected in series.
 
-   from pyimpspec import parse_cdc
-   circuit = parse_cdc("R(RC)(RC)CL")
-   elements = circuit.get_elements()
-   custom_labels = {
-       elements[0]: r"$R_{\rm ser}$",
-       elements[1]: r"$R_1$",
-       elements[2]: r"$C_1$",
-       elements[3]: r"$R_k$",
-       elements[4]: r"$C_k$",
-       elements[5]: r"$C_{\rm ser}$",
-       elements[6]: r"$L_{\rm ser}$",
-   }
-   circuit.to_drawing(custom_labels=custom_labels).draw()
+.. plot:: example_kramers_kronig_circuit_impedance.py
+   :caption: The type of circuit used for validating impedance spectra.
+   :alt: The type of circuit that is used to check impedance data for Kramers-Kronig compliance: a resistance, capacitance, and inductor connected in series to an arbitrary number of parallel RC elements that are connected in series.
 
 
 For the admittance representation of the immittance data, the following equivalent circuit is used instead.
 Here, many series RC elements are connected in parallel.
 Similarly to the circuit shown above, a parallel capacitor and/or a parallel inductor may be needed for some admittance spectra.
 
-.. plot::
+
+.. plot:: example_kramers_kronig_circuit_admittance.py
+   :caption: The type of circuit used for validating admittance spectra.
    :alt: The type of circuit that is used to check admittance data for Kramers-Kronig compliance: a resistance, capacitance, and inductor connected in parallel to an arbitrary number of series RC elements that are connected in parallel.
 
-   from pyimpspec import parse_cdc
-   circuit = parse_cdc("(R[RC][RC]CL)")
-   elements = circuit.get_elements()
-   custom_labels = {
-       elements[0]: r"$R_{\rm par}$",
-       elements[1]: r"$R_1$",
-       elements[2]: r"$C_1$",
-       elements[3]: r"$R_k$",
-       elements[4]: r"$C_k$",
-       elements[5]: r"$C_{\rm par}$",
-       elements[6]: r"$L_{\rm par}$",
-   }
-   circuit.to_drawing(custom_labels=custom_labels).draw()
 
 A few things to keep in mind about this approach to KK testing:
 
@@ -72,35 +49,21 @@ However, in some cases it is necessary to extend the range of time constants by 
 The range may also need to be contracted (i.e., :math:`F_{\rm ext} < 1`).
 Pyimpspec includes an implementation for automatically optimizing |F_ext| and whether or not the suggested |F_ext| is appropriate can be assessed with the help of a 3D plot of |log pseudo chi-squared| as a function of |N_tau| and |log F_ext|.
 
-.. plot::
 
-   from pyimpspec import (
-     generate_mock_data,
-     mpl,
-   )
-   from pyimpspec.analysis.kramers_kronig import (
-     evaluate_log_F_ext,
-     suggest_num_RC,
-   )
+.. plot:: example_kramers_kronig_optimization_3d.py
+   :caption: The goodness of fit observed at different numbers of time constants and ranges of time constants. The optimal extension factor is indicated above the plot.
+   :alt: A three-dimensional plot of the pseudo chi-squared value as a function of the number of time constants and the logarithm of the extension factor for the range of time constants.
 
-   data = generate_mock_data("CIRCUIT_4", noise=5e-2, seed=42)[0]
-   evaluations = evaluate_log_F_ext(data, min_log_F_ext=-1.0, max_log_F_ext=1.0, num_F_ext_evaluations=20)
-   figure, axes = mpl.plot_log_F_ext(evaluations)
-   figure.tight_layout()
 
-   figure, axes = mpl.plot_log_F_ext(evaluations, projection="2d", legend=False)
-   figure.tight_layout()
-   
-   tests = evaluate_log_F_ext(data)[0][1]
-   suggestion = suggest_num_RC(tests)
-   figure, axes = mpl.plot_kramers_kronig_tests(
-     tests,
-     suggestion,
-     data,
-     legend=False,
-     colored_axes=True,
-   )
-   figure.tight_layout()
+.. plot:: example_kramers_kronig_optimization_2d.py
+   :caption: The goodness of fit observed at different numbers of time constants and ranges of time constants. The optimal extension factor is indicated above the plot.
+   :alt: A two-dimensional plot of the pseudo chi-squared value as a function of the number of time constants at different ranges of time constants.
+
+
+.. plot:: example_kramers_kronig_optimization_result.py
+   :caption: The final result of the Kramers-Kronig test. The figure shows that the impedance representation was chosen, the circuit contains both a series capacitance and a series inductance, and the range of time constants was extended.
+   :alt: The upper-left subplot shows the goodness of fit as a function of the number of time constants. The upper-right subplot shows the relative residuals. The lower-left subplot shows a Nyquist plot of the data and the fitted circuit while the lower-right subplot is the corresponding Bode plot.
+
 
 In the eaxmple above, the default range of time constants (:math:`\log{F_{\rm ext}} = 0`) exhibits a wide range of |N_tau| (:math:`8 < N_\tau < 45`) with a gradual decrease of |pseudo chi-squared|.
 An extended range of time constants (:math:`\log{F_{\rm ext}} = 0.394`, purple markers) is found to be optimal since it achieves a similarly low |pseudo chi-squared| with a lower |N_tau|.
@@ -212,29 +175,8 @@ Otherwise, only either the impedance (``admittance=False``) or the admittance (`
 A single |KramersKronigResult| can be plotted on its own, but it is also possible to plot the suggested |KramersKronigResult| along with the |pseudo chi-squared| values of all |KramersKronigResult| instances so that one can see if the suggested |KramersKronigResult| is indeed the best choice.
 
 
-.. plot::
-
-   from pyimpspec import (
-     generate_mock_data,
-     mpl,
-   )
-   from pyimpspec.analysis.kramers_kronig import (
-     evaluate_log_F_ext,
-     suggest_num_RC,
-   )
-
-   data = generate_mock_data("CIRCUIT_1", noise=5e-2, seed=42)[0]
-   tests = evaluate_log_F_ext(data)[0][1]
-   suggestion = suggest_num_RC(tests)
-
-   figure, axes = mpl.plot_kramers_kronig_tests(
-     tests,
-     suggestion,
-     data,
-     legend=False,
-     colored_axes=True,
-   )
-   figure.tight_layout()
+.. plot:: example_kramers_kronig_impedance.py
+   :caption: Example of the results obtained from the linear Kramers-Kronig test.
 
 
 From the top-left plot one can see that the estimated lower and upper limits define a range of |N_tau| values (filled circles, the y-axis on the left-hand side) where |N_tauopt| value is estimated to exist.
@@ -352,61 +294,31 @@ Some immittance spectra might not be possible to validate based on testing the i
 For example, the Nyquist plot below shows a synthetic impedance spectrum that includes a negative differential resistance (the larger, outer loop that goes from the right-hand side to the left-hand side as the frequency is decreased).
 Similar impedance spectra have been reported when measuring, e.g., `in the passive region of a system with a tantalum working electrode in hydrofluoric acid (Fig. 3b in the reference) <https://iopscience.iop.org/article/10.1149/2.0691805jes>`_.
 
-.. plot::
 
-   from pyimpspec import mpl, generate_mock_data
-   
-   data = generate_mock_data("CIRCUIT_8", noise=5e-2, seed=42)[0]
-   figure, axes = mpl.plot_nyquist(data)
-   figure.tight_layout()
+.. plot:: example_kramers_kronig_negative_differential_resistance.py
+   :caption: Impedance spectrum exhibiting a negative differential resistance.
 
 
 Attempting to perform KK tests on this impedance data as shown in the previous example incorrectly indicates that the spectrum is not linear, causal, and stable.
 
-.. plot::
 
-   from pyimpspec import generate_mock_data
-   from pyimpspec.analysis.kramers_kronig import evaluate_log_F_ext, suggest_num_RC
-   from pyimpspec import mpl
-
-   data = generate_mock_data("CIRCUIT_8", noise=5e-2, seed=42)[0]
-   tests = evaluate_log_F_ext(data)[0][1]
-   suggestion = suggest_num_RC(tests)
-   
-   figure, axes = mpl.plot_kramers_kronig_tests(tests, suggestion, data, legend=False, colored_axes=True)
-   figure.tight_layout()
+.. plot:: example_kramers_kronig_admittance_failed.py
+   :caption: A failed attempt to validate the impedance representation of an impedance spectrum exhibiting negative differential resistance.
 
 
 However, there are two approaches that can be used to successfully validate this impedance spectrum.
 The first approach is to perform the KK tests on the admittance data either explicitly (i.e., by specifying ``admittance=True`` when calling the |perform_kramers_kronig_test| and |evaluate_log_F_ext| functions) or by calling |perform_kramers_kronig_test| with ``admittance=None`` (default value). The latter should then test both the impedance and the admittance representation before ultimately suggesting the result for the most appropriate represention, which in this case is the admittance representation.
 
-.. plot::
 
-   from pyimpspec import generate_mock_data
-   from pyimpspec.analysis.kramers_kronig import evaluate_log_F_ext, suggest_num_RC
-   from pyimpspec import mpl
-
-   data = generate_mock_data("CIRCUIT_8", noise=5e-2, seed=42)[0]
-   tests = evaluate_log_F_ext(data, admittance=True)[0][1]
-   suggestion = suggest_num_RC(tests)
-   
-   figure, axes = mpl.plot_kramers_kronig_tests(tests, suggestion, data, legend=False, colored_axes=True)
-   figure.tight_layout()
+.. plot:: example_kramers_kronig_admittance_successful.py
+   :caption: A successful validation of the admittance representation of an impedance spectrum exhibiting negative differential resistance.
 
 
 The second approach is to add a parallel resistance of a suitable magnitude to the impedance data and to perform the KK tests on the resulting impedance data.
 
-.. plot::
 
-   from pyimpspec import parse_cdc
-   # A Warburg impedance is used here just to have two different symbols
-   circuit = parse_cdc("(WR)")
-   elements = circuit.get_elements()
-   custom_labels = {
-       elements[0]: r"$Z_{\rm data}$",
-       elements[1]: r"$R_{\rm par}$",
-   }
-   circuit.to_drawing(custom_labels=custom_labels).draw()
+.. plot:: example_kramers_kronig_circuit_parallel_resistance.py
+   :caption: Equivalent circuit model where a resistance is added in parallel to an experimental impedance spectrum.
 
 
 The resistance, :math:`R_{\rm par}`, is known *a priori* to be KK transformable.
@@ -421,24 +333,9 @@ Thus, the KK compliance of the resulting circuit is dependent on whether or not 
 
 As can be seen from the results below, the new, and thus also the original, impedance data has been validated successfully.
 
-.. plot::
 
-   from pyimpspec import Resistor, DataSet, generate_mock_data
-   from pyimpspec.analysis.kramers_kronig import evaluate_log_F_ext, suggest_num_RC
-   from pyimpspec import mpl
-   
-   data = generate_mock_data("CIRCUIT_8", noise=5e-2, seed=42)[0]
-   f = data.get_frequencies()
-   Z_data = data.get_impedances()
-   R = Resistor(R=50)
-   Z_res = R.get_impedances(f)
-   data = DataSet(frequencies=f, impedances=1/(1/Z_data + 1/Z_res), label=f"With parallel R={R.get_value('R'):.0f} $\Omega$")
-
-   tests = evaluate_log_F_ext(data)[0][1]
-   suggestion = suggest_num_RC(tests)
-
-   figure, axes = mpl.plot_kramers_kronig_tests(tests, suggestion, data, legend=False, colored_axes=True)
-   figure.tight_layout()
+.. plot:: example_kramers_kronig_impedance_parallel_resistance.py
+   :caption: Successful validation of an impedance spectrum exhibiting negative differential resistance after a resistance has been added in parallel.
 
 
 References:

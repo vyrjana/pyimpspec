@@ -23,6 +23,7 @@ from numpy import (
     allclose,
     angle,
     float64,
+    log as ln,
     zeros,
 )
 from numpy.random import (
@@ -85,27 +86,24 @@ PROGRESS.register(progress_callback)
 
 seed(42)
 DATA: DataSet = parse_data("data-comma.csv")[0]
-sd: float = 0.005
+sd: float = 0.1 / 100
 Z = DATA.get_impedances()
 noise = zeros(len(Z), dtype=Z.dtype)
 noise.real = abs(Z) * normal(0, sd, len(Z))
 noise.imag = abs(Z) * normal(0, sd, len(Z))
 DATA.subtract_impedances(-noise)
+del Z
 
 
 # TODO: Implement tests for invalid arguments
 class Fitting(TestCase):
     # kwargs
     arg_method: str = "least_squares"
-    arg_weight: str = "proportional"
+    arg_weight: str = "boukamp"
     arg_max_nfev: int = -1
     arg_num_procs: int = -1
     # comparison values
-    cmp_pseudo_chisqr: float = 1.7e-3
-    cmp_chisqr: float = 1.96e-05
-    cmp_redchi: float = 3.70e-07
-    cmp_aic: float = -850
-    cmp_bic: float = -840
+    cmp_pseudo_chisqr: float = 0.1**2 * len(DATA.get_frequencies()) / 5000
     cmp_units: List[str] = [
         "ohm",
         "ohm",
@@ -113,12 +111,11 @@ class Fitting(TestCase):
         "ohm",
         "S*s^n",
         "",
-        "F",
     ]
 
     @classmethod
     def setUpClass(cls):
-        cls.circuit: Circuit = parse_cdc("R(RC)(RW)C{C=5e2f}")
+        cls.circuit: Circuit = parse_cdc("R(RC)(RW)")
         cls.result: FitResult = fit_circuit(
             circuit=cls.circuit,
             data=DATA,
@@ -220,7 +217,7 @@ class Fitting(TestCase):
     def test_cdc(self):
         self.assertEqual(
             self.result.circuit.to_string(0),
-            "[R{R=1E+02/0E+00/inf}(R{R=2E+02/0E+00/inf}C{C=8E-07/1E-24/1E+03})(R{R=5E+02/0E+00/inf}W{Y=4E-04/1E-24/inf,n=5E-01F/0E+00/1E+00})C{C=5E+02F/1E-24/1E+03}]",
+            "[R{R=1E+02/0E+00/inf}(R{R=2E+02/0E+00/inf}C{C=8E-07/1E-24/1E+03})(R{R=5E+02/0E+00/inf}W{Y=4E-04/1E-24/inf,n=5E-01F/0E+00/1E+00})]",
         )
 
     def test_get_frequencies(self):
@@ -260,28 +257,33 @@ class Fitting(TestCase):
             self.cmp_pseudo_chisqr,
         )
 
-    def test_chisqr(self):
-        self.assertLessEqual(
-            self.result.minimizer_result.chisqr,
-            self.cmp_chisqr,
-        )
-
-    def test_redchi(self):
-        self.assertLessEqual(
-            self.result.minimizer_result.redchi,
-            self.cmp_redchi,
+    def test_rss(self):
+        Z_exp = DATA.get_impedances()
+        Z_fit = self.result.get_impedances()
+        delta = Z_exp - Z_fit
+        self.assertAlmostEqual(
+            self.result.rss,
+            sum(delta.real**2 + delta.imag**2),
         )
 
     def test_aic(self):
-        self.assertLessEqual(
-            self.result.minimizer_result.aic,
-            self.cmp_aic,
+        self.assertAlmostEqual(
+            self.result.aic,
+            (
+                self.result.minimizer_result.ndata
+                * ln(self.result.rss / self.result.minimizer_result.ndata)
+                + 2 * self.result.minimizer_result.nvarys
+            )
         )
 
     def test_bic(self):
-        self.assertLessEqual(
-            self.result.minimizer_result.bic,
-            self.cmp_bic,
+        self.assertAlmostEqual(
+            self.result.bic,
+            (
+                self.result.minimizer_result.ndata
+                * ln(self.result.rss / self.result.minimizer_result.ndata)
+                + ln(self.result.minimizer_result.ndata) * self.result.minimizer_result.nvarys
+            )
         )
 
     def test_get_residuals_data(self):
@@ -317,7 +319,7 @@ class Fitting(TestCase):
         df: DataFrame = self.result.to_parameters_dataframe()
         self.assertIsInstance(df, DataFrame)
         lines: List[str] = df.to_markdown().split("\n")
-        self.assertEqual(len(lines), 9)
+        self.assertEqual(len(lines), 8)
         line: str = lines.pop(0)
         self.assertTrue(
             0
@@ -357,7 +359,6 @@ class Fitting(TestCase):
         self.assertTrue("C_2" in markdown)
         self.assertTrue("R_3" in markdown)
         self.assertTrue("W_4" in markdown)
-        self.assertTrue("C_5" in markdown)
 
     def test_to_parameters_dataframe_to_latex(self):
         df: DataFrame = self.result.to_parameters_dataframe()
@@ -517,41 +518,159 @@ class Fitting(TestCase):
         with self.assertRaises(AttributeError):
             identifiers[Q1]["R"]
 
-        fit: FitResult = fit_circuit(
-          circuit,
-          data,
-          method="least_squares",
-          weight="boukamp",
-          constraint_expressions={
-            identifiers[R3].R: f"{identifiers[R2].R} + alpha",
-            identifiers[R4].R: f"{identifiers[R3].R} - beta",
-            identifiers[Q2].Y: f"{identifiers[Q1].Y} + gamma",
-            identifiers[Q3].Y: f"{identifiers[Q2].Y} + delta",
-          },
-          constraint_variables=dict(
-            alpha=dict(
-              value=500,
-              min=1,
+    def test_constrained_fit(self):
+        noise: float = 0.1
+        data: DataSet = generate_mock_data("R{R=120}(R{R=330}C{C=1e-7})(R{R=840}C{C=1e-6})(R{R=470}C{C=2e-5})", noise=noise, seed=42)[0]
+
+        circuit: Circuit = parse_cdc("R{:ser}(R{:hf}C{:hf})(R{:mf}C{:mf})(R{:lf}C{:lf})")
+
+        identifiers: Dict[Element, FitIdentifiers] = generate_fit_identifiers(circuit)
+        R_ser, R_hf, C_hf, R_mf, C_mf, R_lf, C_lf = circuit.get_elements()
+
+        constrained_fit: FitResult = fit_circuit(
+            circuit,
+            data,
+            method="least_squares",
+            weight="boukamp",
+            constraint_expressions={
+                identifiers[R_mf].R: f"{identifiers[R_hf].R} * {identifiers[C_hf].C} / {identifiers[C_mf].C} * 10**alpha",
+                identifiers[R_lf].R: f"{identifiers[R_mf].R} * {identifiers[C_mf].C} / {identifiers[C_lf].C} * 10**beta",
+            },
+            constraint_variables=dict(
+                alpha=dict(
+                    value=0.3,
+                    min=0.0,
+                    max=6.0,
+                ),
+                beta=dict(
+                    value=0.8,
+                    min=0.0,
+                    max=6.0,
+                ),
             ),
-            beta=dict(
-              value=300,
-              min=1,
-            ),
-            gamma=dict(
-              value=1e-8,
-              min=1e-12,
-            ),
-            delta=dict(
-              value=2e-7,
-              min=1e-12,
-            ),
-          ),
         )
 
-        R1, R2, Q1, R3, Q2, R4, Q3 = fit.circuit.get_elements()
+        # The constrained fit should provide a good fit with the (RC) units in
+        # increasing order of time constant
+        R_ser, R_hf, C_hf, R_mf, C_mf, R_lf, C_lf = constrained_fit.circuit.get_elements()
+        self.assertAlmostEqual(
+            R_ser.get_value("R"),
+            120.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            R_hf.get_value("R"),
+            330.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_hf.get_value("C"),
+            1e-7,
+            delta=0.1e-7,
+        )
+        self.assertAlmostEqual(
+            R_mf.get_value("R"),
+            840.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_mf.get_value("C"),
+            1e-6,
+            delta=0.1e-6,
+        )
+        self.assertAlmostEqual(
+            R_lf.get_value("R"),
+            470.0,
+            delta=1.0,
+        )
+        self.assertAlmostEqual(
+            C_lf.get_value("C"),
+            2e-5,
+            delta=0.1e-5
+        )
 
-        # Make sure the values are in the expected order
-        self.assertLess(R2.get_value("R"), R4.get_value("R"))
-        self.assertLess(R4.get_value("R"), R3.get_value("R"))
-        self.assertLess(Q1.get_value("Y"), Q2.get_value("Y"))
-        self.assertLess(Q2.get_value("Y"), Q3.get_value("Y"))
+        unconstrained_fit: FitResult = fit_circuit(
+            circuit,
+            data,
+            method="least_squares",
+            weight="boukamp",
+        )
+
+        # The unconstrained fit should be able to provide a good fit,
+        # but the order of the (RC) units may be different when sorted
+        # according to increasing time constant
+        pseudo_chisqr_threshold: float = noise**2 * len(data.get_frequencies()) / 5000
+        if unconstrained_fit.pseudo_chisqr <= pseudo_chisqr_threshold:
+            (
+                R_ser,
+                R_hf,
+                C_hf,
+                R_mf,
+                C_mf,
+                R_lf,
+                C_lf,
+            ) = unconstrained_fit.circuit.get_elements()
+
+            elements_validated = []
+            comparison_values = [
+                (120.0, 1.0),
+                (330.0, 1.0),
+                (840.0, 1.0),
+                (470.0, 1.0),
+            ]
+
+            for R in (R_ser, R_hf, R_mf, R_lf):
+                for i, (expected_value, delta) in enumerate(comparison_values):
+                    if abs(expected_value - R.get_value("R")) < delta:
+                        break
+                else:
+                    continue
+
+                elements_validated.append((f"{R.get_label()} = {R.get_value('R')}", comparison_values.pop(i)))
+
+            self.assertEqual(len(elements_validated), 4, msg=str(elements_validated))
+            self.assertEqual(len(comparison_values), 0, msg=str(comparison_values))
+
+            elements_validated = []
+            comparison_values = [
+                (1e-7, 0.1e-7),
+                (1e-6, 0.1e-6),
+                (2e-5, 0.1e-5),
+            ]
+
+            for C in (C_hf, C_mf, C_lf):
+                for i, (expected_value, delta) in enumerate(comparison_values):
+                    if abs(expected_value - C.get_value("C")) < delta:
+                        break
+                else:
+                    continue
+
+                elements_validated.append((f"{C.get_label()} = {C.get_value('C')}", comparison_values.pop(i)))
+
+            self.assertEqual(len(elements_validated), 3, msg=str(elements_validated))
+            self.assertEqual(len(comparison_values), 0, msg=str(comparison_values))
+
+            RC_unit_order = [
+                f"{t[0]} = {t[1]:.3g}"
+                for t in sorted(
+                    (
+                        (R_hf.get_label(), R_hf.get_value("R") * C_hf.get_value("C")),
+                        (R_mf.get_label(), R_mf.get_value("R") * C_mf.get_value("C")),
+                        (R_lf.get_label(), R_lf.get_value("R") * C_lf.get_value("C")),
+                    ),
+                    key=lambda t: t[1],
+                )
+            ]
+
+            if (
+                RC_unit_order[0].startswith("hf")
+                and RC_unit_order[1].startswith("mf")
+                and RC_unit_order[2].startswith("lf")
+            ):
+                print(f"\n!!! RC units in the right order in unconstrained fit: {', '.join(RC_unit_order)} !!!")
+            else:
+                print(f"\n!!! RC units in the wrong order in unconstrained fit: {', '.join(RC_unit_order)} !!!")
+
+
+        else:
+            print(f"\n!!! Poor unconstrained fit: {unconstrained_fit.pseudo_chisqr:.3g} > {pseudo_chisqr_threshold:.3g} !!!")

@@ -60,13 +60,8 @@ Below is a Nyquist plot of some example data (test circuit 1 or TC-1 from `Bouka
    The ``figure`` and ``axes`` values can be reused if one wishes to plot multiple immittance spectra in the same figure: ``mpl.plot_nyquist(data, figure=figure, axes=axes)``
 
 
-.. plot::
-
-   from pyimpspec import mpl
-   from pyimpspec import generate_mock_data
-
-   data = generate_mock_data("CIRCUIT_1")[0]
-   figure, axes = mpl.plot_nyquist(data)
+.. plot:: example_data_plotting.py
+   :caption: Example of a default Nyquist plot of a single impedance spectrum using the included wrapper for matplotlib_.
 
 
 More information and examples about these functions can be found in the API documentation (:doc:`/apidocs_plot_mpl`).
@@ -121,18 +116,13 @@ Masking a data point means that the data point will not be processed when analyz
 
 Below are two Bode plots of the example above before and after the low- and high-pass filters were applied.
 
-.. plot::
+.. plot:: example_data_masking_a.py
+   :caption: Bode plot of an impedance spectrum before masking points.
 
-   from pyimpspec import DataSet
-   from pyimpspec import mpl
-   from pyimpspec import generate_mock_data
 
-   data = generate_mock_data("CIRCUIT_1")[0]
-   figure, axes = mpl.plot_bode(data)
+.. plot:: example_data_masking_b.py
+   :caption: Bode plot of an impedance spectrum after masking points above 1 kHz and below 1 Hz.
 
-   data.low_pass(1e3)
-   data.high_pass(1e1)
-   figure, axes = mpl.plot_bode(data)
 
 .. raw:: latex
 

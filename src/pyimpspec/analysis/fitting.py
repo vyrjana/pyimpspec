@@ -18,6 +18,7 @@
 # the LICENSES folder.
 
 from copy import deepcopy
+from functools import cached_property
 from dataclasses import dataclass
 from multiprocessing import get_context
 from multiprocessing.context import TimeoutError as MPTimeoutError
@@ -40,9 +41,11 @@ from warnings import (
 from numpy import (
     angle,
     array,
+    complex128,
     float64,
     inf,
     isnan,
+    log as ln,
     log10 as log,
     nan,
     ones,
@@ -224,10 +227,13 @@ class FitResult:
         The impedances produced by the fitted circuit at each of the frequencies.
 
     residuals: |ComplexResiduals|
-        The residuals for the real (eq. 15 in Schönleber et al., 2014) and imaginary (eq. 16 in Schönleber et al., 2014) parts of the fit.
+        The relative residuals for the real (eq. 15 in Schönleber et al., 2014) and imaginary (eq. 16 in Schönleber et al., 2014) parts of the fit.
 
     pseudo_chisqr: float
         The pseudo chi-squared value (|pseudo chi-squared|, eq. 14 in Boukamp, 1995).
+
+    rss: float
+        The residual sum of squares.
 
     method: str
         The iterative method used during the fitting process.
@@ -243,11 +249,34 @@ class FitResult:
     impedances: ComplexImpedances
     residuals: ComplexResiduals
     pseudo_chisqr: float
+    rss: float
     method: str
     weight: str
 
     def __repr__(self) -> str:
         return f"FitResult ({self.circuit.to_string()}, {hex(id(self))})"
+
+    @cached_property
+    def aic(self) -> float:
+        """
+        Akaike information-criterion
+        """
+        N: int = self.minimizer_result.ndata
+        N_varys: int = self.minimizer_result.nvarys
+        aic: float = N * ln(self.rss / N) + 2 * N_varys
+
+        return aic
+
+    @cached_property
+    def bic(self) -> float:
+        """
+        Bayesian information-criterion
+        """
+        N: int = self.minimizer_result.ndata
+        N_varys: int = self.minimizer_result.nvarys
+        bic: float = N * ln(self.rss / N) + ln(N) * N_varys
+
+        return bic
 
     def get_label(self) -> str:
         """
@@ -488,10 +517,9 @@ class FitResult:
         result: MinimizerResult = self.minimizer_result
         statistics: Dict[str, Union[int, float, str]] = {
             "Log pseudo chi-squared": log(self.pseudo_chisqr),
-            "Log chi-squared": log(result.chisqr),
-            "Log chi-squared (reduced)": log(result.redchi),
-            "Akaike info. criterion": result.aic,
-            "Bayesian info. criterion": result.bic,
+            "Log residual sum of squares": log(self.rss),
+            "Akaike info. criterion": self.aic,
+            "Bayesian info. criterion": self.bic,
             "Degrees of freedom": result.nfree,
             "Number of data points": result.ndata,
             "Number of function evaluations": result.nfev,
@@ -626,51 +654,39 @@ def _residual(
     circuit: Circuit,
     f: Frequencies,
     Z_exp: ComplexImpedances,
-    weight_func: Callable,
+    weight: NDArray[float64],
     identifiers: Dict[int, Element],
 ) -> NDArray[float64]:
     _from_lmfit(params, identifiers)
     Z_fit: ComplexImpedances = circuit.get_impedances(f)
     errors: NDArray[float64] = array(
         [
-            (Z_exp.real - Z_fit.real) ** 2,
-            (Z_exp.imag - Z_fit.imag) ** 2,
+            (Z_exp.real - Z_fit.real),
+            (Z_exp.imag - Z_fit.imag),
         ],
         dtype=float64,
     )
 
-    return weight_func(Z_exp, Z_fit) * errors
+    return weight * errors
 
 
-def _unity_weight(
-    Z_exp: ComplexImpedances,
-    Z_fit: ComplexImpedances,
-) -> NDArray[float64]:
+def _unity_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
     return ones(shape=(2, Z_exp.size), dtype=float64)
 
 
-def _modulus_weight(
-    Z_exp: ComplexImpedances,
-    Z_fit: ComplexImpedances,
-) -> NDArray[float64]:
-    return ones(shape=(2, Z_exp.size), dtype=float64) / abs(Z_fit)
+def _modulus_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
+    return ones(shape=(2, Z_exp.size), dtype=float64) / abs(Z_exp)
 
 
-def _proportional_weight(
-    Z_exp: ComplexImpedances,
-    Z_fit: ComplexImpedances,
-) -> NDArray[float64]:
+def _proportional_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
     weight: NDArray[float64] = ones(shape=(2, Z_exp.size), dtype=float64)
-    weight[0] = weight[0] / Z_fit.real**2
-    weight[1] = weight[1] / Z_fit.imag**2
+    weight[0] = weight[0] / Z_exp.real**2
+    weight[1] = weight[1] / Z_exp.imag**2
 
     return weight
 
 
-def _boukamp_weight(
-    Z_exp: ComplexImpedances,
-    Z_fit: ComplexImpedances,
-) -> NDArray[float64]:
+def _boukamp_weight(Z_exp: ComplexImpedances) -> NDArray[float64]:
     # See eq. 13 in Boukamp (1995)
     return (Z_exp.real**2 + Z_exp.imag**2) ** -1  # type: ignore
 
@@ -828,7 +844,7 @@ def _fit_process(
     identifiers: Dict[Element, FitIdentifiers]
     identifiers = generate_fit_identifiers(circuit)
 
-    weight_func: Callable = _WEIGHT_FUNCTIONS[weight]
+    calculated_weight: NDArray[float64] = _WEIGHT_FUNCTIONS[weight](Z_exp=Z_exp)**0.5
 
     with catch_warnings():
         if auto:
@@ -845,7 +861,7 @@ def _fit_process(
                     circuit,
                     f,
                     Z_exp,
-                    weight_func,
+                    calculated_weight,
                     identifiers,
                 ),
                 max_nfev=None if max_nfev < 1 else max_nfev,
@@ -1181,6 +1197,8 @@ def _convert_intermediate_result(
         raise FittingError(error_msg)
 
     Z_fit: ComplexImpedances = circuit.get_impedances(f)
+    complex_residuals: NDArray[complex128] = Z_exp - Z_fit
+    rss: float = sum(complex_residuals.real**2 + complex_residuals.imag**2)
 
     return FitResult(
         circuit=circuit,
@@ -1192,6 +1210,7 @@ def _convert_intermediate_result(
         # in Schönleber et al. (2014)
         residuals=_calculate_residuals(Z_exp, Z_fit),
         pseudo_chisqr=Xps,
+        rss=rss,
         method=method,
         weight=weight,
     )
